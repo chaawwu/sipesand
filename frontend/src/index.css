@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F8FAFC] text-[#111827] antialiased selection:bg-blue-500 selection:text-white font-sans;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94A3B8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
+
+/* ========================================================================= */
+/* BENTO GRID & SOFT GLASSMORPHISM UTILITIES (CARDLESS & BLUR EFFECT)         */
+/* ========================================================================= */
+.bento-glass {
+  background: rgba(238, 244, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px 0 rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 1.5rem;
+}
+
+.bento-glass-cardless {
+  background: rgba(238, 244, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px 0 rgba(37, 99, 235, 0.08);
+  border: none;
+  border-radius: 1.5rem;
+}
+
+/* ========================================================================= */
+/* BULLETPROOF PRINT STYLES FOR KWITANSI & ID CARD (ANTI-BLANK)              */
+/* ========================================================================= */
+@media print {
+  /* Hide all app elements by default */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide headers, sidebars, buttons, overlays */
+  header, aside, footer, .print-hidden, .print\\:hidden, button, nav {
+    display: none !important;
+  }
+
+  /* Make print targets visible & properly positioned */
+  .receipt-printable, .id-card-printable-container {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  .receipt-paper {
+    display: block !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    padding: 24px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 700px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .id-card-printable {
+    display: flex !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page-break-inside: avoid !important;
+    margin: 10px auto !important;
+  }
+
+  /* Ensure stamp and signature transparencies render cleanly */
+  .stempel-layer {
+    mix-blend-mode: multiply !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

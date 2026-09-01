@@ -1,0 +1,260 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Santri: Data Pokok Santri & Uang Saku & Kartu NFC
+model Santri {
+  id          Int        @id @default(autoincrement())
+  nis         String?    @unique
+  nfcUid      String?    @unique
+  nama        String
+  gender      String     @default("L") // L = Laki-laki, P = Perempuan
+  kelas       String?
+  kamar       String?
+  alamat      String?
+  namaWali    String?
+  noHpWali    String?
+  saldo_saku  Float      @default(0)
+  status      String     @default("AKTIF") // AKTIF, NONAKTIF, ALUMNI
+  foto        String?
+  pocketTxs   PocketTx[]
+  permits     Permit[]
+  bills       SantriBill[]
+  academics   AcademicRecord[]
+  violations  ViolationRecord[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// 2. General Ledger: Buku Kas Umum Pesantren (Arus Kas Masuk & Keluar)
+model GeneralLedger {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  date        DateTime @default(now())
+  type        String   // "INCOME" (Kas Masuk) / "EXPENSE" (Kas Keluar)
+  category    String   // SPP, Donasi, Wakaf, Operasional, Gaji, Pembangunan, Konsumsi, dll
+  amount      Float
+  description String
+  reference   String?  // No Kuitansi / Bukti Transfer / Invoice
+  division    String?  // DIVISI_UMUM, DIVISI_KAMTIB, DIVISI_PENDIDIKAN, dll
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 3. PocketTx: Mutasi / Transaksi Uang Saku Santri (Mendukung Minus / Kasbon)
+model PocketTx {
+  id            Int      @id @default(autoincrement())
+  txCode        String   @unique
+  santriId      Int
+  santri        Santri   @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  type          String   // "TOPUP", "PURCHASE", "WITHDRAW"
+  amount        Float
+  balanceBefore Float    @default(0)
+  balanceAfter  Float    @default(0)
+  description   String
+  merchant      String?  // Kantin, Koperasi, Admin
+  createdAt     DateTime @default(now())
+}
+
+// 4. Permit: Perizinan Keluar / Pulang Santri (Divisi Keamanan)
+model Permit {
+  id               Int       @id @default(autoincrement())
+  permitCode       String    @unique
+  santriId         Int
+  santri           Santri    @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  type             String    @default("HARIAN") // "HARIAN", "PULANG", "DARURAT", "LOMBA", "BEROBAT"
+  reason           String
+  destination      String?
+  departureTime    DateTime
+  returnTime       DateTime
+  actualReturnTime DateTime?
+  status           String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "ACTIVE", "RETURNED", "OVERDUE"
+  approvedBy       String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// 5. Master Tagihan (Master Tarif Pembayaran Pesantren)
+model MasterBill {
+  id          Int          @id @default(autoincrement())
+  name        String       // SPP Syahriyah, Uang Gedung, Uang Makan, Kitab
+  amount      Float
+  type        String       @default("BULANAN_HIJRIYAH") // "BULANAN_HIJRIYAH", "TAHUNAN", "SEKALI_BAYAR", "LAINNYA"
+  description String?
+  isActive    Boolean      @default(true)
+  bills       SantriBill[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// 6. Tagihan Santri & Kwitansi
+model SantriBill {
+  id             Int         @id @default(autoincrement())
+  billCode       String      @unique
+  santriId       Int
+  santri         Santri      @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  masterBillId   Int?
+  masterBill     MasterBill? @relation(fields: [masterBillId], references: [id], onDelete: SetNull)
+  title          String
+  amount         Float
+  hijriMonth     String?     // Muharram, Safar, Rabiul Awal, dst
+  hijriYear      String?     // 1448 H
+  dueDate        DateTime?
+  status         String      @default("UNPAID") // "UNPAID", "PENDING_VERIFICATION", "PAID", "CANCELLED"
+  paymentDate    DateTime?
+  paymentMethod  String?     // "TRANSFER_BSI", "QRIS", "TUNAI", "POTONG_SALDO", "KING_DIGITAL_PG"
+  proofImage     String?     // Bukti transfer online wali / Bukti PG
+  pgTransactionId String?    // ID Transaksi Gateway King Digital
+  disbursedTo    String?     // Rekening Tujuan Auto-Disbursement
+  verifiedBy     String?     // Nama Bendahara verifikator / "SISTEM_KING_DIGITAL_PG"
+  verifiedAt     DateTime?
+  receiptNumber  String?     @unique
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+// 7. Catatan Akademik, Muhafadzoh (Hafalan), & Sikap (Divisi Kepala Pondok)
+model AcademicRecord {
+  id          Int      @id @default(autoincrement())
+  santriId    Int
+  santri      Santri   @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  type        String   // "MUHAFADZOH_QURAN", "SETORAN_KITAB", "NILAI_AKADEMIK", "EVALUASI_SIKAP"
+  title       String   // Hafalan Surat Al-Kahfi, Ujian Nahwu, dll
+  achievement String   // Juz 15 Ayat 1-30 / Nilai: 98 (Mumtaz) / Akhlaq Baik
+  score       Float?
+  grade       String?  // Mumtaz, Jayyid Jiddan, Jayyid, Maqbul
+  notes       String?
+  assessedBy  String   // Kepala Pondok / Ustadz Pembimbing
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+// 8. Catatan Pelanggaran & Takziran (Divisi Keamanan & Kamtib)
+model ViolationRecord {
+  id          Int       @id @default(autoincrement())
+  santriId    Int
+  santri      Santri    @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  violation   String    // Terlambat Sholat, Keluar tanpa izin, dll
+  category    String    @default("RINGAN") // "RINGAN", "SEDANG", "BERAT"
+  takziran    String    // Hukuman / Pembinaan edukatif
+  status      String    @default("PROSES") // "PROSES", "SELESAI"
+  officer     String    // Pengurus Kamtib
+  date        DateTime  @default(now())
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// 9. Pengajuan & Persetujuan Dana Divisi (Persetujuan / ACC)
+model DivisionFund {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  division    String    // DIVISI_KEAMANAN, DIVISI_PENDIDIKAN, DIVISI_DAPUR, DIVISI_SARPRAS, dll
+  title       String
+  amount      Float
+  description String
+  status      String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED", "REPORTED"
+  requestedBy String
+  approvedBy  String?
+  approvedAt  DateTime?
+  lpjProof    String?   // Bukti kuitansi / LPJ
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 10. Pengaturan Sistem & Identitas Lembaga
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 11. Manajemen Akun Multi-Divisi (Mendukung Pemetaan Santri & Evaluasi Kinerja)
+model UserAccount {
+  id               Int      @id @default(autoincrement())
+  username         String   @unique
+  password         String
+  name             String
+  role             String   // SUPER_ADMIN, BENDAHARA, KEPALA_PONDOK, KEAMANAN, PENGURUS_SAKU, PENGASUHAN
+  division         String?
+  managedSantriIds String?  // JSON String e.g. "[1, 2, 3]" untuk pemetaan santri asuh
+  performanceNotes String?  // Catatan evaluasi/kinerja dari Kepala Pondok/Super Admin
+  performanceGrade String?  // Predikat kinerja e.g. "Mumtaz", "Sangat Baik", "Perlu Pembinaan"
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// 12. B2B SaaS: Pendaftaran Mitra Pending (Menunggu Pembayaran Lisensi)
+model MitraPending {
+  id             Int      @id @default(autoincrement())
+  namaPondok     String
+  subdomain      String   @unique
+  namaPengelola  String
+  email          String
+  noWhatsapp     String
+  packageType    String   @default("TAHUNAN") // "TAHUNAN", "LIFETIME"
+  amount         Float    @default(1500000)
+  orderId        String   @unique
+  qrisUrl        String?
+  qrisString     String?
+  vaNumber       String?
+  vaBank         String   @default("BSI")
+  status         String   @default("PENDING") // "PENDING", "PAID", "EXPIRED", "CANCELLED"
+  expiredAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// 13. B2B SaaS: Data Mitra Aktif (Tenant Ter-Provisioning Otomatis & King Digital PG)
+model MitraAktif {
+  id                       Int       @id @default(autoincrement())
+  namaPondok               String
+  subdomain                String    @unique
+  namaPengelola            String
+  email                    String
+  noWhatsapp               String
+  packageType              String    @default("TAHUNAN")
+  amount                   Float
+  licenseKey               String    @unique
+  dbPath                   String
+  adminUsername            String
+  adminPasswordHash        String
+  pgEnabled                Boolean   @default(false)
+  disbursementBank         String?   @default("Bank Syariah Indonesia (BSI)")
+  disbursementAccountNo    String?
+  disbursementAccountHolder String?
+  status                   String    @default("ACTIVE") // "ACTIVE", "SUSPENDED", "EXPIRED"
+  provisionedAt            DateTime  @default(now())
+  expiredAt                DateTime?
+  invoices                 TagihanLisensi[]
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+// 14. B2B SaaS: Riwayat Tagihan Lisensi Master (TagihanLisensi)
+model TagihanLisensi {
+  id            Int         @id @default(autoincrement())
+  invoiceNo     String      @unique
+  mitraId       Int?
+  mitra         MitraAktif? @relation(fields: [mitraId], references: [id], onDelete: SetNull)
+  subdomain     String
+  namaPondok    String
+  packageType   String      // "TAHUNAN", "LIFETIME"
+  amount        Float
+  paymentMethod String      // "QRIS", "VIRTUAL_ACCOUNT_BSI", "KING_DIGITAL_PG"
+  status        String      @default("PAID") // "PENDING", "PAID", "EXPIRED"
+  paidAt        DateTime?   @default(now())
+  expiredAt     DateTime?
+  receiptUrl    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}

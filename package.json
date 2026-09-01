@@ -1,0 +1,16 @@
+{
+  "name": "sipesand-monorepo",
+  "version": "1.0.0",
+  "description": "SiPesand - Sistem Terpadu Pesantren Digital (Fullstack Project)",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "node start.js",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "seed": "npm --prefix backend run seed",
+    "build": "npm --prefix frontend run build"
+  },
+  "keywords": ["pesantren", "fullstack", "react", "express", "prisma", "nfc", "sqlite"],
+  "author": "SiPesand Team",
+  "license": "MIT"
+}

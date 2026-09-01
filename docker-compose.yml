@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  sipesand-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sipesand_saas_core
+    restart: always
+    ports:
+      - "3000:3000"
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - BASE_DOMAIN=sipesand.web.id
+      - DATABASE_URL=file:./dev.db
+    volumes:
+      - ./backend/prisma/dev.db:/app/backend/prisma/dev.db
+      - ./backend/prisma/tenants:/app/backend/prisma/tenants
+      - ./logs:/app/logs
