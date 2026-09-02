@@ -16,10 +16,17 @@ api.interceptors.request.use((config) => {
 
     if (tenantQuery) {
       config.headers['X-Tenant-Subdomain'] = tenantQuery;
-    } else if (hostname.includes('sipesand.web.id')) {
-      const parts = hostname.replace('.sipesand.web.id', '').split('.');
-      if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'mitra' && parts[0] !== 'pay') {
-        config.headers['X-Tenant-Subdomain'] = parts[0];
+    } else {
+      const baseDomains = ['sipesand.we.id', 'sipesand.web.id'];
+      const matchedBase = baseDomains.find((baseDomain) => hostname === baseDomain || hostname === `www.${baseDomain}` || hostname.endsWith(`.${baseDomain}`));
+
+      if (matchedBase) {
+        const hostWithoutBase = hostname.replace(new RegExp(`\\.${matchedBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '');
+        const parts = hostWithoutBase.split('.');
+
+        if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'mitra' && parts[0] !== 'pay') {
+          config.headers['X-Tenant-Subdomain'] = parts[0];
+        }
       }
     }
   }
@@ -117,5 +124,12 @@ export const getMitraOrderStatus = (orderId) => api.get(`/mitra/status/${orderId
 export const simulatePaymentSuccess = (orderId) => api.post(`/mitra/simulate-payment/${orderId}`);
 export const updateKingDigitalPgConfig = (data) => api.post('/mitra/pg-config', data);
 export const getAllMitraAktif = () => api.get('/mitra/all');
+
+// Developer HQ Console (mitra.sipesand.web.id)
+export const developerLogin = (data) => api.post('/mitra/developer/login', data);
+export const getDeveloperStats = () => api.get('/mitra/developer/stats');
+export const getTenantTransactions = () => api.get('/mitra/developer/transactions');
+export const toggleTenantStatus = (id) => api.post(`/mitra/tenant/toggle-status/${id}`);
+export const createTenantManual = (data) => api.post('/mitra/tenant/create-manual', data);
 
 export default api;

@@ -563,7 +563,7 @@ export default function SettingsAndAccounts() {
           <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Radio className={`w-4 h-4 ${isNfcEnabled ? 'text-blue-600 animate-pulse' : 'text-slate-400'}`} />
+                <Radio className={`w-4 h-4 ${isNfcEnabled ? 'text-[#1D4ED8]' : 'text-slate-400'}`} />
                 <span className="font-bold text-sm text-slate-900">
                   Status Fitur NFC / RFID Reader: <strong className={isNfcEnabled ? 'text-emerald-700' : 'text-slate-500'}>{isNfcEnabled ? 'AKTIF' : 'NON-AKTIF'}</strong>
                 </span>

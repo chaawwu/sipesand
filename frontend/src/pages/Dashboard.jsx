@@ -12,7 +12,6 @@ import {
   CheckCircle2, 
   Radio, 
   CreditCard, 
-  Sparkles, 
   ShieldCheck,
   TrendingDown,
   DollarSign,
@@ -93,28 +92,26 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
   return (
     <div className="space-y-6 animate-in fade-in">
       
-      {/* Top Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-bold text-amber-300 border border-white/20">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>SIPESAND SUPER ADMIN DASHBOARD</span>
+      {/* Top Welcome Banner (Clean Enterprise SaaS) */}
+      <div className="bg-[#111827] text-white rounded-[20px] p-6 sm:p-8 border border-slate-800 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-[11px] font-bold text-blue-400 border border-slate-700">
+            <Building2 className="w-3.5 h-3.5 text-blue-400" />
+            <span>PANEL SUPER ADMIN PESANTREN</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          <h2 className="font-['Poppins'] text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Pondok Pesantren Terpadu SiPesand
           </h2>
-          <p className="text-xs text-blue-100/90 max-w-xl leading-relaxed">
+          <p className="font-['Inter'] text-xs text-slate-300 max-w-xl leading-relaxed">
             Sistem Informasi Manajemen Terpadu: Pantau Kas Global, Tabungan Uang Saku, Tunggakan Santri, Perizinan, dan Muhafadzoh secara real-time.
           </p>
         </div>
 
         {/* Quick Actions in Banner */}
-        <div className="flex flex-wrap items-center gap-2.5 relative z-10">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setIsManualKasOpen(true)}
-            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#1D4ED8] hover:bg-blue-800 text-white rounded-xl font-bold text-xs shadow-subtle transition-all flex items-center gap-2 hover:-translate-y-0.5"
           >
             <Plus className="w-4 h-4" />
             <span>Input Kas Manual</span>
@@ -122,9 +119,9 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
 
           <button
             onClick={onOpenNfcModal}
-            className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl font-bold text-xs border border-white/30 transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs border border-slate-700 transition-all flex items-center gap-2"
           >
-            <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
+            <Radio className="w-4 h-4 text-blue-400" />
             <span>Scan Reader NFC</span>
           </button>
         </div>
@@ -224,11 +221,11 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
           
           {/* Card Verifikasi Pembayaran Menunggu ACC */}
           {pendingBillsList.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl p-6 space-y-3">
+            <div className="card-bento p-6 space-y-3 border-blue-200 bg-blue-50/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
-                  <h3 className="font-extrabold text-sm text-blue-950">
+                  <span className="w-2 h-2 rounded-full bg-[#1D4ED8]"></span>
+                  <h3 className="font-['Poppins'] font-bold text-sm text-slate-900">
                     Verifikasi Pembayaran Online Wali ({pendingBillsList.length} Menunggu ACC)
                   </h3>
                 </div>
@@ -292,7 +289,7 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
                       </div>
                       <div className="text-right">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isLate ? 'bg-rose-100 text-rose-700 animate-pulse' : 'bg-blue-100 text-blue-700'
+                          isLate ? 'bg-rose-100 text-rose-800' : 'bg-blue-100 text-blue-800'
                         }`}>
                           {isLate ? 'OVERDUE' : 'AKTIF KELUAR'}
                         </span>

@@ -77,9 +77,9 @@ export default function Header({
         {isNfcEnabled && (
           <button
             onClick={onOpenNfcModal}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 transition-colors shadow-sm text-xs"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] font-bold rounded-xl border border-blue-200 transition-colors shadow-subtle text-xs"
           >
-            <Radio className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+            <Radio className="w-3.5 h-3.5 text-[#1D4ED8]" />
             <span>NFC Reader</span>
           </button>
         )}

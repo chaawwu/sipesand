@@ -5,7 +5,6 @@ import {
   Info, 
   AlertTriangle, 
   X, 
-  Sparkles,
   ShieldCheck
 } from 'lucide-react';
 
@@ -63,9 +62,8 @@ export default function AestheticToast({
           </div>
 
           <div className="flex-1 min-w-0 pt-0.5">
-            <h4 className="font-bold text-xs text-white tracking-tight flex items-center gap-1.5">
-              <span>{title}</span>
-              {isSuccess && <Sparkles className="w-3 h-3 text-emerald-400" />}
+            <h4 className="font-bold text-xs text-white tracking-tight">
+              {title}
             </h4>
             {message && (
               <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">

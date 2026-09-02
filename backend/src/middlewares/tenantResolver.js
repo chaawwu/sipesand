@@ -5,6 +5,11 @@ const masterPrisma = require('../config/prisma');
 
 // Tenant Prisma Client Cache (Agar tidak membuat koneksi berulang-ulang)
 const tenantPrismaCache = new Map();
+const getBaseDomains = () => {
+  const configured = (process.env.BASE_DOMAIN || '').toLowerCase().trim();
+  const candidates = [configured, 'sipesand.we.id', 'sipesand.web.id'];
+  return [...new Set(candidates.filter(Boolean))];
+};
 
 /**
  * Mendapatkan atau membuat instance Prisma Client untuk database tenant tertentu
@@ -57,11 +62,16 @@ function tenantResolver(req, res, next) {
   }
   // 3. Cek dari Hostname URL (e.g. darululum.sipesand.web.id)
   else {
-    const baseDomain = process.env.BASE_DOMAIN || 'sipesand.web.id';
     const hostWithoutPort = host.split(':')[0].toLowerCase();
+    const matchedDomain = getBaseDomains().find((baseDomain) => {
+      const isBase = hostWithoutPort === baseDomain || hostWithoutPort === `www.${baseDomain}`;
+      const isTenant = hostWithoutPort.endsWith(`.${baseDomain}`) && !isBase;
+      return isTenant;
+    });
 
-    if (hostWithoutPort.endsWith(baseDomain) && hostWithoutPort !== baseDomain && hostWithoutPort !== `www.${baseDomain}`) {
-      const parts = hostWithoutPort.replace(`.${baseDomain}`, '').split('.');
+    if (matchedDomain) {
+      const tenantHost = hostWithoutPort.replace(`.${matchedDomain}`, '');
+      const parts = tenantHost.split('.');
       if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api') {
         subdomain = parts[0];
       }

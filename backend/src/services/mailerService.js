@@ -36,7 +36,8 @@ async function sendTenantWelcomeEmail({
 }) {
   try {
     const transporter = await createTransporter();
-    const loginUrl = `https://${subdomain}.sipesand.web.id/login`;
+    const baseDomain = process.env.BASE_DOMAIN || 'sipesand.we.id';
+    const loginUrl = `https://${subdomain}.${baseDomain}/login`;
     const localLoginUrl = `http://localhost:3000?tenant=${subdomain}`;
 
     const mailOptions = {
@@ -84,7 +85,7 @@ async function sendTenantWelcomeEmail({
                 </div>
                 <div class="cred-row">
                   <span class="cred-label">Subdomain Khusus:</span>
-                  <span class="cred-val">${subdomain}.sipesand.web.id</span>
+                  <span class="cred-val">${subdomain}.${baseDomain}</span>
                 </div>
                 <div class="cred-row">
                   <span class="cred-label">Username Admin:</span>

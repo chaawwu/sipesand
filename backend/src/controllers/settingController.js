@@ -79,7 +79,7 @@ exports.loginUser = async (req, res) => {
 
       const foundDemo = demoMap[username];
       if (foundDemo && (password === foundDemo.pass || password === 'admin123' || password === 'password123')) {
-        user = await prisma.userAccount.create({
+        user = await db.userAccount.create({
           data: {
             username,
             password,
@@ -148,7 +148,8 @@ exports.loginUser = async (req, res) => {
 // 4. Manajemen Akun Multi-Divisi: List Akun
 exports.getUserAccounts = async (req, res) => {
   try {
-    const accounts = await prisma.userAccount.findMany({
+    const db = getDb(req);
+    const accounts = await db.userAccount.findMany({
       select: {
         id: true,
         username: true,
@@ -172,13 +173,14 @@ exports.getUserAccounts = async (req, res) => {
 // 5. Manajemen Akun: Buat Akun Baru
 exports.createUserAccount = async (req, res) => {
   try {
+    const db = getDb(req);
     const { username, password, name, role, division, managedSantriIds, performanceNotes, performanceGrade } = req.body;
     if (!username || !password || !name || !role) {
       return res.status(400).json({ success: false, message: 'Username, password, nama, dan tipe akun/divisi wajib diisi' });
     }
 
     const cleanUsername = username.trim().toLowerCase();
-    const existing = await prisma.userAccount.findUnique({ where: { username: cleanUsername } });
+    const existing = await db.userAccount.findUnique({ where: { username: cleanUsername } });
     if (existing) {
       return res.status(400).json({ success: false, message: 'Username sudah digunakan' });
     }
@@ -187,7 +189,7 @@ exports.createUserAccount = async (req, res) => {
       ? JSON.stringify(managedSantriIds) 
       : (typeof managedSantriIds === 'string' ? managedSantriIds : null);
 
-    const account = await prisma.userAccount.create({
+    const account = await db.userAccount.create({
       data: {
         username: cleanUsername,
         password: password.trim(),
@@ -214,6 +216,7 @@ exports.createUserAccount = async (req, res) => {
 // 6. Update Akun (Termasuk Pemetaan Santri & Evaluasi Kinerja)
 exports.updateUserAccount = async (req, res) => {
   try {
+    const db = getDb(req);
     const { id } = req.params;
     const { name, role, division, isActive, password, managedSantriIds, performanceNotes, performanceGrade } = req.body;
 
@@ -232,7 +235,7 @@ exports.updateUserAccount = async (req, res) => {
         : (typeof managedSantriIds === 'string' ? managedSantriIds : null);
     }
 
-    const account = await prisma.userAccount.update({
+    const account = await db.userAccount.update({
       where: { id: parseInt(id) },
       data: dataToUpdate
     });
@@ -246,8 +249,9 @@ exports.updateUserAccount = async (req, res) => {
 // 7. Hapus Akun
 exports.deleteUserAccount = async (req, res) => {
   try {
+    const db = getDb(req);
     const { id } = req.params;
-    await prisma.userAccount.delete({ where: { id: parseInt(id) } });
+    await db.userAccount.delete({ where: { id: parseInt(id) } });
     res.json({ success: true, message: 'Akun berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal menghapus akun', error: err.message });
@@ -257,17 +261,18 @@ exports.deleteUserAccount = async (req, res) => {
 // 8. Auto Backup / Export Database JSON
 exports.getBackupData = async (req, res) => {
   try {
+    const db = getDb(req);
     const [santri, bills, masterBills, ledger, pocketTxs, permits, academics, violations, settings, accounts] = await Promise.all([
-      prisma.santri.findMany(),
-      prisma.santriBill.findMany(),
-      prisma.masterBill.findMany(),
-      prisma.generalLedger.findMany(),
-      prisma.pocketTx.findMany(),
-      prisma.permit.findMany(),
-      prisma.academicRecord.findMany(),
-      prisma.violationRecord.findMany(),
-      prisma.systemSetting.findMany(),
-      prisma.userAccount.findMany({ select: { id: true, username: true, name: true, role: true, division: true, managedSantriIds: true, performanceNotes: true, performanceGrade: true } }),
+      db.santri.findMany(),
+      db.santriBill.findMany(),
+      db.masterBill.findMany(),
+      db.generalLedger.findMany(),
+      db.pocketTx.findMany(),
+      db.permit.findMany(),
+      db.academicRecord.findMany(),
+      db.violationRecord.findMany(),
+      db.systemSetting.findMany(),
+      db.userAccount.findMany({ select: { id: true, username: true, name: true, role: true, division: true, managedSantriIds: true, performanceNotes: true, performanceGrade: true } }),
     ]);
 
     const backupPayload = {

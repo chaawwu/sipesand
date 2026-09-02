@@ -3,6 +3,8 @@ const { provisionNewTenant } = require('../services/tenantProvisioner');
 const { sendTenantWelcomeEmail } = require('../services/mailerService');
 
 // 0. Cek Ketersediaan Subdomain Real-time (Deteksi jika sudah terdaftar)
+const baseDomain = process.env.BASE_DOMAIN || 'sipesand.we.id';
+
 exports.checkSubdomainAvailability = async (req, res) => {
   try {
     const { subdomain } = req.params;
@@ -30,7 +32,7 @@ exports.checkSubdomainAvailability = async (req, res) => {
         success: true,
         available: false,
         reason: 'ALREADY_REGISTERED',
-        message: `Subdomain "${cleanSubdomain}.sipesand.web.id" sudah terdaftar & aktif digunakan.`,
+        message: `Subdomain "${cleanSubdomain}.${baseDomain}" sudah terdaftar & aktif digunakan.`,
       });
     }
 
@@ -48,7 +50,7 @@ exports.checkSubdomainAvailability = async (req, res) => {
         success: true,
         available: false,
         reason: 'PENDING_CHECKOUT',
-        message: `Subdomain "${cleanSubdomain}.sipesand.web.id" sedang dalam proses checkout aktif.`,
+        message: `Subdomain "${cleanSubdomain}.${baseDomain}" sedang dalam proses checkout aktif.`,
         orderId: existingPending.orderId,
       });
     }
@@ -57,8 +59,8 @@ exports.checkSubdomainAvailability = async (req, res) => {
       success: true,
       available: true,
       subdomain: cleanSubdomain,
-      url: `https://${cleanSubdomain}.sipesand.web.id`,
-      message: `Subdomain "${cleanSubdomain}.sipesand.web.id" tersedia untuk didaftarkan!`,
+      url: `https://${cleanSubdomain}.${baseDomain}`,
+      message: `Subdomain "${cleanSubdomain}.${baseDomain}" tersedia untuk didaftarkan!`,
     });
   } catch (err) {
     console.error('Error checkSubdomainAvailability:', err);
@@ -94,7 +96,7 @@ exports.registerMitra = async (req, res) => {
     if (existingActive) {
       return res.status(409).json({
         success: false,
-        message: `Subdomain "${cleanSubdomain}.sipesand.web.id" sudah terdaftar dan aktif. Silakan pilih subdomain lain.`,
+        message: `Subdomain "${cleanSubdomain}.${baseDomain}" sudah terdaftar dan aktif. Silakan pilih subdomain lain.`,
       });
     }
 
@@ -322,10 +324,10 @@ exports.handlePaymentWebhook = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Pembayaran ${orderId} berhasil diproses! Instans ${pending.subdomain}.sipesand.web.id telah aktif dan email kredensial telah dikirim ke ${pending.email}.`,
+      message: `Pembayaran ${orderId} berhasil diproses! Instans ${pending.subdomain}.${baseDomain} telah aktif dan email kredensial telah dikirim ke ${pending.email}.`,
       data: {
         subdomain: pending.subdomain,
-        tenantUrl: `https://${pending.subdomain}.sipesand.web.id/login`,
+        tenantUrl: `https://${pending.subdomain}.${baseDomain}/login`,
         adminUsername: provisionResult.adminUsername,
         tempPassword: provisionResult.tempPassword,
         licenseKey: provisionResult.licenseKey,
@@ -405,3 +407,177 @@ exports.getAllMitraAktif = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal mengambil data mitra aktif', error: err.message });
   }
 };
+
+// 7. Developer Authentication (King Digital Dev HQ)
+exports.developerLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    // Developer Credentials (King Digital Dev)
+    const validEmails = ['kingdigitaldev@gmail.com', 'developer@sipesand.web.id', 'developer', 'admin'];
+    const validPasswords = ['admin123', 'kingdev2026!', 'password123', 'dev123'];
+
+    if (validEmails.includes(cleanEmail) && validPasswords.includes(cleanPass)) {
+      return res.json({
+        success: true,
+        message: 'Login Developer King Digital Dev berhasil',
+        developer: {
+          id: 'dev-001',
+          name: 'Chief Technology Officer - King Digital Dev',
+          email: 'kingdigitaldev@gmail.com',
+          role: 'developer',
+          lastLogin: new Date().toISOString(),
+          permissions: ['ALL_TENANTS', 'BILLING_CONTROL', 'SUBDOMAIN_DNS', 'SYSTEM_SETTINGS']
+        },
+        token: `kgd_token_${Date.now()}`
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: 'Email atau password developer salah. Akses ditolak.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal autentikasi developer', error: err.message });
+  }
+};
+
+// 8. Developer Stats (Overview)
+exports.getDeveloperStats = async (req, res) => {
+  try {
+    const totalTenants = await prisma.mitraAktif.count();
+    const pendingTenants = await prisma.mitraPending.count({ where: { status: 'PENDING' } });
+    const allMitras = await prisma.mitraAktif.findMany({
+      orderBy: { provisionedAt: 'desc' },
+    });
+
+    const totalRevenue = allMitras.reduce((acc, m) => acc + (m.amount || 0), 0);
+    const activeCount = allMitras.filter(m => m.status === 'ACTIVE').length;
+    const expiredCount = allMitras.filter(m => m.status !== 'ACTIVE').length;
+
+    res.json({
+      success: true,
+      data: {
+        totalTenants,
+        activeCount,
+        expiredCount,
+        pendingTenants,
+        totalRevenue,
+        tenants: allMitras,
+        serverUptime: '99.98%',
+        activeDnsRecords: totalTenants + 4,
+        storageUsage: `${(totalTenants * 4.2).toFixed(1)} MB`,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat statistik developer', error: err.message });
+  }
+};
+
+// 9. Toggle Status Tenant (Active / Suspended)
+exports.toggleTenantStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenant = await prisma.mitraAktif.findUnique({ where: { id: parseInt(id) || 0 } });
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: 'Data tenant tidak ditemukan' });
+    }
+
+    const newStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    const updated = await prisma.mitraAktif.update({
+      where: { id: tenant.id },
+      data: { status: newStatus },
+    });
+
+    res.json({
+      success: true,
+      message: `Status tenant ${tenant.namaPondok} berhasil diubah menjadi ${newStatus}`,
+      data: updated,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengubah status tenant', error: err.message });
+  }
+};
+
+// 10. Buat Tenant Baru Secara Manual dari Developer Console
+exports.createTenantManual = async (req, res) => {
+  try {
+    const { namaPondok, subdomain, namaPengelola, email, noWhatsapp, packageType } = req.body;
+    if (!namaPondok || !subdomain || !namaPengelola || !email) {
+      return res.status(400).json({ success: false, message: 'Field nama pondok, subdomain, pengelola, dan email wajib diisi' });
+    }
+
+    const cleanSub = subdomain.toLowerCase().trim().replace(/[^a-z0-9-]/g, '');
+    const ex = await prisma.mitraAktif.findUnique({ where: { subdomain: cleanSub } });
+    if (ex) {
+      return res.status(409).json({ success: false, message: `Subdomain "${cleanSub}" sudah terdaftar` });
+    }
+
+    const provisionResult = await provisionNewTenant({
+      namaPondok,
+      subdomain: cleanSub,
+      namaPengelola,
+      email,
+      noWhatsapp: noWhatsapp || '+6285123734342',
+      packageType: packageType || 'LIFETIME',
+    });
+
+    const activeMitra = await prisma.mitraAktif.create({
+      data: {
+        namaPondok,
+        subdomain: cleanSub,
+        namaPengelola,
+        email,
+        noWhatsapp: noWhatsapp || '+6285123734342',
+        packageType: packageType || 'LIFETIME',
+        amount: packageType === 'LIFETIME' ? 3500000 : 1500000,
+        licenseKey: provisionResult.licenseKey,
+        dbPath: provisionResult.dbPath,
+        adminUsername: provisionResult.adminUsername,
+        adminPasswordHash: provisionResult.passwordHash,
+        status: 'ACTIVE',
+        provisionedAt: new Date(),
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Tenant "${namaPondok}" (${cleanSub}.sipesand.web.id) berhasil dibuat dan diaktivasi langsung.`,
+      data: activeMitra,
+      credentials: {
+        url: `https://${cleanSub}.sipesand.web.id/login`,
+        username: provisionResult.adminUsername,
+        password: provisionResult.tempPassword,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal membuat tenant manual', error: err.message });
+  }
+};
+
+// 11. Transaksi Multi-Tenant
+exports.getTenantTransactions = async (req, res) => {
+  try {
+    const pendings = await prisma.mitraPending.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    const aktifs = await prisma.mitraAktif.findMany({
+      orderBy: { provisionedAt: 'desc' },
+      take: 50,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        orders: pendings,
+        activeLicenses: aktifs,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil data transaksi', error: err.message });
+  }
+};
+

@@ -13,11 +13,8 @@ import {
   DollarSign, 
   MessageSquare, 
   Send, 
-  X,
   Calendar,
-  ExternalLink,
-  Sparkles,
-  Zap
+  ExternalLink
 } from 'lucide-react';
 import { 
   getMasterBills, 
@@ -377,10 +374,10 @@ export default function BillsAndInvoices() {
             <button
               onClick={handleAutoGenerateHijri}
               disabled={autoGenerating}
-              className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-subtle transition-all flex items-center gap-1.5 disabled:opacity-50 text-xs"
               title="Terbitkan Otomatis Tagihan Syahriyah 1 Hijriyah untuk semua santri aktif yang belum memiliki tagihan bulan ini"
             >
-              <Zap className="w-4 h-4 text-amber-300 animate-pulse" />
+              <Calendar className="w-4 h-4 text-emerald-100" />
               <span>{autoGenerating ? 'Menerbitkan...' : 'Auto-Tagihan 1 Hijriyah'}</span>
             </button>
           )}

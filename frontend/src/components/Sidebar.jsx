@@ -154,7 +154,7 @@ export default function Sidebar({
                 onClick={() => handleSelectTab(item.id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-2 rounded-xl font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-900/40'
+                    ? 'bg-[#1D4ED8] text-white font-bold shadow-subtle'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -171,7 +171,7 @@ export default function Sidebar({
             <div className="pt-3">
               <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
                 <div className="w-6 h-6 mx-auto rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 mb-1 border border-blue-500/30">
-                  <Radio className="w-3.5 h-3.5 animate-pulse" />
+                  <Radio className="w-3.5 h-3.5" />
                 </div>
                 <h4 className="text-[11px] font-bold text-white">Smart NFC Reader</h4>
                 <p className="text-[10px] text-slate-400 mt-0.5 mb-2 leading-tight">
@@ -182,7 +182,7 @@ export default function Sidebar({
                     onOpenNfcModal();
                     if (onClose) onClose();
                   }}
-                  className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm"
+                  className="w-full py-1.5 px-2 bg-[#1D4ED8] hover:bg-blue-800 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm"
                 >
                   <span>Tap Kartu NFC</span>
                 </button>

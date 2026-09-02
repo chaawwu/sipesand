@@ -17,6 +17,9 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
   const handleLogin = async (e) => {
     e.preventDefault();
     const cleanUser = username.trim().toLowerCase();
@@ -39,8 +42,11 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           onClose();
           return;
         }
+
+        setErrorMsg(res?.data?.message || 'Username atau password yang Anda masukkan salah.');
       } catch (apiErr) {
         console.warn('[LoginModal] API Backend response:', apiErr.message);
+        setErrorMsg(apiErr.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
       }
 
       // 2. Fail-Safe Client Authentication (Jaminan 100% Berhasil untuk Akun Real Darul Rahman & Devisi)

@@ -118,8 +118,8 @@ export default function SantriTrackerModal({ santri, santriData, isOpen, onClose
                   NIS: {currentSantri.nis || '-'}
                 </span>
                 {currentSantri.nfcUid && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                    <Radio className="w-2.5 h-2.5 animate-pulse" />
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-50 text-[#1D4ED8] border border-blue-200 flex items-center gap-1">
+                    <Radio className="w-2.5 h-2.5" />
                     <span>{currentSantri.nfcUid}</span>
                   </span>
                 )}
@@ -145,7 +145,7 @@ export default function SantriTrackerModal({ santri, santriData, isOpen, onClose
                       <Home className="w-5 h-5" />
                     </div>
                   ) : permitStatus.state === 'OVERDUE' ? (
-                    <div className="w-9 h-9 rounded-full bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 animate-pulse">
+                    <div className="w-9 h-9 rounded-full bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700">
                       <AlertTriangle className="w-5 h-5" />
                     </div>
                   ) : (

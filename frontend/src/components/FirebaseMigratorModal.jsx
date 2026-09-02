@@ -7,7 +7,6 @@ import {
   X, 
   FileText, 
   RefreshCw, 
-  Sparkles,
   ArrowRight,
   Code
 } from 'lucide-react';
@@ -184,8 +183,8 @@ export default function FirebaseMigratorModal({ isOpen, onClose, onSuccess }) {
           {/* Info Card */}
           <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl text-blue-950 space-y-1">
             <div className="font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Smart Field Mapping:</span>
+              <Database className="w-3.5 h-3.5 text-blue-600" />
+              <span>Pemetaan Field Data:</span>
             </div>
             <p className="text-[11px] text-blue-900/80 leading-relaxed">
               Sistem akan memetakan otomatis field: <code className="bg-white px-1 py-0.5 rounded border border-blue-200">nis</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">nama</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">kelas</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">kamar</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">alamat</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">namaWali</code>, <code className="bg-white px-1 py-0.5 rounded border border-blue-200">noHpWali</code>, dan <code className="bg-white px-1 py-0.5 rounded border border-blue-200">saldo_saku</code>. Jika santri sudah ada, data akan otomatis disinkronkan.

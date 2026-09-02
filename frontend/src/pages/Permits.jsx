@@ -159,7 +159,7 @@ export default function Permits({ onOpenNfcModal }) {
             onClick={onOpenNfcModal}
             className="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all"
           >
-            <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
+            <Radio className="w-4 h-4 text-emerald-600" />
             <span>Scan Tap NFC Check-in</span>
           </button>
 

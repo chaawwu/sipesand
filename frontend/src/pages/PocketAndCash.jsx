@@ -316,9 +316,9 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
           {isNfcEnabled && (
             <button
               onClick={onOpenNfcModal}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-[#1D4ED8] hover:bg-blue-800 text-white font-bold rounded-xl shadow-subtle transition-colors flex items-center gap-1.5 text-xs"
             >
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <Radio className="w-3.5 h-3.5" />
               <span>Tap Kartu NFC</span>
             </button>
           )}

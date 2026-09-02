@@ -8,6 +8,7 @@ import DeveloperFooter from './components/DeveloperFooter';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
+import DashboardDeveloper from './pages/DashboardDeveloper';
 import PortalWaliPublic from './pages/PortalWaliPublic';
 import Dashboard from './pages/Dashboard';
 import Santri from './pages/Santri';
@@ -60,7 +61,9 @@ function MainAppContent() {
       setCurrentView('kontak');
     } 
     // 2. Cek Subdomain
-    else if (viewParam === 'saas' || viewParam === 'mitra' || hostname.startsWith('mitra.')) {
+    else if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) {
+      setCurrentView('developer');
+    } else if (viewParam === 'saas') {
       setCurrentView('landing-saas');
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
@@ -173,6 +176,13 @@ function MainAppContent() {
           />
         )}
       </div>
+    );
+  }
+
+  // 3. Tampilan Khusus Dashboard Developer HQ (mitra.sipesand.web.id)
+  if (currentView === 'developer' || currentView === 'mitra') {
+    return (
+      <DashboardDeveloper onBackToLanding={() => setCurrentView('landing')} />
     );
   }
 

@@ -17,4 +17,11 @@ router.post('/simulate-payment/:orderId', mitraController.simulatePaymentSuccess
 // Konfigurasi Payment Gateway & Auto-Disbursement
 router.post('/pg-config', mitraController.updateKingDigitalPgConfig);
 
+// Developer Console Endpoints (mitra.sipesand.web.id)
+router.post('/developer/login', mitraController.developerLogin);
+router.get('/developer/stats', mitraController.getDeveloperStats);
+router.get('/developer/transactions', mitraController.getTenantTransactions);
+router.post('/tenant/toggle-status/:id', mitraController.toggleTenantStatus);
+router.post('/tenant/create-manual', mitraController.createTenantManual);
+
 module.exports = router;

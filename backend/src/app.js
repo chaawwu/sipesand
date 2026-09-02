@@ -22,6 +22,8 @@ const app = express();
 // 1. KONFIGURASI CORS SIAP PRODUKSI (DOMAIN UTAMA & WILDCARD SUBDOMAIN)
 // =========================================================================
 const allowedOrigins = [
+  'https://sipesand.we.id',
+  'https://www.sipesand.we.id',
   'https://sipesand.web.id',
   'https://www.sipesand.web.id',
   'http://localhost:3000',
@@ -35,8 +37,8 @@ const corsOptions = {
     // Izinkan request tanpa origin (mobile apps, server-to-server webhook callback Midtrans/Xendit)
     if (!origin) return callback(null, true);
 
-    // Regex pengujian wildcard subdomain: https://[subdomain].sipesand.web.id
-    const isWildcardSubdomain = /^https:\/\/([a-z0-9-]+)\.sipesand\.web\.id$/i.test(origin);
+    // Regex pengujian wildcard subdomain: https://[subdomain].sipesand.we.id atau .web.id
+    const isWildcardSubdomain = /^https:\/\/([a-z0-9-]+)\.(sipesand\.we\.id|sipesand\.web\.id)$/i.test(origin);
     const isLocalDev = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 
     if (allowedOrigins.indexOf(origin) !== -1 || isWildcardSubdomain || isLocalDev) {
@@ -67,7 +69,7 @@ app.get('/api', (req, res) => {
     message: 'Selamat Datang di API SiPesand (Sistem Terpadu Pesantren Digital Multi-Tenant)',
     version: '2.0.0',
     platform: 'King Digital Dev (kingdigitalpremium.my.id)',
-    domain: 'sipesand.web.id',
+    domain: process.env.BASE_DOMAIN || 'sipesand.we.id',
     status: 'ONLINE',
     timestamp: new Date().toISOString(),
     modules: {

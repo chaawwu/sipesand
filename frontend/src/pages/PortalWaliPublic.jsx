@@ -366,7 +366,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
                   portalRawData.location.status === 'DI_PESANTREN'
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                     : portalRawData.location.status === 'OVERDUE'
-                    ? 'bg-rose-50 border-rose-200 text-rose-900 animate-pulse'
+                    ? 'bg-rose-50 border-rose-200 text-rose-900 font-bold'
                     : 'bg-blue-50 border-blue-200 text-blue-900'
                 }`}>
                   <ShieldCheck className="w-5 h-5 flex-shrink-0" />

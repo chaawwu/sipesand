@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   RefreshCw,
-  Sparkles,
   Store
 } from 'lucide-react';
 import { getPocketTransactions, createPocketTransaction, getSantriList, getSantriByNfc } from '../services/api';
@@ -143,7 +142,7 @@ export default function PocketMoney({ onOpenNfcModal }) {
               onClick={onOpenNfcModal}
               className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg font-semibold flex items-center gap-1"
             >
-              <Radio className="w-3 h-3 text-emerald-600 animate-pulse" />
+              <Radio className="w-3 h-3 text-emerald-600" />
               <span>Tap NFC</span>
             </button>
           </div>

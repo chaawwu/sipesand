@@ -7,7 +7,6 @@ import {
   Phone, 
   ArrowRight, 
   ShieldCheck, 
-  Sparkles, 
   CheckCircle2, 
   Lock, 
   Radio, 
@@ -160,8 +159,8 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
         
         {/* Hero Section */}
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[11px]">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#1D4ED8] font-bold text-[11px]">
+            <Building2 className="w-3.5 h-3.5 text-[#1D4ED8]" />
             <span>Digitalisasi Pesantren Mandiri & Terisolasi</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -363,7 +362,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
             {/* Bento Card 2: Fitur Unggulan SiPesand */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3.5">
               <h4 className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <CheckCircle2 className="w-4 h-4 text-[#1D4ED8]" />
                 <span>Fitur Lengkap Langsung Aktif:</span>
               </h4>
 

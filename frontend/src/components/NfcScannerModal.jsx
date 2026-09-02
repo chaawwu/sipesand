@@ -9,8 +9,7 @@ import {
   ShieldCheck, 
   AlertCircle, 
   CheckCircle2, 
-  ShoppingBag,
-  Sparkles
+  ShoppingBag
 } from 'lucide-react';
 import { getSantriByNfc, createPocketTransaction, checkInByNfc, getSantriList } from '../services/api';
 
@@ -147,8 +146,8 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-emerald-700 to-teal-600 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-              <Radio className="w-5 h-5 animate-pulse text-white" />
+            <div className="w-10 h-10 rounded-2xl bg-[#1D4ED8] flex items-center justify-center text-white shadow-subtle flex-shrink-0">
+              <Radio className="w-5 h-5 text-white" />
             </div>
             <div>
               <h3 className="font-bold text-lg">Simulator Smart NFC Reader</h3>

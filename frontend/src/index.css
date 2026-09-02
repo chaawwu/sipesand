@@ -25,24 +25,27 @@
 }
 
 /* ========================================================================= */
-/* BENTO GRID & SOFT GLASSMORPHISM UTILITIES (CARDLESS & BLUR EFFECT)         */
+/* ENTERPRISE SAAS BENTO GRID UTILITIES (CLEAN, MINIMALIST & BORDER #E5E7EB)  */
 /* ========================================================================= */
-.bento-glass {
-  background: rgba(238, 244, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px 0 rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 1.5rem;
+.card-bento {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
-.bento-glass-cardless {
-  background: rgba(238, 244, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px 0 rgba(37, 99, 235, 0.08);
-  border: none;
-  border-radius: 1.5rem;
+.card-bento-interactive {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.card-bento-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -2px rgba(0, 0, 0, 0.06);
+  border-color: #D1D5DB;
 }
 
 /* ========================================================================= */
