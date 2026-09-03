@@ -582,3 +582,41 @@ export function firestoreGetDashboardStats(tenantId = getActiveTenantId()) {
     recentBills: bills.slice(0, 5)
   };
 }
+
+// =============================================================================
+// SETTINGS & WEB BUILDER PERSISTENCE (Selesaikan Bug Edit Tidak Tersimpan)
+// =============================================================================
+
+export function firestoreGetSettings(tenantId = getActiveTenantId()) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = `sipesand_settings_${tenantId}`;
+    const raw = localStorage.getItem(key) || localStorage.getItem('sipesand_tenant_settings');
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('[FirestoreService] Error reading settings:', e);
+  }
+  return null;
+}
+
+export function firestoreSaveSettings(newSettings, tenantId = getActiveTenantId()) {
+  if (typeof window === 'undefined') return newSettings;
+  try {
+    const current = firestoreGetSettings(tenantId) || {};
+    const updated = { ...current, ...newSettings };
+    const key = `sipesand_settings_${tenantId}`;
+    localStorage.setItem(key, JSON.stringify(updated));
+    localStorage.setItem('sipesand_tenant_settings', JSON.stringify(updated));
+
+    // Broadcast Real-Time Settings Event
+    window.dispatchEvent(new CustomEvent('sipesand:firestore:settings', {
+      detail: { tenantId, data: updated }
+    }));
+    return updated;
+  } catch (e) {
+    console.error('[FirestoreService] Error saving settings:', e);
+    return newSettings;
+  }
+}

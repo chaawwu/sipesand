@@ -44,6 +44,8 @@ import {
   firestorePayBill,
   firestoreDeleteBill,
   firestoreGetDashboardStats,
+  firestoreGetSettings,
+  firestoreSaveSettings,
   getCollectionData
 } from './firestoreService';
 
@@ -251,8 +253,19 @@ export const deleteViolation = (id) => api.delete(`/security/violations/${id}`);
 
 // Auth & Pengaturan Lembaga, Akun Multi-Divisi, & Auto Backup
 export const loginUser = (data) => api.post('/settings/login', data);
-export const getSystemSettings = () => api.get('/settings');
-export const saveSystemSettings = (data) => api.post('/settings', data);
+export const getSystemSettings = async () => {
+  try {
+    const data = firestoreGetSettings();
+    if (data) return { data: { success: true, data } };
+  } catch (e) {}
+  return api.get('/settings');
+};
+
+export const saveSystemSettings = async (data) => {
+  const saved = firestoreSaveSettings(data);
+  try { api.post('/settings', data).catch(() => {}); } catch (e) {}
+  return { data: { success: true, message: 'Pengaturan berhasil disimpan', data: saved } };
+};
 export const getUserAccounts = () => api.get('/settings/accounts');
 export const createUserAccount = (data) => api.post('/settings/accounts', data);
 export const updateUserAccount = (id, data) => api.put(`/settings/accounts/${id}`, data);

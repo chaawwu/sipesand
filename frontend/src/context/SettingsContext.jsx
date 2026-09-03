@@ -129,19 +129,32 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     fetchSettings();
+    const handleSettingsEvent = (e) => {
+      if (e.detail?.data) {
+        setSettings(prev => ({ ...prev, ...e.detail.data }));
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sipesand:firestore:settings', handleSettingsEvent);
+      return () => window.removeEventListener('sipesand:firestore:settings', handleSettingsEvent);
+    }
   }, []);
 
   const updateSettings = async (newSettings) => {
     try {
       const merged = { ...settings, ...newSettings };
       setSettings(merged);
+      const key = getStorageKey();
       if (typeof window !== 'undefined') {
         try {
+          localStorage.setItem(key, JSON.stringify(merged));
           localStorage.setItem('sipesand_tenant_settings', JSON.stringify(merged));
         } catch (e) {}
       }
-      await saveSystemSettings(newSettings);
-      await fetchSettings();
+      const res = await saveSystemSettings(merged);
+      if (res?.data?.data) {
+        setSettings(res.data.data);
+      }
       return { success: true };
     } catch (err) {
       console.error('Error saving settings in Context:', err);

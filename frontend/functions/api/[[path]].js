@@ -272,7 +272,7 @@ export async function onRequest(context) {
   if (path === '/api/settings' && method === 'GET') {
     return jsonResponse({
       success: true,
-      data: {
+      data: globalThis.EDGE_SETTINGS || {
         NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
         TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
         ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
@@ -296,10 +296,14 @@ export async function onRequest(context) {
 
   // --- ENDPOINT: POST /api/settings ---
   if (path === '/api/settings' && method === 'POST') {
+    globalThis.EDGE_SETTINGS = {
+      ...(globalThis.EDGE_SETTINGS || {}),
+      ...body
+    };
     return jsonResponse({
       success: true,
       message: 'Pengaturan berhasil disimpan',
-      data: body
+      data: globalThis.EDGE_SETTINGS
     }, 200, origin);
   }
 
