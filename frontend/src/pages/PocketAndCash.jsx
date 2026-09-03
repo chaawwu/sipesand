@@ -34,7 +34,7 @@ import OfficialReceipt from '../components/OfficialReceipt';
 import { useSettings } from '../context/SettingsContext';
 
 export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
-  const { isNfcEnabled } = useSettings();
+  const { settings, isNfcEnabled } = useSettings();
   const userRole = currentUser?.role || 'PENGURUS_SAKU';
   const managedIds = currentUser?.managedSantriIds || [];
 
@@ -169,12 +169,18 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
     }
 
     let message = '';
+    const devisiNama = currentUser?.division 
+      ? currentUser.division.replace(/_/g, ' ') 
+      : (currentUser?.role === 'SUPER_ADMIN' ? 'Pengasuh & Pimpinan' : 'Bagian Uang Saku');
+    const namaPondok = settings?.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
+
     if (type === 'SALDO_MINUS') {
-      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nKami dari Bagian Pengurus Uang Saku Pesantren Terpadu SiPesand menginformasikan bahwa saat ini saldo tabungan uang saku santri berada pada posisi *Rp ${santri.saldo_saku?.toLocaleString('id-ID')}* ${santri.saldo_saku < 0 ? '(MINUS/TALANGAN DARURAT)' : '(MENIPIS)'}.\n\nMohon perkenan Bapak/Ibu untuk melakukan isi ulang (Top-Up) melalui Portal Wali atau transfer ke rekening resmi BSI Pesantren agar kebutuhan harian ananda tetap terpenuhi dengan baik.\n\nTerima kasih atas perhatian dan kerja samanya. Jazakumullah Khairan Katsiran.\n_Pengurus Uang Saku SiPesand_`;
+      const statusSaldo = (santri.saldo_saku || 0) < 0 ? '(MINUS/TALANGAN DARURAT)' : '(MENIPIS)';
+      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}). Kami dari Bagian Pengurus (*${devisiNama}* - *${namaPondok}*) menginformasikan bahwa saat ini saldo tabungan uang saku santri berada pada posisi *Rp ${(santri.saldo_saku || 0).toLocaleString('id-ID')}* ${statusSaldo}. Mohon perkenan Bapak/Ibu untuk melakukan isi ulang (Top-Up) melalui Portal Wali atau transfer ke rekening resmi BSI Pesantren agar kebutuhan harian ananda tetap terpenuhi dengan baik. Terima kasih atas perhatian dan kerja samanya. Jazakumullah Khairan Katsiran. _khodimul Ma'had_`;
     } else {
       const unpaidBills = santriBillsList.filter(b => b.status === 'UNPAID');
       const totalUnpaid = unpaidBills.reduce((sum, b) => sum + (b.amount || 0), 0);
-      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}*.\n\nKami menginformasikan rincian tagihan syahriyah/kebutuhan santri yang saat ini berstatus belum lunas sebesar *Rp ${totalUnpaid.toLocaleString('id-ID')}*.\n\nBapak/Ibu dapat melakukan pembayaran langsung melalui Portal Wali Mandiri di website SiPesand.\n\nTerima kasih. Wassalamu'alaikum Wr. Wb.`;
+      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}). Kami dari Bagian Pengurus (*${devisiNama}* - *${namaPondok}*) menginformasikan rincian tagihan syahriyah/kebutuhan santri yang saat ini berstatus belum lunas sebesar *Rp ${totalUnpaid.toLocaleString('id-ID')}*. Mohon perkenan Bapak/Ibu untuk melakukan pembayaran langsung melalui Portal Wali Mandiri atau transfer ke rekening resmi BSI Pesantren. Terima kasih atas perhatian dan kerja samanya. Jazakumullah Khairan Katsiran. _khodimul Ma'had_`;
     }
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
