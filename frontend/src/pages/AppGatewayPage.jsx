@@ -260,6 +260,8 @@ export default function AppGatewayPage({
                   <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     required
                     placeholder="Contoh: admin, pengasuh, bendahara"
                     value={username}
@@ -278,6 +280,8 @@ export default function AppGatewayPage({
                   <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
+                    name="password"
+                    autoComplete="current-password"
                     required
                     placeholder="••••••••"
                     value={password}

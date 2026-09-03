@@ -170,6 +170,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                name="username"
+                autoComplete="username"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -185,6 +187,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

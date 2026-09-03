@@ -305,8 +305,10 @@ export default function DashboardDeveloper({ onBackToLanding }) {
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     required
-                    placeholder="kingdigitaldev@gmail.com"
+                    placeholder="Masukkan ID / Email Akun"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-[#F8FAFC] border border-[#E5E7EB] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1D4ED8] font-medium text-xs text-[#111827]"
@@ -320,8 +322,10 @@ export default function DashboardDeveloper({ onBackToLanding }) {
                   <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
+                    name="password"
+                    autoComplete="current-password"
                     required
-                    placeholder="••••••••"
+                    placeholder="Masukkan Password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-[#F8FAFC] border border-[#E5E7EB] rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1D4ED8] font-medium text-xs text-[#111827]"
