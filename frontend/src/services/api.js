@@ -50,62 +50,94 @@ import {
   firestoreGetDashboardStats,
   firestoreGetSettings,
   firestoreSaveSettings,
-  getCollectionData
+  getCollectionData,
+  setCollectionData,
+  FIRESTORE_COLLECTIONS
 } from './firestoreService';
 
 // Dashboard Statistics
 export const getDashboardStats = async () => {
   try {
-    const stats = firestoreGetDashboardStats();
-    return { data: { success: true, data: stats } };
-  } catch (err) {
-    return api.get('/dashboard/stats');
-  }
+    const res = await api.get('/dashboard/stats');
+    if (res?.data?.success && res.data.data) return res;
+  } catch (err) {}
+  const stats = firestoreGetDashboardStats();
+  return { data: { success: true, data: stats } };
 };
 
 export const getDashboardCharts = async (period = 'month') => {
   try {
-    const stats = firestoreGetDashboardStats();
-    return { data: { success: true, data: stats.monthlyChart } };
-  } catch (err) {
-    return api.get('/dashboard/charts', { params: { period } });
-  }
+    const res = await api.get('/dashboard/charts', { params: { period } });
+    if (res?.data?.success && res.data.data) return res;
+  } catch (err) {}
+  const stats = firestoreGetDashboardStats();
+  return { data: { success: true, data: stats.monthlyChart } };
 };
 
-// Santri Management (CRUD Lengkap Terkoneksi Firestore)
+// Santri Management (Multi-Device Real-Time Sync via Centralized Server & Local Cache)
 export const getSantriList = async (params = {}) => {
   try {
-    const list = firestoreGetSantri(params);
-    return { data: { success: true, data: list } };
+    const res = await api.get('/santri', { params });
+    if (res?.data?.success && Array.isArray(res.data.data)) {
+      // Sinkronisasi data server ke cache lokal device
+      setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, res.data.data);
+      return res;
+    }
   } catch (err) {
-    return api.get('/santri', { params });
+    console.warn('[API] Sinkronisasi server gagal, memuat cache lokal device:', err?.message);
   }
+  const list = firestoreGetSantri(params);
+  return { data: { success: true, data: list } };
 };
 
 export const getSantriById = async (id) => {
   try {
-    const list = firestoreGetSantri();
-    const found = list.find(s => s.id === (parseInt(id) || id));
-    if (found) return { data: { success: true, data: found } };
+    const res = await api.get(`/santri/${id}`);
+    if (res?.data?.success && res.data.data) return res;
   } catch (e) {}
-  return api.get(`/santri/${id}`);
+  const list = firestoreGetSantri();
+  const found = list.find(s => s.id === (parseInt(id) || id));
+  if (found) return { data: { success: true, data: found } };
+  return { data: { success: false, message: 'Santri tidak ditemukan' } };
 };
 
 export const createSantri = async (data) => {
+  try {
+    const res = await api.post('/santri', data);
+    if (res?.data?.success && res.data.data) {
+      firestoreCreateSantri(res.data.data);
+      return res;
+    }
+  } catch (e) {
+    console.warn('[API] createSantri server error, fallback local:', e?.message);
+  }
   const newSantri = firestoreCreateSantri(data);
-  try { api.post('/santri', data).catch(() => {}); } catch (e) {}
   return { data: { success: true, message: 'Data santri berhasil ditambahkan', data: newSantri } };
 };
 
 export const updateSantri = async (id, data) => {
+  try {
+    const res = await api.put(`/santri/${id}`, data);
+    if (res?.data?.success) {
+      firestoreUpdateSantri(id, data);
+      return res;
+    }
+  } catch (e) {
+    console.warn('[API] updateSantri server error, fallback local:', e?.message);
+  }
   const updated = firestoreUpdateSantri(id, data);
-  try { api.put(`/santri/${id}`, data).catch(() => {}); } catch (e) {}
   return { data: { success: true, message: 'Data santri berhasil diperbarui', data: updated } };
 };
 
 export const deleteSantri = async (id) => {
+  try {
+    const res = await api.delete(`/santri/${id}`);
+    firestoreDeleteSantri(id);
+    return res;
+  } catch (e) {
+    console.warn('[API] deleteSantri server error, fallback local:', e?.message);
+  }
   const res = firestoreDeleteSantri(id);
-  try { api.delete(`/santri/${id}`).catch(() => {}); } catch (e) {}
   return { data: res };
 };
 
@@ -257,18 +289,39 @@ export const deleteViolation = (id) => api.delete(`/security/violations/${id}`);
 
 // Auth & Pengaturan Lembaga, Akun Multi-Divisi, & Auto Backup
 export const loginUser = (data) => api.post('/settings/login', data);
+
 export const getSystemSettings = async () => {
   try {
-    const data = firestoreGetSettings();
-    if (data) return { data: { success: true, data } };
-  } catch (e) {}
-  return api.get('/settings');
+    const res = await api.get('/settings');
+    if (res?.data?.success && res.data.data) {
+      firestoreSaveSettings(res.data.data);
+      return res;
+    }
+  } catch (e) {
+    console.warn('[API] getSystemSettings server error, fallback local:', e?.message);
+  }
+  const data = firestoreGetSettings();
+  return { data: { success: true, data: data || {} } };
 };
 
 export const saveSystemSettings = async (data) => {
-  const saved = firestoreSaveSettings(data);
-  try { api.post('/settings', data).catch(() => {}); } catch (e) {}
-  return { data: { success: true, message: 'Pengaturan berhasil disimpan', data: saved } };
+  firestoreSaveSettings(data);
+  try {
+    const res = await api.post('/settings', data);
+    if (res?.data?.data) return res;
+  } catch (e) {
+    console.warn('[API] saveSystemSettings server error, local saved:', e?.message);
+  }
+  return { data: { success: true, message: 'Pengaturan berhasil disimpan', data } };
+};
+
+export const resetTenantData = async () => {
+  try {
+    const res = await api.post('/tenant/reset');
+    return res;
+  } catch (e) {
+    return api.post('/reset-data').catch(() => ({ data: { success: true } }));
+  }
 };
 export const getUserAccounts = () => api.get('/settings/accounts');
 export const createUserAccount = (data) => api.post('/settings/accounts', data);

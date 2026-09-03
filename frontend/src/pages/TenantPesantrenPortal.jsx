@@ -33,6 +33,7 @@ import {
 import SantriTrackerModal from '../components/SantriTrackerModal';
 import { useSettings } from '../context/SettingsContext';
 import { firestoreGetSantri, firestoreGetBills } from '../services/firestoreService';
+import { getSantriList } from '../services/api';
 
 export default function TenantPesantrenPortal({ 
   onLoginPetugas, 
@@ -155,7 +156,7 @@ export default function TenantPesantrenPortal({
   ];
 
   // Pencarian Cepat Layanan Publik (Izin / Tagihan / Hafalan)
-  const handleSearchPublicPortal = () => {
+  const handleSearchPublicPortal = async () => {
     const q = quickQuery.trim().toLowerCase();
     if (!q) {
       setSearchError('Ketik Nama Santri atau NIS untuk mengecek');
@@ -167,7 +168,8 @@ export default function TenantPesantrenPortal({
     setSearchResultInfo(null);
 
     try {
-      const allSantri = firestoreGetSantri();
+      const res = await getSantriList();
+      const allSantri = (res?.data?.data && Array.isArray(res.data.data)) ? res.data.data : firestoreGetSantri();
       const match = allSantri.find(s => 
         (s.nama || '').toLowerCase().includes(q) || 
         (s.nis || '').toLowerCase().includes(q)

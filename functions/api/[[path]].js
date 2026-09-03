@@ -217,6 +217,25 @@ export async function onRequest(context) {
     globalThis.EDGE_TENANT_SANTRI['darulrahman'] = [];
   }
 
+  // Deteksi Cloudflare KV Storage untuk Persistensi Multi-Device Global
+  const kv = env ? (env.SIPESAND_KV || env.KV || env.TENANTS_KV || null) : null;
+
+  // --- ENDPOINT: POST /api/tenant/reset (Restart / Bersihkan Data Tenant ke 0 Data) ---
+  if ((path === '/api/tenant/reset' || path === '/api/reset-data') && method === 'POST') {
+    globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = [];
+    if (kv) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify([]));
+      } catch (e) {}
+    }
+    return jsonResponse({
+      success: true,
+      message: `Data tenant ${activeTenantKey} berhasil di-reset menjadi 0 data bersih di semua device.`,
+      tenant: activeTenantKey,
+      data: []
+    }, 200, origin);
+  }
+
   // --- ENDPOINT: POST /api/santri (MUST RETURN 201 CREATED) ---
   if (path === '/api/santri' && method === 'POST') {
     if (!body.nama) {
@@ -245,6 +264,12 @@ export async function onRequest(context) {
       ...(globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || [])
     ];
 
+    if (kv) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify(globalThis.EDGE_TENANT_SANTRI[activeTenantKey]));
+      } catch (e) {}
+    }
+
     return jsonResponse({
       success: true,
       message: 'Data santri berhasil ditambahkan',
@@ -265,6 +290,11 @@ export async function onRequest(context) {
         };
       }
     }
+    if (kv && globalThis.EDGE_TENANT_SANTRI[activeTenantKey]) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify(globalThis.EDGE_TENANT_SANTRI[activeTenantKey]));
+      } catch (e) {}
+    }
     return jsonResponse({
       success: true,
       message: 'Data santri berhasil diperbarui',
@@ -278,6 +308,11 @@ export async function onRequest(context) {
     if (globalThis.EDGE_TENANT_SANTRI[activeTenantKey]) {
       globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = globalThis.EDGE_TENANT_SANTRI[activeTenantKey].filter(s => s.id !== id);
     }
+    if (kv) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify(globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || []));
+      } catch (e) {}
+    }
     return jsonResponse({
       success: true,
       message: `Data santri #${id} berhasil dihapus permanen`,
@@ -287,19 +322,28 @@ export async function onRequest(context) {
 
   // --- ENDPOINT: GET /api/santri ---
   if (path === '/api/santri' && method === 'GET') {
-    const currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] !== undefined ?
-      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] : MOCK_SANTRI;
+    let list = globalThis.EDGE_TENANT_SANTRI[activeTenantKey];
+    if (kv) {
+      try {
+        const kvList = await kv.get(`tenant:${activeTenantKey}:santri`, 'json');
+        if (kvList !== null && Array.isArray(kvList)) {
+          list = kvList;
+          globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = kvList;
+        }
+      } catch (e) {}
+    }
+    if (list === undefined) {
+      list = activeTenantKey === 'darulrahman' ? [] : MOCK_SANTRI;
+      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = list;
+    }
     return jsonResponse({
       success: true,
       tenant: activeTenantKey,
-      data: currentList
+      data: list
     }, 200, origin);
   }
 
   // --- ENDPOINT: GET /api/settings ---
-  const activeTenantKey = (tenantHeader || 'app').toLowerCase();
-  globalThis.EDGE_TENANT_SETTINGS = globalThis.EDGE_TENANT_SETTINGS || {};
-
   const defaultDarulRahmanSettings = {
     NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
     TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
@@ -349,8 +393,20 @@ export async function onRequest(context) {
   };
 
   if (path === '/api/settings' && method === 'GET') {
-    const currentSettings = globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] || 
-      (activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings);
+    let currentSettings = globalThis.EDGE_TENANT_SETTINGS[activeTenantKey];
+    if (kv) {
+      try {
+        const kvSettings = await kv.get(`tenant:${activeTenantKey}:settings`, 'json');
+        if (kvSettings !== null && typeof kvSettings === 'object') {
+          currentSettings = kvSettings;
+          globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] = kvSettings;
+        }
+      } catch (e) {}
+    }
+    if (!currentSettings) {
+      currentSettings = activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings;
+      globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] = currentSettings;
+    }
     return jsonResponse({
       success: true,
       tenant: activeTenantKey,
@@ -362,15 +418,21 @@ export async function onRequest(context) {
   if (path === '/api/settings' && method === 'POST') {
     const currentSettings = globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] || 
       (activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings);
-    globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] = {
+    const merged = {
       ...currentSettings,
       ...body
     };
+    globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] = merged;
+    if (kv) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:settings`, JSON.stringify(merged));
+      } catch (e) {}
+    }
     return jsonResponse({
       success: true,
       tenant: activeTenantKey,
       message: 'Pengaturan berhasil disimpan untuk tenant ' + activeTenantKey,
-      data: globalThis.EDGE_TENANT_SETTINGS[activeTenantKey]
+      data: merged
     }, 200, origin);
   }
 

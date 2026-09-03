@@ -8,6 +8,7 @@
  */
 
 import { FIRESTORE_COLLECTIONS } from './firebaseConfig';
+export { FIRESTORE_COLLECTIONS };
 
 // Helper: Ambil ID Tenant / Subdomain Aktif (Isolasi Mutlak)
 export function getActiveTenantId() {

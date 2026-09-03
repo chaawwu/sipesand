@@ -31,8 +31,10 @@ import {
   updateUserAccount,
   deleteUserAccount, 
   getBackupData,
-  getSantriList
+  getSantriList,
+  resetTenantData
 } from '../services/api';
+import { clearTenantData } from '../services/firestoreService';
 import { useSettings } from '../context/SettingsContext';
 
 const DIVISION_ROLES = [
@@ -245,6 +247,20 @@ export default function SettingsAndAccounts() {
       downloadAnchor.remove();
     } catch (err) {
       alert('Gagal mengunduh backup database');
+    }
+  };
+
+  const handleRestartTenantData = async () => {
+    if (!window.confirm('PERINGATAN: Apakah Anda yakin ingin me-restart seluruh data tenant ini menjadi 0 data bersih? Tindakan ini akan mengosongkan seluruh data santri & transaksi di semua device.')) {
+      return;
+    }
+    try {
+      await resetTenantData();
+      clearTenantData();
+      alert('Data tenant berhasil di-restart menjadi 0 data bersih di seluruh device.');
+      window.location.reload();
+    } catch (e) {
+      alert('Gagal me-restart data tenant: ' + (e?.message || 'Error'));
     }
   };
 
@@ -841,7 +857,7 @@ export default function SettingsAndAccounts() {
 
                           <button
                             onClick={() => handleDeleteAccount(acc.id, acc.name)}
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            className="p-1 text-slate-400 hover:text-rose-700 rounded transition-colors"
                             title="Hapus Akun"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -910,6 +926,25 @@ export default function SettingsAndAccounts() {
                 <span>Simpan Tautan Spreadsheet</span>
               </button>
             </div>
+          </div>
+
+          {/* Zona Bahaya: Restart / Kosongkan Data Tenant */}
+          <div className="p-5 rounded-xl bg-rose-50 border border-rose-200 space-y-3">
+            <div className="flex items-center gap-2 text-rose-900 font-extrabold text-sm">
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Zona Bahaya: Restart Seluruh Data Tenant (0 Data Bersih)</span>
+            </div>
+            <p className="text-rose-700 text-[11px] leading-relaxed">
+              Tindakan ini akan mengosongkan seluruh data santri, tagihan, dan transaksi saku di server pusat serta di seluruh device (Laptop, HP Wali, dan Petugas). Gunakan fitur ini jika Anda ingin memulai ulang data pondok pesantren dari awal.
+            </p>
+            <button
+              type="button"
+              onClick={handleRestartTenantData}
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 text-xs"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Restart & Bersihkan Data Tenant ke 0 Data</span>
+            </button>
           </div>
         </div>
       )}
