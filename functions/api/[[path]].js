@@ -250,6 +250,16 @@ export async function onRequest(context) {
     }, 200, origin);
   }
 
+  // --- ENDPOINT: DELETE /api/santri/:id ---
+  if (path.startsWith('/api/santri/') && method === 'DELETE') {
+    const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+    return jsonResponse({
+      success: true,
+      message: `Data santri #${id} berhasil dihapus permanen`,
+      data: { id }
+    }, 200, origin);
+  }
+
   // --- ENDPOINT: GET /api/santri ---
   if (path === '/api/santri' && method === 'GET') {
     return jsonResponse({

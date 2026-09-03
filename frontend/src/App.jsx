@@ -7,6 +7,7 @@ import DeveloperFooter from './components/DeveloperFooter';
 
 // Pages & Apps Modules
 import LandingPageEnterprise from './apps/landing/LandingPageEnterprise';
+import DashboardV2 from './apps/dashboard/DashboardV2';
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
 import AppGatewayPage from './pages/AppGatewayPage';
@@ -196,15 +197,14 @@ function MainAppContent() {
     );
   }
 
-  // 4. Tampilan Khusus App Gateway (app.sipesand.web.id - Tanpa Penjualan, Fokus Login Tenant)
+  // 4. Tampilan Khusus App Gateway (app.sipesand.web.id - SIPESAND V2 Dashboard)
   if (currentView === 'app-gateway') {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <AppGatewayPage
-          onLoginSuccess={handleLoginSuccess}
-          onOpenPortalWali={handleOpenPortalWali}
-          onOpenNfcScanner={() => setIsNfcModalOpen(true)}
-          onNavigateLegal={(path) => setCurrentView(path)}
+      <div className="min-h-screen bg-[#F4F6FA]">
+        <DashboardV2
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onOpenNfcModal={() => setIsNfcModalOpen(true)}
         />
 
         {/* Global NFC Simulator Modal */}

@@ -10,7 +10,10 @@ import SecurityKamtib from '../../pages/SecurityKamtib';
 import AcademicMuhafadzoh from '../../pages/AcademicMuhafadzoh';
 import SettingsAndAccounts from '../../pages/SettingsAndAccounts';
 
+import DashboardV2 from './DashboardV2';
+
 export {
+  DashboardV2,
   AppGatewayPage,
   TenantPesantrenPortal,
   Santri,

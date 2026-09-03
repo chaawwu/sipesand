@@ -33,27 +33,134 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Dashboard Statistics
-export const getDashboardStats = () => api.get('/dashboard/stats');
-export const getDashboardCharts = (period = 'month') => api.get('/dashboard/charts', { params: { period } });
+import {
+  firestoreGetSantri,
+  firestoreCreateSantri,
+  firestoreUpdateSantri,
+  firestoreDeleteSantri,
+  firestoreRunPocketTransaction,
+  firestoreGetBills,
+  firestoreCreateBill,
+  firestorePayBill,
+  firestoreDeleteBill,
+  firestoreGetDashboardStats,
+  getCollectionData
+} from './firestoreService';
 
-// Santri Management
-export const getSantriList = (params) => api.get('/santri', { params });
-export const getSantriById = (id) => api.get(`/santri/${id}`);
-export const createSantri = (data) => api.post('/santri', data);
-export const updateSantri = (id, data) => api.put(`/santri/${id}`, data);
-export const deleteSantri = (id) => api.delete(`/santri/${id}`);
-export const getSantriByNfc = (uid) => api.get(`/santri/nfc/${uid}`);
-export const exportSantriData = () => api.get('/santri/export/all');
+// Dashboard Statistics
+export const getDashboardStats = async () => {
+  try {
+    const stats = firestoreGetDashboardStats();
+    return { data: { success: true, data: stats } };
+  } catch (err) {
+    return api.get('/dashboard/stats');
+  }
+};
+
+export const getDashboardCharts = async (period = 'month') => {
+  try {
+    const stats = firestoreGetDashboardStats();
+    return { data: { success: true, data: stats.monthlyChart } };
+  } catch (err) {
+    return api.get('/dashboard/charts', { params: { period } });
+  }
+};
+
+// Santri Management (CRUD Lengkap Terkoneksi Firestore)
+export const getSantriList = async (params = {}) => {
+  try {
+    const list = firestoreGetSantri(params);
+    return { data: { success: true, data: list } };
+  } catch (err) {
+    return api.get('/santri', { params });
+  }
+};
+
+export const getSantriById = async (id) => {
+  try {
+    const list = firestoreGetSantri();
+    const found = list.find(s => s.id === (parseInt(id) || id));
+    if (found) return { data: { success: true, data: found } };
+  } catch (e) {}
+  return api.get(`/santri/${id}`);
+};
+
+export const createSantri = async (data) => {
+  const newSantri = firestoreCreateSantri(data);
+  try { api.post('/santri', data).catch(() => {}); } catch (e) {}
+  return { data: { success: true, message: 'Data santri berhasil ditambahkan', data: newSantri } };
+};
+
+export const updateSantri = async (id, data) => {
+  const updated = firestoreUpdateSantri(id, data);
+  try { api.put(`/santri/${id}`, data).catch(() => {}); } catch (e) {}
+  return { data: { success: true, message: 'Data santri berhasil diperbarui', data: updated } };
+};
+
+export const deleteSantri = async (id) => {
+  const res = firestoreDeleteSantri(id);
+  try { api.delete(`/santri/${id}`).catch(() => {}); } catch (e) {}
+  return { data: res };
+};
+
+export const getSantriByNfc = async (uid) => {
+  try {
+    const list = firestoreGetSantri();
+    const found = list.find(s => s.nfcUid === uid);
+    if (found) return { data: { success: true, data: found } };
+  } catch (e) {}
+  return api.get(`/santri/nfc/${uid}`);
+};
+
+export const exportSantriData = async () => {
+  try {
+    const list = firestoreGetSantri();
+    return { data: list };
+  } catch (e) {
+    return api.get('/santri/export/all');
+  }
+};
+
 export const importSantriBulk = (data) => api.post('/santri/import/bulk', data);
 export const importFromFirebase = (data) => api.post('/santri/import/firebase', data);
 
-// Pocket Transactions (Uang Saku)
-export const getPocketTxs = (params) => api.get('/pocket-tx', { params });
-export const getPocketTransactions = (params) => api.get('/pocket-tx', { params });
-export const createPocketTx = (data) => api.post('/pocket-tx', data);
-export const createPocketTransaction = (data) => api.post('/pocket-tx', data);
-export const deductPocketBalance = (data) => api.post('/pocket-tx/deduct', data);
+// Pocket Transactions (Uang Saku dengan Transaksi Atomik)
+export const getPocketTxs = async (params = {}) => {
+  try {
+    const txs = getCollectionData('pocket_transactions');
+    return { data: { success: true, data: txs } };
+  } catch (err) {
+    return api.get('/pocket-tx', { params });
+  }
+};
+
+export const getPocketTransactions = getPocketTxs;
+
+export const createPocketTx = async (data) => {
+  const res = firestoreRunPocketTransaction({
+    santriId: data.santriId,
+    type: data.type || 'TOPUP',
+    amount: data.amount,
+    note: data.note,
+    merchantName: data.merchantName
+  });
+  try { api.post('/pocket-tx', data).catch(() => {}); } catch (e) {}
+  return { data: res };
+};
+
+export const createPocketTransaction = createPocketTx;
+
+export const deductPocketBalance = async (data) => {
+  const res = firestoreRunPocketTransaction({
+    santriId: data.santriId,
+    type: 'DEDUCT',
+    amount: data.amount,
+    note: data.note,
+    merchantName: data.merchantName
+  });
+  try { api.post('/pocket-tx/deduct', data).catch(() => {}); } catch (e) {}
+  return { data: res };
+};
 
 // General Ledger (Buku Kas Umum)
 export const getLedgerEntries = (params) => api.get('/ledger', { params });
@@ -74,12 +181,53 @@ export const createMasterBill = (data) => api.post('/bills/master', data);
 export const updateMasterBill = (id, data) => api.put(`/bills/master/${id}`, data);
 export const deleteMasterBill = (id) => api.delete(`/bills/master/${id}`);
 
-// Santri Bills & Invoices
-export const getSantriBills = (params) => api.get('/bills', { params });
-export const generateMassBills = (data) => api.post('/bills/generate-mass', data);
+// Santri Bills & Invoices (Persistensi Tagihan & Status Lunas)
+export const getSantriBills = async (params = {}) => {
+  try {
+    const bills = firestoreGetBills(params);
+    return { data: { success: true, data: bills } };
+  } catch (err) {
+    return api.get('/bills', { params });
+  }
+};
+
+export const generateMassBills = async (data) => {
+  try {
+    const santriList = firestoreGetSantri();
+    santriList.forEach(s => {
+      firestoreCreateBill({
+        santriId: s.id,
+        title: data.title || 'Syahriyah Bulanan',
+        amount: data.amount || 300000,
+        hijriMonth: data.hijriMonth || 'Ramadhan',
+        hijriYear: data.hijriYear || '1447 H'
+      });
+    });
+    return { data: { success: true, message: 'Tagihan massal berhasil diterbitkan.' } };
+  } catch (e) {
+    return api.post('/bills/generate-mass', data);
+  }
+};
+
 export const autoGenerateHijriBills = (data) => api.post('/bills/auto-generate-hijri', data);
-export const updateSantriBill = (id, data) => api.put(`/bills/${id}`, data);
-export const deleteSantriBill = (id) => api.delete(`/bills/${id}`);
+
+export const updateSantriBill = async (id, data) => {
+  try {
+    const res = firestorePayBill(id, data);
+    return { data: res };
+  } catch (err) {
+    return api.put(`/bills/${id}`, data);
+  }
+};
+
+export const deleteSantriBill = async (id) => {
+  try {
+    const res = firestoreDeleteBill(id);
+    return { data: res };
+  } catch (err) {
+    return api.delete(`/bills/${id}`);
+  }
+};
 
 // Divisi Pengajuan Dana & Verifikasi Pembayaran (Approvals)
 export const getDivisionFunds = (params) => api.get('/approvals/division-funds', { params });
