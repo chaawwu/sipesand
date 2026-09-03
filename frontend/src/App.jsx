@@ -70,8 +70,16 @@ function MainAppContent() {
   const [currentView, setCurrentView] = useState(getInitialView);
   const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
   
-  // Auth Session State
-  const [currentUser, setCurrentUser] = useState(null); // { id, username, name, role, division }
+  // Auth Session State (Aman Multi-Device & Refresh Persistent)
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem('sipesand_active_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Active Navigation Tab
@@ -102,6 +110,11 @@ function MainAppContent() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sipesand_active_user', JSON.stringify(user));
+      } catch {}
+    }
     // Set default initial tab based on role
     switch (user.role) {
       case 'KEPALA_PONDOK':
@@ -127,7 +140,13 @@ function MainAppContent() {
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setCurrentView('landing');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('sipesand_active_user');
+      } catch {}
+    }
+    const initView = getInitialView();
+    setCurrentView(initView === 'landing' ? 'landing' : 'app-gateway');
     setIsMobileSidebarOpen(false);
   };
 
@@ -197,43 +216,45 @@ function MainAppContent() {
     );
   }
 
-  // 4. Tampilan Khusus App Gateway (app.sipesand.web.id - SIPESAND V2 Dashboard)
-  if (currentView === 'app-gateway') {
+  // 4. Tampilan Khusus App Gateway (app.sipesand.web.id) & Portal Tenant Pesantren
+  if (currentView === 'app-gateway' || currentView === 'tenant-portal') {
+    // PRIORITAS UTAMA: Jika BELUM login, WAJIB tampilkan Pesantren Home Page!
+    if (!currentUser) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC]">
+          <TenantPesantrenPortal
+            onLoginPetugas={() => setIsLoginModalOpen(true)}
+            onOpenPortalWali={handleOpenPortalWali}
+            onOpenNfcScanner={() => setIsNfcModalOpen(true)}
+          />
+
+          {/* Modal Login Petugas Pesantren */}
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+
+          {/* Global NFC Simulator Modal */}
+          {isNfcEnabled && (
+            <NfcScannerModal
+              isOpen={isNfcModalOpen}
+              onClose={() => setIsNfcModalOpen(false)}
+              onSuccess={handleNfcSuccess}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // Jika SUDAH login, baru masuk ke Dashboard V2 (10 Modul Lengkap)
     return (
       <div className="min-h-screen bg-[#F4F6FA]">
         <DashboardV2
           currentUser={currentUser}
           onLogout={handleLogout}
           onOpenNfcModal={() => setIsNfcModalOpen(true)}
-        />
-
-        {/* Global NFC Simulator Modal */}
-        {isNfcEnabled && (
-          <NfcScannerModal
-            isOpen={isNfcModalOpen}
-            onClose={() => setIsNfcModalOpen(false)}
-            onSuccess={handleNfcSuccess}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // 5. Tampilan Khusus Portal Resmi Pesantren Tenant (namapondok.sipesand.web.id)
-  if (currentView === 'tenant-portal') {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <TenantPesantrenPortal
-          onLoginPetugas={() => setIsLoginModalOpen(true)}
-          onOpenPortalWali={handleOpenPortalWali}
-          onOpenNfcScanner={() => setIsNfcModalOpen(true)}
-        />
-
-        {/* Modal Login Petugas Pesantren Ini */}
-        <LoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
-          onLoginSuccess={handleLoginSuccess}
+          onBackToLanding={handleLogout}
         />
 
         {/* Global NFC Simulator Modal */}
@@ -298,65 +319,15 @@ function MainAppContent() {
     );
   }
 
-  // 4. Tampilan Panel Pengurus Devisi & Super Admin (Menyesuaikan Peran Role)
-  const renderDashboardContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
-      case 'santri':
-        return <Santri key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
-      case 'bills':
-        return <BillsAndInvoices key={refreshKey} />;
-      case 'approvals':
-        return <Approvals key={refreshKey} />;
-      case 'ledger':
-        return <Ledger key={refreshKey} />;
-      case 'pocket-cash':
-        return <PocketAndCash key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
-      case 'academics':
-        return <AcademicMuhafadzoh key={refreshKey} />;
-      case 'security':
-        return <SecurityKamtib key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
-      case 'web-builder':
-        return <TenantWebsiteBuilder key={refreshKey} />;
-      case 'settings':
-        return <SettingsAndAccounts key={refreshKey} />;
-      default:
-        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
-    }
-  };
-
+  // 8. Tampilan Aplikasi Dashboard Terautentikasi (SIPESAND V2 - 10 Modul Lengkap)
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] text-[#111827]">
-      {/* Sidebar Navigation (Role-based & Mobile Drawer) */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenNfcModal={() => setIsNfcModalOpen(true)}
-        onBackToLanding={() => setCurrentView('landing')}
+    <div className="min-h-screen bg-[#F4F6FA]">
+      <DashboardV2
         currentUser={currentUser}
         onLogout={handleLogout}
-        isOpen={isMobileSidebarOpen}
-        onClose={() => setIsMobileSidebarOpen(false)}
+        onOpenNfcModal={() => setIsNfcModalOpen(true)}
+        onBackToLanding={handleLogout}
       />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          activeTab={activeTab}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          onOpenNfcModal={() => setIsNfcModalOpen(true)}
-          onBackToLanding={() => setCurrentView('landing')}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
-        />
-
-        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-6xl w-full mx-auto animate-in fade-in duration-150">
-          {renderDashboardContent()}
-        </main>
-
-        <DeveloperFooter className="mt-auto" />
-      </div>
 
       {/* Global NFC Simulator Modal */}
       {isNfcEnabled && (
