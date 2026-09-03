@@ -36,18 +36,36 @@ const SettingsContext = createContext({
 });
 
 export function SettingsProvider({ children }) {
-  const [settings, setSettings] = useState(defaultSettings);
+  const [settings, setSettings] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('sipesand_tenant_settings');
+        if (cached) {
+          return { ...defaultSettings, ...JSON.parse(cached) };
+        }
+      } catch (e) {}
+    }
+    return defaultSettings;
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = async () => {
     try {
       setLoading(true);
       const res = await getSystemSettings();
-      if (res.data.success && res.data.data) {
-        setSettings(prev => ({
-          ...prev,
-          ...res.data.data,
-        }));
+      if (res?.data?.success && res?.data?.data) {
+        setSettings(prev => {
+          const updated = {
+            ...prev,
+            ...res.data.data,
+          };
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('sipesand_tenant_settings', JSON.stringify(updated));
+            } catch (e) {}
+          }
+          return updated;
+        });
       }
     } catch (err) {
       console.error('Error loading settings in Context:', err);
@@ -64,6 +82,11 @@ export function SettingsProvider({ children }) {
     try {
       const merged = { ...settings, ...newSettings };
       setSettings(merged);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('sipesand_tenant_settings', JSON.stringify(merged));
+        } catch (e) {}
+      }
       await saveSystemSettings(newSettings);
       await fetchSettings();
       return { success: true };

@@ -24,6 +24,22 @@ function getTenantPrismaClient(subdomain) {
   const tenantsDir = path.join(__dirname, '../../prisma/tenants');
   const tenantDbPath = path.join(tenantsDir, `tenant_${cleanSub}.db`);
 
+  // Jika file database tenant belum ada, otomatis salin dari master database dev.db
+  if (!fs.existsSync(tenantDbPath)) {
+    try {
+      if (!fs.existsSync(tenantsDir)) {
+        fs.mkdirSync(tenantsDir, { recursive: true });
+      }
+      const masterDbPath = path.join(__dirname, '../../prisma/dev.db');
+      if (fs.existsSync(masterDbPath) && cleanSub) {
+        fs.copyFileSync(masterDbPath, tenantDbPath);
+        console.log(`[TenantResolver] Database mandiri baru otomatis dibuat untuk tenant: ${cleanSub}`);
+      }
+    } catch (copyErr) {
+      console.error(`[TenantResolver] Gagal inisialisasi database tenant ${cleanSub}:`, copyErr.message);
+    }
+  }
+
   // Jika file database tenant ada, buat Prisma Client khusus
   if (fs.existsSync(tenantDbPath)) {
     const tenantClient = new PrismaClient({
@@ -48,19 +64,19 @@ function getTenantPrismaClient(subdomain) {
 function tenantResolver(req, res, next) {
   const host = req.headers.host || '';
   const customHeader = req.headers['x-tenant-subdomain'];
-  const queryTenant = req.query.tenant;
+  const queryTenant = req.query.tenant || req.query.pondok || req.query.subdomain;
 
   let subdomain = null;
 
   // 1. Cek dari Custom Header
-  if (customHeader && customHeader !== 'master') {
+  if (customHeader && customHeader !== 'master' && customHeader !== 'app' && customHeader !== 'mitra' && customHeader !== 'pay' && customHeader !== 'api' && customHeader !== 'www') {
     subdomain = customHeader.toLowerCase().trim();
   }
-  // 2. Cek dari Query Parameter (?tenant=...)
-  else if (queryTenant && queryTenant !== 'master') {
+  // 2. Cek dari Query Parameter (?tenant=... / ?pondok=...)
+  else if (queryTenant && queryTenant !== 'master' && queryTenant !== 'app' && queryTenant !== 'mitra' && queryTenant !== 'pay' && queryTenant !== 'api') {
     subdomain = queryTenant.toLowerCase().trim();
   }
-  // 3. Cek dari Hostname URL (e.g. darululum.sipesand.web.id)
+  // 3. Cek dari Hostname URL (e.g. darulrahman.sipesand.web.id)
   else {
     const hostWithoutPort = host.split(':')[0].toLowerCase();
     const matchedDomain = getBaseDomains().find((baseDomain) => {
@@ -72,7 +88,7 @@ function tenantResolver(req, res, next) {
     if (matchedDomain) {
       const tenantHost = hostWithoutPort.replace(`.${matchedDomain}`, '');
       const parts = tenantHost.split('.');
-      if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api') {
+      if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'app' && parts[0] !== 'mitra' && parts[0] !== 'pay') {
         subdomain = parts[0];
       }
     }

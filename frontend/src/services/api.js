@@ -12,10 +12,10 @@ api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
-    const tenantQuery = searchParams.get('tenant');
+    const tenantQuery = searchParams.get('tenant') || searchParams.get('pondok') || searchParams.get('subdomain');
 
     if (tenantQuery) {
-      config.headers['X-Tenant-Subdomain'] = tenantQuery;
+      config.headers['X-Tenant-Subdomain'] = tenantQuery.toLowerCase().trim();
     } else {
       const baseDomains = ['sipesand.we.id', 'sipesand.web.id'];
       const matchedBase = baseDomains.find((baseDomain) => hostname === baseDomain || hostname === `www.${baseDomain}` || hostname.endsWith(`.${baseDomain}`));
