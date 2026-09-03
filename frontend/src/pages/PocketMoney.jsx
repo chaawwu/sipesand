@@ -53,12 +53,14 @@ export default function PocketMoney({ onOpenNfcModal }) {
   const fetchSantriOptions = async () => {
     try {
       const res = await getSantriList();
-      if (res.data.success) {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
         setSantriList(res.data.data);
         if (res.data.data.length > 0 && !selectedSantriId) {
           setSelectedSantriId(res.data.data[0].id);
           setActiveSantri(res.data.data[0]);
         }
+      } else {
+        setSantriList([]);
       }
     } catch (err) {
       console.error('Error fetchSantriOptions:', err);

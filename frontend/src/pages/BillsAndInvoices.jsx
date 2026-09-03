@@ -101,14 +101,24 @@ export default function BillsAndInvoices() {
         getSantriList(),
       ]);
 
-      if (masterRes.data.success) {
+      if (masterRes?.data?.success && Array.isArray(masterRes.data.data)) {
         setMasterBills(masterRes.data.data);
         if (!selectedMasterBillId && masterRes.data.data.length > 0) {
           setSelectedMasterBillId(masterRes.data.data[0].id.toString());
         }
+      } else {
+        setMasterBills([]);
       }
-      if (billsRes.data.success) setSantriBills(billsRes.data.data);
-      if (santriRes.data.success) setSantriList(santriRes.data.data);
+      if (billsRes?.data?.success && Array.isArray(billsRes.data.data)) {
+        setSantriBills(billsRes.data.data);
+      } else {
+        setSantriBills([]);
+      }
+      if (santriRes?.data?.success && Array.isArray(santriRes.data.data)) {
+        setSantriList(santriRes.data.data);
+      } else {
+        setSantriList([]);
+      }
     } catch (err) {
       console.error('Error loadAllData:', err);
     } finally {

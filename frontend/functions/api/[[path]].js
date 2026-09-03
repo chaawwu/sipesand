@@ -376,12 +376,82 @@ export async function onRequest(context) {
     }, 200, origin);
   }
 
-  // --- ENDPOINT: POST /api/bills/generate-mass ---
-  if (path.includes('/generate-mass') && method === 'POST') {
+  // --- ENDPOINT: GET /api/academics ---
+  if (path.startsWith('/api/academics') && method === 'GET') {
     return jsonResponse({
       success: true,
-      message: 'Tagihan massal berhasil diterbitkan ke santri terpilih'
-    }, 201, origin);
+      data: [
+        {
+          id: 1,
+          santriId: 1,
+          date: new Date().toISOString(),
+          type: 'TAHFIDZ',
+          subject: 'Juz 30 (An-Naba s.d An-Nas)',
+          score: 'Mutqin (95)',
+          notes: 'Makharijul huruf sangat fasih dan lancar.',
+          examiner: 'Ustadz Ahmad Al-Hafidz',
+          santri: MOCK_SANTRI[0]
+        }
+      ]
+    }, 200, origin);
+  }
+
+  // --- ENDPOINT: GET /api/settings/accounts ---
+  if (path.includes('/settings/accounts') && method === 'GET') {
+    return jsonResponse({
+      success: true,
+      data: [
+        {
+          id: 1,
+          username: 'admin',
+          name: 'Pengasuh Pondok Pesantren',
+          role: 'SUPER_ADMIN',
+          division: 'PENGASUH_PUSAT',
+          managedSantriIds: '[1, 2, 3]',
+          performanceNotes: 'Teladan',
+          performanceGrade: 'Mumtaz',
+          isActive: true
+        },
+        {
+          id: 2,
+          username: 'uangsaku',
+          name: 'Ustadzah Maryam',
+          role: 'PENGURUS_UANG_SAKU',
+          division: 'DIVISI_UANG_SAKU',
+          managedSantriIds: '[1, 2]',
+          performanceNotes: 'Sangat teliti dan amanah',
+          performanceGrade: 'Mumtaz',
+          isActive: true
+        }
+      ]
+    }, 200, origin);
+  }
+
+  // --- ENDPOINT: GET /api/permits ---
+  if (path.startsWith('/api/permits') && method === 'GET') {
+    return jsonResponse({
+      success: true,
+      data: [
+        {
+          id: 1,
+          santriId: 1,
+          reason: 'Kunjungan Dokter Gigi',
+          destination: 'Kediri',
+          status: 'ACTIVE',
+          departureTime: new Date().toISOString(),
+          returnTime: new Date(Date.now() + 4 * 3600000).toISOString(),
+          santri: MOCK_SANTRI[0]
+        }
+      ]
+    }, 200, origin);
+  }
+
+  // --- ENDPOINT: GET /api/security/violations ---
+  if (path.includes('/security') && method === 'GET') {
+    return jsonResponse({
+      success: true,
+      data: []
+    }, 200, origin);
   }
 
   // Default Universal Fallback Response
@@ -390,6 +460,7 @@ export async function onRequest(context) {
     message: 'SiPesand Universal API Gateway OK',
     endpoint: path,
     method: method,
+    data: [],
     timestamp: new Date().toISOString()
   }, 200, origin);
 }

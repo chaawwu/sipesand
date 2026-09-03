@@ -120,15 +120,26 @@ export default function AcademicMuhafadzoh() {
         getPermits(),
       ]);
 
-      if (recordsRes.data.success) setRecords(recordsRes.data.data);
-      if (santriRes.data.success) {
+      if (recordsRes?.data?.success && Array.isArray(recordsRes.data.data)) {
+        setRecords(recordsRes.data.data);
+      } else {
+        setRecords([]);
+      }
+
+      if (santriRes?.data?.success && Array.isArray(santriRes.data.data)) {
         setSantriList(santriRes.data.data);
         if (!formData.santriId && santriRes.data.data.length > 0) {
           setFormData(prev => ({ ...prev, santriId: santriRes.data.data[0].id.toString() }));
         }
+      } else {
+        setSantriList([]);
       }
-      if (statsRes.data.success) setStatsData(statsRes.data.data.stats);
-      if (accountsRes.data.success) {
+
+      if (statsRes?.data?.success && statsRes.data.data?.stats) {
+        setStatsData(statsRes.data.data.stats);
+      }
+
+      if (accountsRes?.data?.success && Array.isArray(accountsRes.data.data)) {
         setPengurusList(accountsRes.data.data);
         if (!selectedStaffForMapping && accountsRes.data.data.length > 0) {
           const firstPocketStaff = accountsRes.data.data.find(a => a.role === 'PENGURUS_SAKU') || accountsRes.data.data[0];
@@ -142,8 +153,15 @@ export default function AcademicMuhafadzoh() {
             setSelectedSantriForMapping([]);
           }
         }
+      } else {
+        setPengurusList([]);
       }
-      if (permitsRes.data.success) setPermitsList(permitsRes.data.data);
+
+      if (permitsRes?.data?.success && Array.isArray(permitsRes.data.data)) {
+        setPermitsList(permitsRes.data.data);
+      } else {
+        setPermitsList([]);
+      }
     } catch (err) {
       console.error('Error loadData Academic:', err);
     } finally {
@@ -330,14 +348,14 @@ export default function AcademicMuhafadzoh() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Santri Asuh</span>
-          <div className="text-xl font-black text-slate-900 mt-1">{santriList.length} Santri</div>
+          <div className="text-xl font-black text-slate-900 mt-1">{(santriList || []).length} Santri</div>
           <span className="text-[10px] text-emerald-600 font-bold">100% Terdaftar</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Santri Saldo Minus</span>
           <div className="text-xl font-black text-rose-600 mt-1">
-            {santriList.filter(s => s.saldo_saku < 0).length} Santri
+            {(santriList || []).filter(s => (s?.saldo_saku || 0) < 0).length} Santri
           </div>
           <span className="text-[10px] text-slate-400">Butuh perhatian / talangan</span>
         </div>
@@ -345,14 +363,14 @@ export default function AcademicMuhafadzoh() {
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Perizinan Aktif</span>
           <div className="text-xl font-black text-blue-700 mt-1">
-            {permitsList.filter(p => p.status === 'ACTIVE' || p.status === 'APPROVED').length} Izin
+            {(permitsList || []).filter(p => p?.status === 'ACTIVE' || p?.status === 'APPROVED').length} Izin
           </div>
           <span className="text-[10px] text-slate-400">Dipantau real-time</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Pengurus Devisi</span>
-          <div className="text-xl font-black text-slate-900 mt-1">{pengurusList.length} Akun</div>
+          <div className="text-xl font-black text-slate-900 mt-1">{(pengurusList || []).length} Akun</div>
           <span className="text-[10px] text-emerald-600 font-bold">Aktif Bertugas</span>
         </div>
       </div>
@@ -432,10 +450,10 @@ export default function AcademicMuhafadzoh() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {loading ? (
               <div className="col-span-full py-12 text-center text-slate-400">Memuat catatan evaluasi...</div>
-            ) : records.length === 0 ? (
+            ) : (!records || records.length === 0) ? (
               <div className="col-span-full py-12 text-center text-slate-400">Belum ada evaluasi muhafadzoh</div>
             ) : (
-              records.map((rec) => (
+              (records || []).map((rec) => (
                 <div key={rec.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3 flex flex-col justify-between hover:border-slate-300 transition-colors">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -453,9 +471,9 @@ export default function AcademicMuhafadzoh() {
                     </div>
 
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{rec.santri?.nama}</h4>
+                      <h4 className="font-bold text-slate-900 text-sm">{rec.santri?.nama || 'Santri'}</h4>
                       <div className="text-[11px] text-slate-400 font-mono">
-                        NIS: {rec.santri?.nis} • {rec.santri?.kelas}
+                        NIS: {rec.santri?.nis || '-'} • {rec.santri?.kelas || '-'}
                       </div>
                     </div>
 
@@ -512,7 +530,7 @@ export default function AcademicMuhafadzoh() {
             <div className="lg:col-span-4 space-y-3">
               <span className="font-bold text-slate-800 block text-xs">1. Pilih Akun Pengurus Uang Saku:</span>
               <div className="space-y-2">
-                {pengurusList.map((acc) => {
+                {(pengurusList || []).map((acc) => {
                   const isSelected = selectedStaffForMapping?.id === acc.id;
                   let count = 0;
                   try {
@@ -553,7 +571,7 @@ export default function AcademicMuhafadzoh() {
                     2. Pilih Santri Binaan untuk: <strong className="text-blue-700">{selectedStaffForMapping?.name || 'Pilih Pengurus'}</strong>
                   </span>
                   <p className="text-[10px] text-slate-400 mt-0.5">
-                    Centang santri yang uang sakunya dipegang oleh pengurus ini ({selectedSantriForMapping.length} santri terpilih)
+                    Centang santri yang uang sakunya dipegang oleh pengurus ini ({(selectedSantriForMapping || []).length} santri terpilih)
                   </p>
                 </div>
 
@@ -569,8 +587,8 @@ export default function AcademicMuhafadzoh() {
               </div>
 
               <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                {santriList.map((s) => {
-                  const isChecked = selectedSantriForMapping.includes(s.id);
+                {(santriList || []).map((s) => {
+                  const isChecked = (selectedSantriForMapping || []).includes(s.id);
                   return (
                     <div
                       key={s.id}
@@ -647,7 +665,7 @@ export default function AcademicMuhafadzoh() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pengurusList.map((acc) => (
+                {(pengurusList || []).map((acc) => (
                   <tr key={acc.id} className="hover:bg-slate-50/70">
                     <td className="py-3.5 px-4 font-bold text-slate-900">{acc.name}</td>
                     <td className="py-3.5 px-4 font-mono text-slate-600">{acc.username}</td>
@@ -704,7 +722,7 @@ export default function AcademicMuhafadzoh() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {permitsList.map((p) => (
+                {(permitsList || []).map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/70">
                     <td className="py-3.5 px-4 font-bold text-slate-900">{p.santri?.nama}</td>
                     <td className="py-3.5 px-4 text-slate-700">{p.reason}</td>

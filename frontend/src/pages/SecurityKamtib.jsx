@@ -73,14 +73,26 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
         getSantriList(),
       ]);
 
-      if (permitsRes.data.success) setPermits(permitsRes.data.data);
-      if (violationsRes.data.success) setViolations(violationsRes.data.data);
-      if (santriRes.data.success) {
+      if (permitsRes?.data?.success && Array.isArray(permitsRes.data.data)) {
+        setPermits(permitsRes.data.data);
+      } else {
+        setPermits([]);
+      }
+
+      if (violationsRes?.data?.success && Array.isArray(violationsRes.data.data)) {
+        setViolations(violationsRes.data.data);
+      } else {
+        setViolations([]);
+      }
+
+      if (santriRes?.data?.success && Array.isArray(santriRes.data.data)) {
         setSantriList(santriRes.data.data);
         if (!permitFormData.santriId && santriRes.data.data.length > 0) {
           setPermitFormData(prev => ({ ...prev, santriId: santriRes.data.data[0].id.toString() }));
           setViolationFormData(prev => ({ ...prev, santriId: santriRes.data.data[0].id.toString() }));
         }
+      } else {
+        setSantriList([]);
       }
     } catch (err) {
       console.error('Error loadData Security:', err);

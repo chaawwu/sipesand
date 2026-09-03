@@ -64,11 +64,13 @@ export default function Permits({ onOpenNfcModal }) {
   const fetchSantriOptions = async () => {
     try {
       const res = await getSantriList();
-      if (res.data.success) {
+      if (res?.data?.success && Array.isArray(res.data.data)) {
         setSantriList(res.data.data);
         if (res.data.data.length > 0 && !formData.santriId) {
           setFormData((prev) => ({ ...prev, santriId: res.data.data[0].id }));
         }
+      } else {
+        setSantriList([]);
       }
     } catch (err) {
       console.error('Error fetchSantriOptions:', err);
