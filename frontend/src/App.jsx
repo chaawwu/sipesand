@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
 import AppGatewayPage from './pages/AppGatewayPage';
 import TenantPesantrenPortal from './pages/TenantPesantrenPortal';
+import TenantWebsiteBuilder from './pages/TenantWebsiteBuilder';
 import DashboardDeveloper from './pages/DashboardDeveloper';
 import PortalWaliPublic from './pages/PortalWaliPublic';
 import Dashboard from './pages/Dashboard';
@@ -323,6 +324,8 @@ function MainAppContent() {
         return <AcademicMuhafadzoh key={refreshKey} />;
       case 'security':
         return <SecurityKamtib key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
+      case 'web-builder':
+        return <TenantWebsiteBuilder key={refreshKey} />;
       case 'settings':
         return <SettingsAndAccounts key={refreshKey} />;
       default:

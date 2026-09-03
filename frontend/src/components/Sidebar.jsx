@@ -15,6 +15,7 @@ import {
   Settings, 
   CircleDollarSign, 
   UserCheck,
+  Palette,
   X
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
@@ -71,6 +72,7 @@ export default function Sidebar({
           { id: 'pocket-cash', label: 'Uang Saku Santri & POS', icon: CircleDollarSign },
           { id: 'academics', label: 'Divisi Kepala Pondok', icon: Award },
           { id: 'security', label: 'Divisi Keamanan (Kamtib)', icon: ShieldCheck },
+          { id: 'web-builder', label: 'Tampilan Web & Portal', icon: Palette },
           { id: 'settings', label: 'Pengaturan Lembaga & Akun', icon: Settings },
         ];
     }

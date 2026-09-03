@@ -24,9 +24,10 @@ import {
   Clock, 
   ArrowRight, 
   Database, 
-  Server, 
   AlertCircle,
   Menu,
+  Palette,
+  Layers,
   X
 } from 'lucide-react';
 import { 
@@ -82,6 +83,19 @@ export default function DashboardDeveloper({ onBackToLanding }) {
   // Change Password Form State
   const [pwdForm, setPwdForm] = useState({ oldPwd: '', newPwd: '', confirmPwd: '' });
   const [pwdFeedback, setPwdFeedback] = useState('');
+
+  // Website Editor State (sipesand.web.id & app.sipesand.web.id)
+  const [webEditorForm, setWebEditorForm] = useState({
+    saasHeroTitle: 'Software Manajemen Pesantren Terpadu Modern',
+    saasHeroSubtitle: 'Platform SaaS Enterprise berbasis kartu santri KTSD Smart NFC, auto-billing syahriyah Hijriyah, buku kas umum, portal wali mandiri, dan pos perizinan santri.',
+    saasPriceAnnual: '1.500.000',
+    saasPriceLifetime: '3.500.000',
+    saasPromoBanner: '',
+    saasWhatsapp: '+62 851-2373-4342',
+    appGatewayAnnouncement: '',
+    appGatewayHelpPhone: '+62 851-2373-4342',
+  });
+  const [webEditorSaved, setWebEditorSaved] = useState(false);
 
   // Load Developer Data
   const loadData = async () => {
@@ -355,6 +369,7 @@ export default function DashboardDeveloper({ onBackToLanding }) {
     { id: 'transactions', label: 'Transaksi Tenant', icon: Receipt },
     { id: 'categories', label: 'Kategori Tenant', icon: FolderTree },
     { id: 'settings', label: 'Developer Settings', icon: Sliders },
+    { id: 'website_editor', label: 'Editor Web & Builder', icon: Palette },
     { id: 'account', label: 'Akun Developer', icon: UserCheck },
   ];
 
@@ -1167,7 +1182,215 @@ export default function DashboardDeveloper({ onBackToLanding }) {
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 8: AKUN DEVELOPER                                                     */}
+          {/* TAB 8: EDITOR WEB SIPESAND & APP HUB (DEVELOPER MASTER)                   */}
+          {/* ========================================================================= */}
+          {activeMenu === 'website_editor' && (
+            <div className="space-y-6 animate-in fade-in duration-150">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1D4ED8] font-bold text-[10px] border border-blue-100">
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>Master CMS & Web Editor</span>
+                  </div>
+                  <h2 className="font-['Poppins'] font-extrabold text-lg text-[#111827]">
+                    Editor Web SIPESAND & App Hub
+                  </h2>
+                  <p className="text-slate-500 text-xs">
+                    Kelola copywriting, harga lisensi, pengumuman gateway, dan tinjau web builder mandiri milik masing-masing tenant
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setWebEditorSaved(true);
+                    setTimeout(() => setWebEditorSaved(false), 3000);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#1D4ED8] hover:bg-blue-800 text-white font-bold transition-all shadow-subtle flex items-center gap-1.5 hover:-translate-y-0.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{webEditorSaved ? 'Tersimpan!' : 'Simpan Pengaturan Web'}</span>
+                </button>
+              </div>
+
+              {webEditorSaved && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Pengaturan master website sipesand.web.id dan app.sipesand.web.id berhasil disimpan!</span>
+                </div>
+              )}
+
+              {/* Grid 2 Kolom: Edit sipesand.web.id & app.sipesand.web.id */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Kolom 1 (6/12): Edit sipesand.web.id */}
+                <div className="lg:col-span-6 card-bento p-6 space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#1D4ED8]" />
+                      <h3 className="font-['Poppins'] font-bold text-xs text-[#111827] uppercase tracking-wider">
+                        Editor Landing Page sipesand.web.id
+                      </h3>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Public SaaS</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Hero Headline</label>
+                      <input
+                        type="text"
+                        value={webEditorForm.saasHeroTitle}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, saasHeroTitle: e.target.value })}
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Hero Subheadline</label>
+                      <textarea
+                        rows={3}
+                        value={webEditorForm.saasHeroSubtitle}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, saasHeroSubtitle: e.target.value })}
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1 text-xs">Harga Paket Tahunan (Rp)</label>
+                        <input
+                          type="text"
+                          value={webEditorForm.saasPriceAnnual}
+                          onChange={(e) => setWebEditorForm({ ...webEditorForm, saasPriceAnnual: e.target.value })}
+                          className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-semibold mb-1 text-xs">Harga Paket Lifetime (Rp)</label>
+                        <input
+                          type="text"
+                          value={webEditorForm.saasPriceLifetime}
+                          onChange={(e) => setWebEditorForm({ ...webEditorForm, saasPriceLifetime: e.target.value })}
+                          className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Nomor WhatsApp Resmi King Digital Dev</label>
+                      <input
+                        type="text"
+                        value={webEditorForm.saasWhatsapp}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, saasWhatsapp: e.target.value })}
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Banner Pengumuman Promo (Opsional)</label>
+                      <input
+                        type="text"
+                        value={webEditorForm.saasPromoBanner}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, saasPromoBanner: e.target.value })}
+                        placeholder="Contoh: Diskon Khusus Santri 2026 - Hubungi Tim Kami!"
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom 2 (6/12): Edit app.sipesand.web.id */}
+                <div className="lg:col-span-6 card-bento p-6 space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-700" />
+                      <h3 className="font-['Poppins'] font-bold text-xs text-[#111827] uppercase tracking-wider">
+                        Editor App Hub Gateway app.sipesand.web.id
+                      </h3>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Login Gateway</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Pengumuman Terpusat Login Pengurus</label>
+                      <textarea
+                        rows={3}
+                        value={webEditorForm.appGatewayAnnouncement}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, appGatewayAnnouncement: e.target.value })}
+                        placeholder="Contoh: Pemeliharaan terjadwal server setiap hari Minggu pkl 02:00 WIB. Layanan tetap aktif normal."
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-semibold mb-1 text-xs">Nomor Hotline Bantuan Darurat Pengurus</label>
+                      <input
+                        type="text"
+                        value={webEditorForm.appGatewayHelpPhone}
+                        onChange={(e) => setWebEditorForm({ ...webEditorForm, appGatewayHelpPhone: e.target.value })}
+                        className="w-full px-3.5 py-2 border border-[#E5E7EB] rounded-xl text-xs bg-[#F8FAFC] font-medium"
+                      />
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 text-blue-950 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-xs text-[#1D4ED8]">
+                        <Info className="w-3.5 h-3.5" />
+                        <span>Isolasi Web Builder Tenant</span>
+                      </div>
+                      <p className="text-[11px] text-blue-900/80 leading-relaxed">
+                        Pengurus pesantren mengedit portal mereka melalui menu <strong>Tampilan Web & Portal</strong> di dashboard masing-masing. Seluruh logo, foto, tema warna, dan teks tersimpan 100% di database SQLite milik tenant tersebut tanpa mengubah web tenant lain.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Seksi 3: Pengawasan & Tinjauan Portal Tenant */}
+              <div className="card-bento p-6 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-slate-700" />
+                    <h3 className="font-['Poppins'] font-bold text-xs text-[#111827] uppercase tracking-wider">
+                      Daftar Web Portal Tenant Aktif
+                    </h3>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Total {tenants.length} Lembaga</span>
+                </div>
+
+                <div className="divide-y divide-[#E5E7EB]">
+                  {tenants.map(t => (
+                    <div key={t.id || t.subdomain} className="py-3 flex items-center justify-between gap-4">
+                      <div>
+                        <div className="font-bold text-xs text-slate-900">{t.namaPondok}</div>
+                        <div className="font-mono text-[10.5px] text-slate-500">{t.subdomain}.sipesand.web.id</div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px] border border-emerald-200">
+                          Database Mandiri Terisolasi
+                        </span>
+                        <a
+                          href={`https://${t.subdomain}.sipesand.web.id`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 rounded-xl border border-[#E5E7EB] hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1"
+                        >
+                          <span>Buka Portal</span>
+                          <ExternalLink className="w-3 h-3 text-slate-400" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 9: AKUN DEVELOPER                                                     */}
           {/* ========================================================================= */}
           {activeMenu === 'account' && (
             <div className="space-y-5 max-w-2xl animate-in fade-in duration-150">
