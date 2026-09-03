@@ -9,7 +9,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "seed": "npm --prefix backend run seed",
     "build": "npm --prefix frontend run build",
-    "sync": "node sync-github.js"
+    "sync": "node sync-github.js",
+    "impeccable:detect": "node .impeccable/cli/bin/cli.js detect frontend/src"
   },
   "keywords": ["pesantren", "fullstack", "react", "express", "prisma", "nfc", "sqlite"],
   "author": "SiPesand Team",
