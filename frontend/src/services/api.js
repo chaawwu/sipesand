@@ -24,7 +24,7 @@ api.interceptors.request.use((config) => {
         const hostWithoutBase = hostname.replace(new RegExp(`\\.${matchedBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '');
         const parts = hostWithoutBase.split('.');
 
-        if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'mitra' && parts[0] !== 'pay') {
+        if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'mitra' && parts[0] !== 'pay' && parts[0] !== 'app') {
           config.headers['X-Tenant-Subdomain'] = parts[0];
         }
       }

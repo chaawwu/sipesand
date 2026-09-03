@@ -8,6 +8,8 @@ import DeveloperFooter from './components/DeveloperFooter';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
+import AppGatewayPage from './pages/AppGatewayPage';
+import TenantPesantrenPortal from './pages/TenantPesantrenPortal';
 import DashboardDeveloper from './pages/DashboardDeveloper';
 import PortalWaliPublic from './pages/PortalWaliPublic';
 import Dashboard from './pages/Dashboard';
@@ -60,17 +62,31 @@ function MainAppContent() {
     } else if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') {
       setCurrentView('kontak');
     } 
-    // 2. Cek Subdomain
-    else if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) {
+    // 2. Cek Subdomain & Multi-Tier Routing
+    if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) {
       setCurrentView('developer');
     } else if (viewParam === 'saas') {
       setCurrentView('landing-saas');
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
     } else if (viewParam === 'app' || hostname.startsWith('app.')) {
-      setCurrentView('landing');
-      if (searchParams.get('login') === 'true') {
-        setIsLoginModalOpen(true);
+      setCurrentView('app-gateway');
+    } else {
+      // Periksa apakah ini subdomain tenant khusus pondok (misal darulrahman.sipesand.web.id)
+      const baseDomains = ['sipesand.web.id', 'sipesand.we.id'];
+      const matchedBase = baseDomains.find(base => hostname === base || hostname.endsWith(`.${base}`));
+      
+      if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
+        const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
+        if (subdomain && subdomain !== 'app' && subdomain !== 'mitra' && subdomain !== 'pay' && subdomain !== 'api') {
+          setCurrentView('tenant-portal');
+        } else {
+          setCurrentView('landing');
+        }
+      } else if (searchParams.get('tenant') || searchParams.get('pondok')) {
+        setCurrentView('tenant-portal');
+      } else {
+        setCurrentView('landing');
       }
     }
   }, []);
@@ -183,6 +199,58 @@ function MainAppContent() {
   if (currentView === 'developer' || currentView === 'mitra') {
     return (
       <DashboardDeveloper onBackToLanding={() => setCurrentView('landing')} />
+    );
+  }
+
+  // 4. Tampilan Khusus App Gateway (app.sipesand.web.id - Tanpa Penjualan, Fokus Login Tenant)
+  if (currentView === 'app-gateway') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <AppGatewayPage
+          onLoginSuccess={handleLoginSuccess}
+          onOpenPortalWali={handleOpenPortalWali}
+          onOpenNfcScanner={() => setIsNfcModalOpen(true)}
+          onNavigateLegal={(path) => setCurrentView(path)}
+        />
+
+        {/* Global NFC Simulator Modal */}
+        {isNfcEnabled && (
+          <NfcScannerModal
+            isOpen={isNfcModalOpen}
+            onClose={() => setIsNfcModalOpen(false)}
+            onSuccess={handleNfcSuccess}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // 5. Tampilan Khusus Portal Resmi Pesantren Tenant (namapondok.sipesand.web.id)
+  if (currentView === 'tenant-portal') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <TenantPesantrenPortal
+          onLoginPetugas={() => setIsLoginModalOpen(true)}
+          onOpenPortalWali={handleOpenPortalWali}
+          onOpenNfcScanner={() => setIsNfcModalOpen(true)}
+        />
+
+        {/* Modal Login Petugas Pesantren Ini */}
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+
+        {/* Global NFC Simulator Modal */}
+        {isNfcEnabled && (
+          <NfcScannerModal
+            isOpen={isNfcModalOpen}
+            onClose={() => setIsNfcModalOpen(false)}
+            onSuccess={handleNfcSuccess}
+          />
+        )}
+      </div>
     );
   }
 
