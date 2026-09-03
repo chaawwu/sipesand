@@ -28,6 +28,9 @@ import {
   Menu,
   Palette,
   Layers,
+  Server,
+  Save,
+  Info,
   X
 } from 'lucide-react';
 import { 

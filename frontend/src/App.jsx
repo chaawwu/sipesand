@@ -28,9 +28,44 @@ import TermsConditionsPage from './pages/TermsConditionsPage';
 import ContactPage from './pages/ContactPage';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
+function getInitialView() {
+  if (typeof window === 'undefined') return 'landing';
+  const hostname = window.location.hostname.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  const searchParams = new URLSearchParams(window.location.search);
+  const viewParam = searchParams.get('view') || searchParams.get('page');
+
+  // 1. Cek Path Legal iPaymu
+  if (pathname.includes('/faq') || viewParam === 'faq') return 'faq';
+  if (pathname.includes('/refund') || viewParam === 'refund-policy') return 'refund-policy';
+  if (pathname.includes('/terms') || pathname.includes('/condition') || viewParam === 'terms-and-conditions') return 'terms-and-conditions';
+  if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') return 'kontak';
+
+  // 2. Cek Subdomain & Multi-Tier Routing
+  if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) return 'developer';
+  if (viewParam === 'saas') return 'landing-saas';
+  if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) return 'portal-wali';
+  if (viewParam === 'app' || hostname.startsWith('app.')) return 'app-gateway';
+
+  // Periksa apakah ini subdomain tenant khusus pondok (misal darulrahman.sipesand.web.id)
+  const baseDomains = ['sipesand.web.id', 'sipesand.we.id'];
+  const matchedBase = baseDomains.find(base => hostname === base || hostname.endsWith(`.${base}`));
+
+  if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
+    const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
+    if (subdomain && subdomain !== 'app' && subdomain !== 'mitra' && subdomain !== 'pay' && subdomain !== 'api') {
+      return 'tenant-portal';
+    }
+  }
+
+  if (searchParams.get('tenant') || searchParams.get('pondok')) return 'tenant-portal';
+
+  return 'landing';
+}
+
 function MainAppContent() {
   // Current View: 'landing' | 'landing-saas' | 'portal-wali' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
-  const [currentView, setCurrentView] = useState('landing');
+  const [currentView, setCurrentView] = useState(getInitialView);
   const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
   
   // Auth Session State
@@ -46,50 +81,9 @@ function MainAppContent() {
 
   const { isNfcEnabled } = useSettings();
 
-  // Otomatis Deteksi Subdomain & Path Legal (faq, refund-policy, terms, kontak)
+  // Re-check jika URL berubah dinamis
   React.useEffect(() => {
-    const hostname = window.location.hostname.toLowerCase();
-    const pathname = window.location.pathname.toLowerCase();
-    const searchParams = new URLSearchParams(window.location.search);
-    const viewParam = searchParams.get('view') || searchParams.get('page');
-
-    // 1. Cek Path Legal iPaymu
-    if (pathname.includes('/faq') || viewParam === 'faq') {
-      setCurrentView('faq');
-    } else if (pathname.includes('/refund') || viewParam === 'refund-policy') {
-      setCurrentView('refund-policy');
-    } else if (pathname.includes('/terms') || pathname.includes('/condition') || viewParam === 'terms-and-conditions') {
-      setCurrentView('terms-and-conditions');
-    } else if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') {
-      setCurrentView('kontak');
-    } 
-    // 2. Cek Subdomain & Multi-Tier Routing
-    if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) {
-      setCurrentView('developer');
-    } else if (viewParam === 'saas') {
-      setCurrentView('landing-saas');
-    } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
-      setCurrentView('portal-wali');
-    } else if (viewParam === 'app' || hostname.startsWith('app.')) {
-      setCurrentView('app-gateway');
-    } else {
-      // Periksa apakah ini subdomain tenant khusus pondok (misal darulrahman.sipesand.web.id)
-      const baseDomains = ['sipesand.web.id', 'sipesand.we.id'];
-      const matchedBase = baseDomains.find(base => hostname === base || hostname.endsWith(`.${base}`));
-      
-      if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
-        const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
-        if (subdomain && subdomain !== 'app' && subdomain !== 'mitra' && subdomain !== 'pay' && subdomain !== 'api') {
-          setCurrentView('tenant-portal');
-        } else {
-          setCurrentView('landing');
-        }
-      } else if (searchParams.get('tenant') || searchParams.get('pondok')) {
-        setCurrentView('tenant-portal');
-      } else {
-        setCurrentView('landing');
-      }
-    }
+    setCurrentView(getInitialView());
   }, []);
 
   const handleRefresh = () => {
