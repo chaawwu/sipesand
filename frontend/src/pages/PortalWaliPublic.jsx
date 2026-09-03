@@ -612,7 +612,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
               
               {paymentSuccessMsg ? (
                 <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-3">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto animate-bounce" />
+                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
                   <h4 className="font-bold text-sm text-emerald-900">Pembayaran Berhasil Terkirim!</h4>
                   <p className="text-[11px] text-emerald-700 leading-relaxed">{paymentSuccessMsg}</p>
                 </div>

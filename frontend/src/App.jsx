@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import NfcScannerModal from './components/NfcScannerModal';
 import LoginModal from './components/LoginModal';
+import PesantrenOnboardingModal from './components/PesantrenOnboardingModal';
 import DeveloperFooter from './components/DeveloperFooter';
 
 // Pages & Apps Modules
@@ -88,6 +89,7 @@ function MainAppContent() {
     }
   });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Active Navigation Tab
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -96,7 +98,7 @@ function MainAppContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { isNfcEnabled } = useSettings();
+  const { settings, isNfcEnabled } = useSettings();
 
   // Re-check jika URL berubah dinamis
   React.useEffect(() => {
@@ -143,6 +145,11 @@ function MainAppContent() {
     }
     setCurrentView('app');
     setIsLoginModalOpen(false);
+
+    // Form Konfigurasi Pesantren Pertama Kali sebelum masuk Dashboard
+    if (settings?.ONBOARDING_COMPLETED !== 'true') {
+      setIsOnboardingOpen(true);
+    }
   };
 
   const handleLogout = () => {
@@ -152,8 +159,9 @@ function MainAppContent() {
         localStorage.removeItem('sipesand_active_user');
       } catch {}
     }
+    // Kembali ke homepage milik domain / subdomain yang sedang diakses
     const initView = getInitialView();
-    setCurrentView(initView === 'landing' ? 'landing' : 'app-gateway');
+    setCurrentView(initView);
     setIsMobileSidebarOpen(false);
   };
 
@@ -283,7 +291,7 @@ function MainAppContent() {
       <div className="min-h-screen bg-[#F8FAFC]">
         <PortalWaliPublic
           initialQuery={portalWaliQuery}
-          onBackToHome={() => setCurrentView('landing')}
+          onBackToHome={() => setCurrentView(getInitialView())}
           onNavigateLegal={(path) => setCurrentView(path)}
         />
 
@@ -384,6 +392,16 @@ function MainAppContent() {
           onSuccess={handleNfcSuccess}
         />
       )}
+
+      {/* Modal Konfigurasi Awal Pesantren (Pop-up sebelum masuk Dashboard pertama kali) */}
+      <PesantrenOnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onComplete={() => {
+          setIsOnboardingOpen(false);
+          handleRefresh();
+        }}
+      />
     </div>
   );
 }

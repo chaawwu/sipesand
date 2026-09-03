@@ -210,6 +210,13 @@ export async function onRequest(context) {
     }, 401, origin);
   }
 
+  // Store Santri Per-Tenant (darulrahman mulai dari 0 data bersih)
+  const activeTenantKey = (tenantHeader || 'app').toLowerCase();
+  globalThis.EDGE_TENANT_SANTRI = globalThis.EDGE_TENANT_SANTRI || {};
+  if (globalThis.EDGE_TENANT_SANTRI['darulrahman'] === undefined) {
+    globalThis.EDGE_TENANT_SANTRI['darulrahman'] = [];
+  }
+
   // --- ENDPOINT: POST /api/santri (MUST RETURN 201 CREATED) ---
   if (path === '/api/santri' && method === 'POST') {
     if (!body.nama) {
@@ -233,6 +240,11 @@ export async function onRequest(context) {
       createdAt: new Date().toISOString()
     };
 
+    globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = [
+      newSantri,
+      ...(globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || [])
+    ];
+
     return jsonResponse({
       success: true,
       message: 'Data santri berhasil ditambahkan',
@@ -243,6 +255,16 @@ export async function onRequest(context) {
   // --- ENDPOINT: PUT /api/santri/:id ---
   if (path.startsWith('/api/santri/') && method === 'PUT') {
     const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+    if (globalThis.EDGE_TENANT_SANTRI[activeTenantKey]) {
+      const idx = globalThis.EDGE_TENANT_SANTRI[activeTenantKey].findIndex(s => s.id === id);
+      if (idx !== -1) {
+        globalThis.EDGE_TENANT_SANTRI[activeTenantKey][idx] = {
+          ...globalThis.EDGE_TENANT_SANTRI[activeTenantKey][idx],
+          ...body,
+          updatedAt: new Date().toISOString()
+        };
+      }
+    }
     return jsonResponse({
       success: true,
       message: 'Data santri berhasil diperbarui',
@@ -253,6 +275,9 @@ export async function onRequest(context) {
   // --- ENDPOINT: DELETE /api/santri/:id ---
   if (path.startsWith('/api/santri/') && method === 'DELETE') {
     const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+    if (globalThis.EDGE_TENANT_SANTRI[activeTenantKey]) {
+      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = globalThis.EDGE_TENANT_SANTRI[activeTenantKey].filter(s => s.id !== id);
+    }
     return jsonResponse({
       success: true,
       message: `Data santri #${id} berhasil dihapus permanen`,
@@ -262,9 +287,12 @@ export async function onRequest(context) {
 
   // --- ENDPOINT: GET /api/santri ---
   if (path === '/api/santri' && method === 'GET') {
+    const currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] !== undefined ?
+      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] : MOCK_SANTRI;
     return jsonResponse({
       success: true,
-      data: MOCK_SANTRI
+      tenant: activeTenantKey,
+      data: currentList
     }, 200, origin);
   }
 

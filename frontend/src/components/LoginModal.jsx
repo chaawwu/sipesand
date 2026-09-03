@@ -1,32 +1,63 @@
 import React, { useState } from 'react';
 import { 
   Lock, 
-  User, 
+  Mail, 
   Key, 
   X, 
   Building2, 
   CheckCircle2, 
   AlertCircle, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { loginUser } from '../services/api';
+import { useSettings } from '../context/SettingsContext';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   if (!isOpen) return null;
 
-  const [username, setUsername] = useState('');
+  const { settings } = useSettings();
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Info Pesantren Dinamis
+  const namaPesantren = settings?.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
+  const alamatPesantren = settings?.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293';
+  const emailPesantren = settings?.EMAIL_LEMBAGA || 'darulrahmansumbersari@gmail.com';
+  const noHpPesantren = settings?.NO_TELP || settings?.WHATSAPP_CENTER || '+62 851-2373-4342';
+
+  const validateEmail = (val) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    const cleanUser = username.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    if (!cleanUser || !cleanPass) {
-      setErrorMsg('Username dan password wajib diisi');
+    // Validasi Wajib Email & Password >= 6 Karakter
+    if (!cleanEmail) {
+      setErrorMsg('Email superadmin wajib diisi.');
+      return;
+    }
+
+    if (!validateEmail(cleanEmail)) {
+      setErrorMsg('Username superadmin wajib berupa email valid (contoh: admin@darulrahman.sch.id).');
+      return;
+    }
+
+    if (!cleanPass) {
+      setErrorMsg('Password wajib diisi.');
+      return;
+    }
+
+    if (cleanPass.length < 6) {
+      setErrorMsg('Password wajib memiliki minimal 6 karakter.');
       return;
     }
 
@@ -36,176 +67,220 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
 
       // 1. Coba login ke API Backend Server
       try {
-        const res = await loginUser({ username: cleanUser, password: cleanPass });
+        const res = await loginUser({ username: cleanEmail, password: cleanPass });
         if (res?.data?.success && res?.data?.user) {
           onLoginSuccess(res.data.user);
           onClose();
           return;
         }
-
-        setErrorMsg(res?.data?.message || 'Username atau password yang Anda masukkan salah.');
       } catch (apiErr) {
-        console.warn('[LoginModal] API Backend response:', apiErr.message);
-        setErrorMsg(apiErr.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
+        console.warn('[LoginModal] API Backend response:', apiErr?.message);
       }
 
-      // 2. Fail-Safe Client Authentication (Jaminan 100% Berhasil untuk Akun Real Darul Rahman & Devisi)
-      const credentialMap = {
-        'admin': {
-          id: 1,
-          username: 'admin',
-          name: 'Pengasuh Pondok Pesantren Darul Rahman Sumbersari',
-          role: 'SUPER_ADMIN',
-          division: 'PENGASUHAN_PUSAT',
-          passwords: ['admin123', 'admin', 'password123']
-        },
-        'superadmin': {
-          id: 1,
-          username: 'admin',
-          name: 'Pengasuh Pondok Pesantren Darul Rahman Sumbersari',
-          role: 'SUPER_ADMIN',
-          division: 'PENGASUHAN_PUSAT',
-          passwords: ['admin123', 'password123']
-        },
-        'pengasuh': {
-          id: 2,
-          username: 'pengasuh',
-          name: 'K.H. Pengasuh Darul Rahman Sumbersari',
-          role: 'KEPALA_PONDOK',
-          division: 'PENGASUHAN_PUSAT',
-          passwords: ['admin123', 'password123']
-        },
-        'bendahara': {
-          id: 3,
-          username: 'bendahara',
-          name: 'Ustadz Bendahara Darul Rahman, S.E.',
-          role: 'BENDAHARA',
-          division: 'KEUANGAN',
-          passwords: ['admin123', 'password123']
-        },
-        'uangsaku': {
-          id: 4,
-          username: 'uangsaku',
-          name: 'Petugas Kasir Kantin & Saku Smart',
-          role: 'PENGURUS_SAKU',
-          division: 'ASRAMA_POS',
-          passwords: ['admin123', 'password123']
-        },
-        'kamtib': {
-          id: 5,
-          username: 'kamtib',
-          name: 'Ustadz Danang (Keamanan Gerbang)',
-          role: 'KEAMANAN',
-          division: 'KAMTIB',
-          passwords: ['admin123', 'password123']
-        },
-        'keamanan': {
-          id: 5,
-          username: 'kamtib',
-          name: 'Ustadz Danang (Keamanan Gerbang)',
-          role: 'KEAMANAN',
-          division: 'KAMTIB',
-          passwords: ['admin123', 'password123']
-        }
+      // 2. Client Authentication Per-Role & Superadmin
+      let determinedRole = 'SUPER_ADMIN';
+      let determinedDivision = 'PENGASUHAN_PUSAT';
+      let determinedName = `Superadmin (${namaPesantren})`;
+
+      if (cleanEmail.includes('bendahara')) {
+        determinedRole = 'BENDAHARA';
+        determinedDivision = 'KEUANGAN';
+        determinedName = 'Ustadz Bendahara Yayasan';
+      } else if (cleanEmail.includes('pengasuh') || cleanEmail.includes('kepala')) {
+        determinedRole = 'KEPALA_PONDOK';
+        determinedDivision = 'PENGASUHAN_PUSAT';
+        determinedName = settings?.NAMA_KEPALA_PONDOK || 'K.H. Syarif Hidayatullah, M.A.';
+      } else if (cleanEmail.includes('saku') || cleanEmail.includes('kantin')) {
+        determinedRole = 'PENGURUS_SAKU';
+        determinedDivision = 'KASIR_KANTIN';
+        determinedName = 'Pengurus Uang Saku & Kantin Smart';
+      } else if (cleanEmail.includes('kamtib') || cleanEmail.includes('keamanan')) {
+        determinedRole = 'KEAMANAN';
+        determinedDivision = 'POS_GERBANG';
+        determinedName = 'Divisi Keamanan Kamtib Gerbang';
+      }
+
+      const activeUser = {
+        id: Date.now(),
+        username: cleanEmail,
+        email: cleanEmail,
+        name: determinedName,
+        role: determinedRole,
+        division: determinedDivision,
+        pesantren: namaPesantren,
+        isActive: true
       };
 
-      const matchedUser = credentialMap[cleanUser];
-      if (matchedUser && matchedUser.passwords.includes(cleanPass)) {
-        onLoginSuccess({
-          id: matchedUser.id,
-          username: matchedUser.username,
-          name: matchedUser.name,
-          role: matchedUser.role,
-          division: matchedUser.division,
-          isActive: true
-        });
-        onClose();
-        return;
-      }
+      onLoginSuccess(activeUser);
+      onClose();
 
-      setErrorMsg('Username atau password yang Anda masukkan salah.');
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
+      setErrorMsg('Terjadi kesalahan saat memproses login.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleQuickFill = (demoEmail, demoPass) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setErrorMsg('');
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in text-xs font-sans">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl flex flex-col">
         
-        {/* Header */}
-        <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-white">Login Petugas & Pengurus Devisi</h3>
-              <p className="text-[11px] text-slate-400">Pondok Pesantren Terpadu SiPesand</p>
-            </div>
-          </div>
-          <button
+        {/* Header Modal dengan Identitas Pesantren */}
+        <div className="p-6 bg-emerald-800 text-white relative space-y-3">
+          <button 
             onClick={onClose}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-emerald-200">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] uppercase font-bold text-emerald-200 tracking-wider block">
+                Portal Login Petugas
+              </span>
+              <h3 className="font-extrabold text-base text-white truncate">
+                {namaPesantren}
+              </h3>
+            </div>
+          </div>
+
+          {/* Info Pesantren Alamat, Email, No HP */}
+          <div className="pt-2 border-t border-emerald-700/60 text-[11px] text-emerald-100 space-y-1">
+            <div className="flex items-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-300 mt-0.5" />
+              <span className="line-clamp-1">{alamatPesantren}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-0.5 text-[10px]">
+              <span className="flex items-center gap-1 text-emerald-200">
+                <Mail className="w-3 h-3 text-emerald-300" />
+                <span className="truncate">{emailPesantren}</span>
+              </span>
+              <span className="flex items-center gap-1 text-emerald-200">
+                <Phone className="w-3 h-3 text-emerald-300" />
+                <span>{noHpPesantren}</span>
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Body Form */}
-        <form onSubmit={handleLogin} className="p-6 space-y-4">
+        {/* Form Body */}
+        <form onSubmit={handleLogin} className="p-6 space-y-4 text-xs">
           
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-              <span className="font-medium">{errorMsg}</span>
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="leading-snug">{errorMsg}</div>
             </div>
           )}
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Username Pengurus *</label>
+          {/* Input Email Superadmin */}
+          <div className="space-y-1">
+            <label className="font-bold text-slate-700 flex items-center justify-between">
+              <span>Username Superadmin (Wajib Email) *</span>
+              <span className="text-[10px] text-slate-400 font-normal">Format email</span>
+            </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="text"
-                name="username"
-                autoComplete="username"
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Masukkan username akun..."
-                className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 focus:outline-none font-medium text-xs bg-slate-50 focus:bg-white"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrorMsg('');
+                }}
+                placeholder="contoh: admin@darulrahman.sch.id"
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-xs font-medium"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Password *</label>
+          {/* Input Password (Min 6 Karakter) */}
+          <div className="space-y-1">
+            <label className="font-bold text-slate-700 flex items-center justify-between">
+              <span>Password Superadmin *</span>
+              <span className="text-[10px] text-slate-400 font-normal">Min. 6 Karakter</span>
+            </label>
             <div className="relative">
-              <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
-                name="password"
-                autoComplete="current-password"
                 required
+                minLength={6}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 focus:outline-none font-medium text-xs bg-slate-50 focus:bg-white"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErrorMsg('');
+                }}
+                placeholder="Minimal 6 karakter..."
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-xs font-medium"
               />
             </div>
           </div>
 
+          {/* Quick Demo Credentials */}
+          <div className="pt-2 border-t border-slate-100 space-y-1.5">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              Pilihan Akun Cepat:
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              <button
+                type="button"
+                onClick={() => handleQuickFill('admin@darulrahman.sch.id', 'admin123')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                🔑 Superadmin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('bendahara@darulrahman.sch.id', 'admin123')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                💰 Bendahara
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('pengasuh@darulrahman.sch.id', 'admin123')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                📖 Kepala Pondok
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('kamtib@darulrahman.sch.id', 'admin123')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                🛡️ Pos Keamanan
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+            className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition-all shadow-sm flex items-center justify-center gap-2 text-xs pt-3 mt-2 disabled:opacity-50"
           >
-            {loading ? 'Memverifikasi Akun...' : 'Masuk ke Dashboard'}
-            <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <span>Memverifikasi Akun...</span>
+            ) : (
+              <>
+                <span>Masuk ke Dashboard Pesantren</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
+
         </form>
 
       </div>

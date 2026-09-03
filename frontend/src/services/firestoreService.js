@@ -212,7 +212,7 @@ export function getCollectionData(collectionName, tenantId = getActiveTenantId()
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(getStorageKey(collectionName, tenantId));
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
     }
@@ -220,7 +220,17 @@ export function getCollectionData(collectionName, tenantId = getActiveTenantId()
     console.error(`[FirestoreService] Error reading ${collectionName}:`, e);
   }
 
-  // Jika belum ada data, muat seed data awal
+  // Tenant khusus (seperti darulrahman): Wajib mulai dengan 0 data bersih (empty state)
+  if (tenantId === 'darulrahman') {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(getStorageKey(collectionName, tenantId), JSON.stringify([]));
+      } catch (e) {}
+    }
+    return [];
+  }
+
+  // Khusus demo gateway master (tenant 'app'): sediakan seed awal
   let initial = [];
   if (collectionName === FIRESTORE_COLLECTIONS.SANTRI) initial = [...SEED_SANTRI];
   else if (collectionName === FIRESTORE_COLLECTIONS.BILLS) initial = [...SEED_BILLS];
@@ -232,6 +242,26 @@ export function getCollectionData(collectionName, tenantId = getActiveTenantId()
     } catch (e) {}
   }
   return initial;
+}
+
+// Reset / Hapus Seluruh Data Tenant Tertentu Menjadi Bersih (0 Data)
+export function clearTenantData(tenantId = 'darulrahman') {
+  if (typeof window === 'undefined') return;
+  setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, [], tenantId);
+  setCollectionData(FIRESTORE_COLLECTIONS.BILLS, [], tenantId);
+  setCollectionData(FIRESTORE_COLLECTIONS.POCKET_TX, [], tenantId);
+  setCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, [], tenantId);
+  setCollectionData(FIRESTORE_COLLECTIONS.TRANSACTIONS, [], tenantId);
+}
+
+// Inisialisasi: Pastikan data darulrahman bersih (0 data) dari awal
+if (typeof window !== 'undefined') {
+  try {
+    if (!localStorage.getItem('sipesand_v2_darulrahman_cleaned_v2')) {
+      clearTenantData('darulrahman');
+      localStorage.setItem('sipesand_v2_darulrahman_cleaned_v2', 'true');
+    }
+  } catch (e) {}
 }
 
 // Simpan Dokumen Koleksi & Pancarkan Event Real-Time
@@ -564,7 +594,7 @@ export function firestoreGetDashboardStats(tenantId = getActiveTenantId()) {
       alumniSantriCount: alumniSantri.length,
       totalPocketBalance: totalPocket,
       totalIncomeMonth: totalPaidMonth,
-      mutqinTahfidzCount: mutqinSantri || Math.round(activeSantri.length * 0.35) || 12,
+      mutqinTahfidzCount: mutqinSantri || (activeSantri.length > 0 ? Math.round(activeSantri.length * 0.35) : 0),
       totalBillsCount: bills.length,
       paidBillsCount: paidBills.length,
       unpaidBillsCount: bills.length - paidBills.length
