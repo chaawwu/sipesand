@@ -39,9 +39,10 @@ const corsOptions = {
 
     // Regex pengujian wildcard subdomain: https://[subdomain].sipesand.we.id atau .web.id
     const isWildcardSubdomain = /^https:\/\/([a-z0-9-]+)\.(sipesand\.we\.id|sipesand\.web\.id)$/i.test(origin);
-    const isLocalDev = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    const isLocalDev = /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/i.test(origin);
+    const isCloudflarePages = /^https:\/\/([a-z0-9-]+\.)?pages\.dev$/i.test(origin);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || isWildcardSubdomain || isLocalDev) {
+    if (allowedOrigins.indexOf(origin) !== -1 || isWildcardSubdomain || isLocalDev || isCloudflarePages) {
       return callback(null, true);
     } else {
       console.warn(`[CORS BLOCKED] Origin tidak diizinkan: ${origin}`);

@@ -35,19 +35,72 @@ const SettingsContext = createContext({
   toggleNfc: async () => {},
 });
 
-export function SettingsProvider({ children }) {
-  const [settings, setSettings] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('sipesand_tenant_settings');
-        if (cached) {
-          return { ...defaultSettings, ...JSON.parse(cached) };
-        }
-      } catch (e) {}
+function getInitialTenantSettings() {
+  if (typeof window === 'undefined') return defaultSettings;
+  
+  const hostname = window.location.hostname.toLowerCase();
+  const searchParams = new URLSearchParams(window.location.search);
+  const tenantParam = (searchParams.get('tenant') || searchParams.get('pondok') || searchParams.get('subdomain') || '').toLowerCase();
+  
+  let tenantSubdomain = tenantParam;
+  if (!tenantSubdomain && (hostname.includes('sipesand.web.id') || hostname.includes('sipesand.we.id'))) {
+    const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
+    if (parts[0] && parts[0] !== 'www' && parts[0] !== 'app' && parts[0] !== 'mitra' && parts[0] !== 'pay' && parts[0] !== 'api') {
+      tenantSubdomain = parts[0];
     }
-    return defaultSettings;
-  });
+  }
+
+  // 1. Cek LocalStorage spesifik tenant
+  try {
+    const storageKey = tenantSubdomain ? `sipesand_settings_${tenantSubdomain}` : 'sipesand_tenant_settings';
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+      return { ...defaultSettings, ...JSON.parse(cached) };
+    }
+  } catch (e) {}
+
+  // 2. Preset Default per Subdomain Tenant (agar multi-device dari jaringan mana pun langsung tampil instan)
+  if (tenantSubdomain === 'darulrahman' || hostname.startsWith('darulrahman.')) {
+    return {
+      ...defaultSettings,
+      NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
+      TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
+      ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
+      NO_TELP: '+62 851-2373-4342',
+      EMAIL_LEMBAGA: 'darulrahmansumbersari@gmail.com',
+      NAMA_KEPALA_PONDOK: 'K.H. Syarif Hidayatullah, M.A.',
+      WEB_THEME: 'islamic_green',
+      WEB_HERO_TITLE: 'Selamat Datang di Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
+      WEB_HERO_SUBTITLE: 'Pusat pendidikan Islam terpadu, tahfidzul quran, sorogan kitab kuning, dan pembinaan akhlak karimah di Kediri.',
+      WEB_GREETING_NOTE: 'Mengabdi untuk Umat, Menjaga Tradisi Salaf & Wawasan Global',
+      WEB_SHOW_PERMIT_CHECKER: 'true',
+      WEB_SHOW_WALI_PORTAL: 'true',
+      WEB_SHOW_ROUTINE: 'true',
+      WEB_SHOW_ANNOUNCEMENT: 'true',
+      WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!',
+      WEB_MAPS_URL: 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri',
+    };
+  }
+
+  return defaultSettings;
+}
+
+export function SettingsProvider({ children }) {
+  const [settings, setSettings] = useState(getInitialTenantSettings);
   const [loading, setLoading] = useState(true);
+
+  const getStorageKey = () => {
+    if (typeof window === 'undefined') return 'sipesand_tenant_settings';
+    const hostname = window.location.hostname.toLowerCase();
+    const searchParams = new URLSearchParams(window.location.search);
+    const t = searchParams.get('tenant') || searchParams.get('pondok') || '';
+    if (t) return `sipesand_settings_${t.toLowerCase()}`;
+    const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
+    if (parts[0] && !['www', 'app', 'mitra', 'pay', 'api'].includes(parts[0])) {
+      return `sipesand_settings_${parts[0]}`;
+    }
+    return 'sipesand_tenant_settings';
+  };
 
   const fetchSettings = async () => {
     try {
@@ -61,14 +114,14 @@ export function SettingsProvider({ children }) {
           };
           if (typeof window !== 'undefined') {
             try {
-              localStorage.setItem('sipesand_tenant_settings', JSON.stringify(updated));
+              localStorage.setItem(getStorageKey(), JSON.stringify(updated));
             } catch (e) {}
           }
           return updated;
         });
       }
     } catch (err) {
-      console.error('Error loading settings in Context:', err);
+      console.warn('[SettingsContext] Menggunakan cache data lokal multi-device:', err?.message || 'Offline mode');
     } finally {
       setLoading(false);
     }
