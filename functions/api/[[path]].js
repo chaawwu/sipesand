@@ -240,6 +240,16 @@ export async function onRequest(context) {
     }, 201, origin);
   }
 
+  // --- ENDPOINT: PUT /api/santri/:id ---
+  if (path.startsWith('/api/santri/') && method === 'PUT') {
+    const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+    return jsonResponse({
+      success: true,
+      message: 'Data santri berhasil diperbarui',
+      data: { id, ...body, updatedAt: new Date().toISOString() }
+    }, 200, origin);
+  }
+
   // --- ENDPOINT: GET /api/santri ---
   if (path === '/api/santri' && method === 'GET') {
     return jsonResponse({

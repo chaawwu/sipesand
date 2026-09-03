@@ -17,7 +17,9 @@ import {
   Printer,
   Download,
   Database,
-  MapPin
+  MapPin,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { 
   getSantriList, 
@@ -68,6 +70,7 @@ export default function Santri({ onOpenNfcModal }) {
     noHpWali: '',
     saldo_saku: 0,
     status: 'AKTIF',
+    foto: null,
   });
 
   useEffect(() => {
@@ -106,6 +109,7 @@ export default function Santri({ onOpenNfcModal }) {
       noHpWali: '',
       saldo_saku: 50000,
       status: 'AKTIF',
+      foto: null,
     });
     setFormError('');
     setIsFormOpen(true);
@@ -126,6 +130,7 @@ export default function Santri({ onOpenNfcModal }) {
       noHpWali: santri.noHpWali || '',
       saldo_saku: santri.saldo_saku || 0,
       status: santri.status || 'AKTIF',
+      foto: santri.foto || null,
     });
     setFormError('');
     setIsFormOpen(true);
@@ -321,9 +326,17 @@ export default function Santri({ onOpenNfcModal }) {
                     {/* Santri Name & NIS */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
-                          {santri.nama.charAt(0)}
-                        </div>
+                        {santri.foto ? (
+                          <img 
+                            src={santri.foto} 
+                            alt={santri.nama} 
+                            className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-sm flex-shrink-0" 
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                            {santri.nama.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <div className="font-bold text-slate-900">{santri.nama}</div>
                           <div className="text-[11px] text-slate-400 font-mono">
@@ -445,6 +458,55 @@ export default function Santri({ onOpenNfcModal }) {
                   {formError}
                 </div>
               )}
+
+              {/* Upload Pas Foto Santri (KTS 3x4) */}
+              <div className="flex items-center gap-4 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="w-16 h-20 rounded-xl bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center flex-shrink-0 relative shadow-sm">
+                  {formData.foto ? (
+                    <img src={formData.foto} alt="Pas Foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-1">
+                      <Camera className="w-5 h-5 text-slate-400 mx-auto mb-0.5" />
+                      <span className="text-[8px] font-bold text-slate-500 uppercase">Pas Foto</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1">
+                  <div className="font-bold text-xs text-slate-800">Pas Foto Santri (KTS Standar 3x4)</div>
+                  <p className="text-[10px] text-slate-500">Format JPG / PNG resmi berpeci atau jilbab untuk kartu santri.</p>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{formData.foto ? 'Ganti Foto' : 'Pilih Foto Santri'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setFormData(prev => ({ ...prev, foto: reader.result }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    {formData.foto && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, foto: null }))}
+                        className="px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors"
+                      >
+                        Hapus Foto
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
