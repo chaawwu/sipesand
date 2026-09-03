@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <rect width="44" height="44" x="8" y="8" rx="12" fill="#1D4ED8"/>
+  <path d="M22 36L30 20L38 36" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M25 31H35" stroke="#93C5FD" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="30" cy="18" r="2.5" fill="#FDE047"/>
+  <text x="62" y="38" font-family="'Righteous', sans-serif" font-size="28" font-weight="bold" fill="#1D4ED8" letter-spacing="1">SIPESAND</text>
+  <text x="63" y="48" font-family="'Inter', sans-serif" font-size="8" font-weight="600" fill="#64748B" letter-spacing="2">SISTEM PESANTREN DIGITAL</text>
+</svg>

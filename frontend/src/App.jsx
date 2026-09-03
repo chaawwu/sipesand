@@ -5,7 +5,8 @@ import NfcScannerModal from './components/NfcScannerModal';
 import LoginModal from './components/LoginModal';
 import DeveloperFooter from './components/DeveloperFooter';
 
-// Pages
+// Pages & Apps Modules
+import LandingPageEnterprise from './apps/landing/LandingPageEnterprise';
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
 import AppGatewayPage from './pages/AppGatewayPage';
@@ -134,16 +135,14 @@ function MainAppContent() {
     setCurrentView('portal-wali');
   };
 
-  // 1. Tampilan Halaman Utama / Landing Page Portal Pesantren
+  // 1. Tampilan Halaman Utama / Landing Page Publik SIPESAND (sipesand.web.id)
   if (currentView === 'landing') {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
-        <LandingPage
-          onLoginPetugas={() => setIsLoginModalOpen(true)}
-          onOpenPortalWali={handleOpenPortalWali}
-          onOpenNfcScanner={() => setIsNfcModalOpen(true)}
-          onOpenSaasLanding={() => setCurrentView('landing-saas')}
-          onNavigateLegal={(path) => setCurrentView(path)}
+      <div className="min-h-screen bg-white">
+        <LandingPageEnterprise
+          onNavigateApp={() => setCurrentView('app-gateway')}
+          onNavigateMitra={() => setCurrentView('developer')}
+          onOpenRegisterModal={() => setCurrentView('app-gateway')}
         />
 
         {/* Modal Login Petugas */}
