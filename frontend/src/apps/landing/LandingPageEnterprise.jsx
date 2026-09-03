@@ -917,9 +917,10 @@ export default function LandingPageEnterprise({ onNavigateApp, onNavigateMitra, 
             <div className="space-y-3">
               <h4 className="font-bold text-white text-xs uppercase tracking-wider">Ekosistem Subdomain</h4>
               <ul className="space-y-2 text-[11px]">
-                <li><a href="https://sipesand.web.id" className="hover:text-white transition-colors">sipesand.web.id (Landing Page)</a></li>
-                <li><a href="https://app.sipesand.web.id" className="hover:text-white transition-colors">app.sipesand.web.id (App Gateway)</a></li>
-                <li><a href="https://mitra.sipesand.web.id" className="hover:text-white transition-colors">mitra.sipesand.web.id (Developer HQ)</a></li>
+                <li><a href="https://sipesand.web.id" className="hover:text-white transition-colors">sipesand.web.id (Landing Page Utama)</a></li>
+                <li><a href="https://apps.sipesand.web.id" className="hover:text-white transition-colors">apps.sipesand.web.id (Aplikasi Pesantren)</a></li>
+                <li><a href="https://mitra.sipesand.web.id" className="hover:text-white transition-colors">mitra.sipesand.web.id (Portal Mitra & Reseller)</a></li>
+                <li><a href="https://darulrahman.sipesand.web.id" className="hover:text-white transition-colors">darulrahman.sipesand.web.id (Portal Resmi Tenant)</a></li>
                 <li><a href="https://pay.sipesand.web.id" className="hover:text-white transition-colors">pay.sipesand.web.id (Portal Wali)</a></li>
               </ul>
             </div>

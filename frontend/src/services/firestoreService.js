@@ -22,7 +22,7 @@ export function getActiveTenantId() {
 
   if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
     const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
-    if (subdomain && !['app', 'mitra', 'pay', 'api'].includes(subdomain)) {
+    if (subdomain && !['app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(subdomain)) {
       return subdomain;
     }
   }

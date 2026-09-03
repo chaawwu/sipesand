@@ -43,25 +43,32 @@ function getInitialView() {
   if (pathname.includes('/terms') || pathname.includes('/condition') || viewParam === 'terms-and-conditions') return 'terms-and-conditions';
   if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') return 'kontak';
 
-  // 2. Cek Subdomain & Multi-Tier Routing
+  // 2. Cek Subdomain Mitra (mitra.sipesand.web.id)
   if (viewParam === 'mitra' || viewParam === 'developer' || hostname.startsWith('mitra.')) return 'developer';
-  if (viewParam === 'saas') return 'landing-saas';
-  if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) return 'portal-wali';
-  if (viewParam === 'app' || hostname.startsWith('app.')) return 'app-gateway';
 
-  // Periksa apakah ini subdomain tenant khusus pondok (misal darulrahman.sipesand.web.id)
+  // 3. Cek Subdomain SaaS Penjualan Lisensi (saas.sipesand.web.id)
+  if (viewParam === 'saas' || hostname.startsWith('saas.')) return 'landing-saas';
+
+  // 4. Cek Subdomain Portal Wali Santri (pay.sipesand.web.id)
+  if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) return 'portal-wali';
+
+  // 5. Cek Subdomain Aplikasi Utama (apps.sipesand.web.id atau app.sipesand.web.id)
+  if (viewParam === 'app' || viewParam === 'apps' || hostname.startsWith('app.') || hostname.startsWith('apps.')) return 'app-gateway';
+
+  // 6. Cek Subdomain Tenant Pesantren Khusus (misal: darulrahman.sipesand.web.id)
   const baseDomains = ['sipesand.web.id', 'sipesand.we.id'];
   const matchedBase = baseDomains.find(base => hostname === base || hostname.endsWith(`.${base}`));
 
   if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
     const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
-    if (subdomain && subdomain !== 'app' && subdomain !== 'mitra' && subdomain !== 'pay' && subdomain !== 'api') {
+    if (subdomain && !['app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(subdomain)) {
       return 'tenant-portal';
     }
   }
 
   if (searchParams.get('tenant') || searchParams.get('pondok')) return 'tenant-portal';
 
+  // 7. Default Halaman Utama: sipesand.web.id (Landing Page Enterprise Publik)
   return 'landing';
 }
 

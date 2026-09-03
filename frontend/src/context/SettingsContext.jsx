@@ -45,7 +45,7 @@ function getInitialTenantSettings() {
   let tenantSubdomain = tenantParam;
   if (!tenantSubdomain && (hostname.includes('sipesand.web.id') || hostname.includes('sipesand.we.id'))) {
     const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
-    if (parts[0] && parts[0] !== 'www' && parts[0] !== 'app' && parts[0] !== 'mitra' && parts[0] !== 'pay' && parts[0] !== 'api') {
+    if (parts[0] && !['www', 'app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(parts[0])) {
       tenantSubdomain = parts[0];
     }
   }
@@ -96,7 +96,7 @@ export function SettingsProvider({ children }) {
     const t = searchParams.get('tenant') || searchParams.get('pondok') || '';
     if (t) return `sipesand_settings_${t.toLowerCase()}`;
     const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
-    if (parts[0] && !['www', 'app', 'mitra', 'pay', 'api'].includes(parts[0])) {
+    if (parts[0] && !['www', 'app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(parts[0])) {
       return `sipesand_settings_${parts[0]}`;
     }
     return 'sipesand_tenant_settings';
