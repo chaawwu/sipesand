@@ -9,9 +9,9 @@
 
 import { FIRESTORE_COLLECTIONS } from './firebaseConfig';
 
-// Helper: Ambil ID Tenant / Subdomain Aktif
+// Helper: Ambil ID Tenant / Subdomain Aktif (Isolasi Mutlak)
 export function getActiveTenantId() {
-  if (typeof window === 'undefined') return 'darulrahman';
+  if (typeof window === 'undefined') return 'app';
   const hostname = window.location.hostname.toLowerCase();
   const searchParams = new URLSearchParams(window.location.search);
   const queryTenant = searchParams.get('tenant') || searchParams.get('pondok') || searchParams.get('subdomain');
@@ -22,11 +22,10 @@ export function getActiveTenantId() {
 
   if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
     const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
-    if (subdomain && !['app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(subdomain)) {
-      return subdomain;
-    }
+    if (subdomain === 'apps') return 'app';
+    if (subdomain) return subdomain;
   }
-  return 'darulrahman';
+  return 'app';
 }
 
 // Data Awal (Seed Data Awal jika Storage Bersih)

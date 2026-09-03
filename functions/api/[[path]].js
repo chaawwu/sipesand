@@ -269,41 +269,80 @@ export async function onRequest(context) {
   }
 
   // --- ENDPOINT: GET /api/settings ---
+  const activeTenantKey = (tenantHeader || 'app').toLowerCase();
+  globalThis.EDGE_TENANT_SETTINGS = globalThis.EDGE_TENANT_SETTINGS || {};
+
+  const defaultDarulRahmanSettings = {
+    NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
+    TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
+    ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
+    NO_TELP: '+62 851-2373-4342',
+    WHATSAPP_CENTER: '085123734342',
+    EMAIL_LEMBAGA: 'darulrahmansumbersari@gmail.com',
+    NAMA_KEPALA_PONDOK: 'K.H. Syarif Hidayatullah, M.A.',
+    BANK_NAME: 'Bank Syariah Indonesia (BSI)',
+    BANK_ACCOUNT_NO: '7192837465',
+    BANK_ACCOUNT_HOLDER: 'YAYASAN DARUL RAHMAN SUMBERSARI',
+    WEB_THEME: 'islamic_green',
+    WEB_HERO_TITLE: 'Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
+    WEB_HERO_SUBTITLE: 'Pusat pendidikan Islam terpadu, tahfidzul quran, sorogan kitab kuning, dan pembinaan akhlak karimah di Kediri.',
+    WEB_GREETING_NOTE: 'Mengabdi untuk Umat, Menjaga Tradisi Salaf & Wawasan Global',
+    WEB_SHOW_PERMIT_CHECKER: 'true',
+    WEB_SHOW_WALI_PORTAL: 'true',
+    WEB_SHOW_ROUTINE: 'true',
+    WEB_SHOW_ANNOUNCEMENT: 'true',
+    WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!',
+    WEB_MAPS_URL: 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri',
+    NFC_FEATURE_ENABLED: 'true'
+  };
+
+  const defaultAppSettings = {
+    NAMA_LEMBAGA: 'Pondok Pesantren Terpadu SiPesand',
+    TAGLINE_LEMBAGA: 'Sistem Informasi Pesantren Digital Modern & Terpadu',
+    ALAMAT_LEMBAGA: 'Jl. Raya Pesantren No. 123, Kompleks Pendidikan Islam',
+    NO_TELP: '+62 812-3456-7890',
+    WHATSAPP_CENTER: '081234567890',
+    EMAIL_LEMBAGA: 'admin@sipesand.web.id',
+    NAMA_KEPALA_PONDOK: 'K.H. Ahmad Dahlan, Lc., M.Ag.',
+    BANK_NAME: 'Bank Syariah Indonesia (BSI)',
+    BANK_ACCOUNT_NO: '1029384756',
+    BANK_ACCOUNT_HOLDER: 'PESANTREN DIGITAL TERPADU',
+    WEB_THEME: 'modern_bento',
+    WEB_HERO_TITLE: 'Selamat Datang di Portal Resmi Pesantren',
+    WEB_HERO_SUBTITLE: 'Platform digital terintegrasi untuk santri, asatidz, dan wali santri.',
+    WEB_GREETING_NOTE: 'Mewujudkan Ekosistem Pesantren Digital yang Akuntabel & Modern',
+    WEB_SHOW_PERMIT_CHECKER: 'true',
+    WEB_SHOW_WALI_PORTAL: 'true',
+    WEB_SHOW_ROUTINE: 'true',
+    WEB_SHOW_ANNOUNCEMENT: 'true',
+    WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Gelombang 1 Telah Dibuka!',
+    WEB_MAPS_URL: 'https://maps.google.com',
+    NFC_FEATURE_ENABLED: 'true'
+  };
+
   if (path === '/api/settings' && method === 'GET') {
+    const currentSettings = globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] || 
+      (activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings);
     return jsonResponse({
       success: true,
-      data: globalThis.EDGE_SETTINGS || {
-        NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
-        TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
-        ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
-        NO_TELP: '+62 851-2373-4342',
-        EMAIL_LEMBAGA: 'darulrahmansumbersari@gmail.com',
-        NAMA_KEPALA_PONDOK: 'K.H. Syarif Hidayatullah, M.A.',
-        WEB_THEME: 'islamic_green',
-        WEB_HERO_TITLE: 'Selamat Datang di Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
-        WEB_HERO_SUBTITLE: 'Pusat pendidikan Islam terpadu, tahfidzul quran, sorogan kitab kuning, dan pembinaan akhlak karimah di Kediri.',
-        WEB_GREETING_NOTE: 'Mengabdi untuk Umat, Menjaga Tradisi Salaf & Wawasan Global',
-        WEB_SHOW_PERMIT_CHECKER: 'true',
-        WEB_SHOW_WALI_PORTAL: 'true',
-        WEB_SHOW_ROUTINE: 'true',
-        WEB_SHOW_ANNOUNCEMENT: 'true',
-        WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!',
-        WEB_MAPS_URL: 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri',
-        NFC_FEATURE_ENABLED: 'true'
-      }
+      tenant: activeTenantKey,
+      data: currentSettings
     }, 200, origin);
   }
 
   // --- ENDPOINT: POST /api/settings ---
   if (path === '/api/settings' && method === 'POST') {
-    globalThis.EDGE_SETTINGS = {
-      ...(globalThis.EDGE_SETTINGS || {}),
+    const currentSettings = globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] || 
+      (activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings);
+    globalThis.EDGE_TENANT_SETTINGS[activeTenantKey] = {
+      ...currentSettings,
       ...body
     };
     return jsonResponse({
       success: true,
-      message: 'Pengaturan berhasil disimpan',
-      data: globalThis.EDGE_SETTINGS
+      tenant: activeTenantKey,
+      message: 'Pengaturan berhasil disimpan untuk tenant ' + activeTenantKey,
+      data: globalThis.EDGE_TENANT_SETTINGS[activeTenantKey]
     }, 200, origin);
   }
 

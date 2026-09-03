@@ -24,9 +24,13 @@ api.interceptors.request.use((config) => {
         const hostWithoutBase = hostname.replace(new RegExp(`\\.${matchedBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '');
         const parts = hostWithoutBase.split('.');
 
-        if (parts.length > 0 && parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'apps', 'saas'].includes(parts[0])) {
-          config.headers['X-Tenant-Subdomain'] = parts[0];
+        if (parts.length > 0 && parts[0] && !['www', 'api'].includes(parts[0])) {
+          config.headers['X-Tenant-Subdomain'] = parts[0] === 'apps' ? 'app' : parts[0];
+        } else {
+          config.headers['X-Tenant-Subdomain'] = 'app';
         }
+      } else {
+        config.headers['X-Tenant-Subdomain'] = 'app';
       }
     }
   }

@@ -45,14 +45,15 @@ function getInitialTenantSettings() {
   let tenantSubdomain = tenantParam;
   if (!tenantSubdomain && (hostname.includes('sipesand.web.id') || hostname.includes('sipesand.we.id'))) {
     const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
-    if (parts[0] && !['www', 'app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(parts[0])) {
-      tenantSubdomain = parts[0];
+    if (parts[0] && parts[0] !== 'www') {
+      tenantSubdomain = parts[0] === 'apps' ? 'app' : parts[0];
     }
   }
+  if (!tenantSubdomain) tenantSubdomain = 'app';
 
   // 1. Cek LocalStorage spesifik tenant
   try {
-    const storageKey = tenantSubdomain ? `sipesand_settings_${tenantSubdomain}` : 'sipesand_tenant_settings';
+    const storageKey = `sipesand_settings_${tenantSubdomain}`;
     const cached = localStorage.getItem(storageKey);
     if (cached) {
       return { ...defaultSettings, ...JSON.parse(cached) };
@@ -90,16 +91,17 @@ export function SettingsProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const getStorageKey = () => {
-    if (typeof window === 'undefined') return 'sipesand_tenant_settings';
+    if (typeof window === 'undefined') return 'sipesand_settings_app';
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     const t = searchParams.get('tenant') || searchParams.get('pondok') || '';
     if (t) return `sipesand_settings_${t.toLowerCase()}`;
     const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
-    if (parts[0] && !['www', 'app', 'apps', 'mitra', 'pay', 'api', 'saas'].includes(parts[0])) {
-      return `sipesand_settings_${parts[0]}`;
+    if (parts[0] && parts[0] !== 'www') {
+      const sub = parts[0] === 'apps' ? 'app' : parts[0];
+      return `sipesand_settings_${sub}`;
     }
-    return 'sipesand_tenant_settings';
+    return 'sipesand_settings_app';
   };
 
   const fetchSettings = async () => {

@@ -22,10 +22,13 @@ import {
   HeartHandshake,
   MessageCircle,
   GraduationCap,
-  Sparkles,
   X,
   CreditCard,
-  BookOpen
+  BookOpen,
+  Award,
+  Compass,
+  Clock,
+  Check
 } from 'lucide-react';
 import SantriTrackerModal from '../components/SantriTrackerModal';
 import { useSettings } from '../context/SettingsContext';
@@ -55,10 +58,10 @@ export default function TenantPesantrenPortal({
 
   // Identitas Lembaga (Dinamis dari Settings)
   const namaLembaga = settings?.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
-  const taglineLembaga = settings?.TAGLINE_LEMBAGA || 'Lembaga Pendidikan Islam & Tahfidzul Qur\'an';
+  const taglineLembaga = settings?.TAGLINE_LEMBAGA || 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah';
   const alamatLembaga = settings?.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293';
   const noTelpLembaga = settings?.NO_TELP || '+62 851-2373-4342';
-  const whatsappAdmin = settings?.WHATSAPP_CENTER || '081234567890';
+  const whatsappAdmin = settings?.WHATSAPP_CENTER || '085123734342';
   const emailLembaga = settings?.EMAIL_LEMBAGA || 'darulrahmansumbersari@gmail.com';
   const pengasuhLembaga = settings?.NAMA_KEPALA_PONDOK || 'K.H. Syarif Hidayatullah, M.A.';
   const logoPondok = settings?.LOGO_PONDOK_URL;
@@ -67,21 +70,20 @@ export default function TenantPesantrenPortal({
   const atasNamaBank = settings?.BANK_ACCOUNT_HOLDER || 'YAYASAN DARUL RAHMAN SUMBERSARI';
 
   // Visual Customizations
-  const theme = settings?.WEB_THEME || 'modern_bento';
-  const heroTitle = settings?.WEB_HERO_TITLE || `Selamat Datang di Portal Resmi ${namaLembaga}`;
-  const heroSubtitle = settings?.WEB_HERO_SUBTITLE || 'Pusat layanan digital terpadu santri, wali santri, asatidz, dan pengurus pondok pesantren. Seluruh sistem perizinan gerbang, tabungan uang saku smart, dan administrasi pesantren terkelola secara profesional.';
+  const theme = settings?.WEB_THEME || 'islamic_green';
+  const heroTitle = settings?.WEB_HERO_TITLE || `Portal Resmi ${namaLembaga}`;
+  const heroSubtitle = settings?.WEB_HERO_SUBTITLE || 'Pusat layanan digital terpadu santri, asatidz, dan wali santri. Sistem administrasi pesantren, evaluasi tahfidz, dan monitoring perizinan gerbang santri terintegrasi secara amanah dan akuntabel.';
   const heroImage = settings?.WEB_HERO_IMAGE || 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=1400&q=80';
-  const greetingNote = settings?.WEB_GREETING_NOTE || 'Mengabdi untuk Umat, Menjaga Tradisi Salaf & Wawasan Global';
+  const greetingNote = settings?.WEB_GREETING_NOTE || 'Menjaga Tradisi Salafus Sholih & Menguasai Wawasan Keilmuan Kontemporer';
   const mapsUrl = settings?.WEB_MAPS_URL || 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri';
   const linkPsb = settings?.WEB_PSB_URL || '#psb-section';
-  const linkDonasi = settings?.WEB_DONATION_URL || '#donasi-section';
 
   // Pengumuman & Pop-up
   const showAnnouncement = settings?.WEB_SHOW_ANNOUNCEMENT !== 'false';
   const announcementText = settings?.WEB_ANNOUNCEMENT_TEXT || 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!';
   const urgentPopupEnabled = settings?.WEB_URGENT_POPUP_ENABLED === 'true';
   const urgentPopupTitle = settings?.WEB_URGENT_POPUP_TITLE || 'Pengumuman Penting Pesantren';
-  const urgentPopupText = settings?.WEB_URGENT_POPUP_TEXT || 'Diberitahukan kepada seluruh Wali Santri bahwa libur akhir semester dan jadwal sambangan Ramadhan 1447 H telah diterbitkan pada kalender resmi.';
+  const urgentPopupText = settings?.WEB_URGENT_POPUP_TEXT || 'Diberitahukan kepada seluruh Wali Santri bahwa jadwal kepulangan santri libur semester dan sambangan bulan Ramadhan 1447 H telah diterbitkan pada kalender resmi.';
 
   // Periksa pop-up sekali per sesi
   useEffect(() => {
@@ -94,35 +96,35 @@ export default function TenantPesantrenPortal({
     }
   }, [urgentPopupEnabled]);
 
-  // Galeri Foto Kegiatan
+  // Galeri Foto Kegiatan Pesantren
   const defaultGallery = [
     {
       id: 1,
-      title: 'Kajian Sorogan Kitab Kuning',
-      category: 'Akademik',
-      img: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=600&q=80',
-      desc: 'Sorogan kitab Fathul Qorib dan Ta\'lim Muta\'allim bersama dewan asatidz.'
+      title: 'Sorogan & Bandongan Kitab Kuning',
+      category: 'Turats Salaf',
+      img: 'https://images.unsplash.com/photo-1585036156171-384164a8c675?auto=format&fit=crop&w=600&q=80',
+      desc: 'Kajian kitab Fathul Qorib, Ta\'lim Muta\'allim, dan Ihya Ulumiddin bersama jajaran Dewan Asatidz senior.'
     },
     {
       id: 2,
-      title: 'Halaqoh Tahfidzul Qur\'an Mutqin',
-      category: 'Tahfidz',
+      title: 'Halaqoh Tahfidzul Qur\'an 30 Juz',
+      category: 'Tahfidz Mutqin',
       img: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=600&q=80',
-      desc: 'Setoran ziyadah dan muroja\'ah juz 1 hingga 30 ba\'da Shubuh.'
+      desc: 'Setoran ziyadah hafalan baru dan muroja\'ah juz 1 hingga 30 ba\'da sholat Shubuh dan ba\'da Ashar.'
     },
     {
       id: 3,
       title: 'Muhadhoroh & Khitobah 3 Bahasa',
-      category: 'Bahasa',
+      category: 'Pengembangan Bahasa',
       img: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=600&q=80',
-      desc: 'Latihan public speaking pidato bahasa Arab, Inggris, dan Indonesia.'
+      desc: 'Latihan pidato dan public speaking santri dalam Bahasa Arab, Inggris, dan Bahasa Indonesia.'
     },
     {
       id: 4,
-      title: 'Sholat Berjamaah & Dzikir Bersama',
-      category: 'Ibadah',
+      title: 'Sholat Maktubah & Majelis Rotib',
+      category: 'Ibadah & Ruhiyah',
       img: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=600&q=80',
-      desc: 'Rutinitas sholat maktubah berjamaah dan wirid rotib di masjid jami\'.'
+      desc: 'Rutinitas sholat maktubah berjamaah di masjid jami\' pondok dan pembacaan Rotibul Haddad.'
     }
   ];
 
@@ -136,11 +138,11 @@ export default function TenantPesantrenPortal({
   const defaultFaqs = [
     {
       q: 'Bagaimana cara orang tua mengecek saldo uang saku santri?',
-      a: 'Wali santri cukup mengklik tombol "Portal Wali Santri" di bagian atas halaman ini, lalu masukkan NIS atau nomor HP wali santri yang terdaftar. Saldo dan riwayat jajan kantin santri langsung tampil secara real-time.'
+      a: 'Wali santri cukup mengklik tombol "Portal Wali Santri" di bagian atas halaman ini, lalu masukkan nomor NIS santri atau nomor WhatsApp wali yang terdaftar. Saldo tabungan, limit jajan harian, dan riwayat transaksi kasir kantin langsung tampil secara real-time.'
     },
     {
-      q: 'Bagaimana alur perizinan keluar atau pulang santri?',
-      a: 'Perizinan diajukan secara terpadu melalui Pos Keamanan (Kamtib). Setiap santri yang mendapatkan izin resmi akan tercatat di sistem gerbang dan statusnya bisa dicek langsung di Pos Pemeriksaan Izin pada portal ini.'
+      q: 'Bagaimana alur dan status perizinan keluar atau pulang santri?',
+      a: 'Perizinan diajukan secara terpadu melalui Pos Keamanan (Kamtib). Setiap santri yang mendapatkan izin resmi akan tercatat di sistem gerbang dan statusnya bisa diverifikasi langsung pada tab "Cek Izin Gerbang" di portal ini.'
     },
     {
       q: 'Kapan jadwal pendaftaran santri baru (PSB) 2026/2027 dibuka?',
@@ -148,49 +150,9 @@ export default function TenantPesantrenPortal({
     },
     {
       q: 'Apakah pembayaran Syahriyah bulanan bisa via transfer bank?',
-      a: `Bisa. Seluruh pembayaran syahriyah dan donasi resmi disalurkan melalui rekening ${namaBank} No. Rek: ${rekeningBank} a.n ${atasNamaBank}. Konfirmasi bukti transfer dapat dikirimkan ke WhatsApp resmi pengurus.`
+      a: `Bisa. Seluruh pembayaran syahriyah dan donasi resmi disalurkan melalui rekening ${namaBank} No. Rek: ${rekeningBank} a.n ${atasNamaBank}. Bukti transaksi dapat dikonfirmasikan ke nomor WhatsApp resmi sekretariat.`
     }
   ];
-
-  // Helper Tema Styling
-  const getThemeStyles = () => {
-    switch (theme) {
-      case 'islamic_green':
-        return {
-          primaryBtn: 'bg-emerald-700 hover:bg-emerald-800 text-white',
-          badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-200',
-          badgeIcon: 'text-emerald-700',
-          accentText: 'text-emerald-700',
-          bgPage: 'bg-[#F9FAF8]',
-        };
-      case 'classic_navy':
-        return {
-          primaryBtn: 'bg-slate-900 hover:bg-slate-800 text-white',
-          badgeBg: 'bg-slate-100 text-slate-900 border-slate-200',
-          badgeIcon: 'text-slate-800',
-          accentText: 'text-slate-900',
-          bgPage: 'bg-[#F8FAFC]',
-        };
-      case 'academic_maroon':
-        return {
-          primaryBtn: 'bg-rose-800 hover:bg-rose-900 text-white',
-          badgeBg: 'bg-rose-50 text-rose-900 border-rose-200',
-          badgeIcon: 'text-rose-800',
-          accentText: 'text-rose-800',
-          bgPage: 'bg-[#FAF8F8]',
-        };
-      case 'modern_bento':
-      default:
-        return {
-          primaryBtn: 'bg-blue-600 hover:bg-blue-700 text-white',
-          badgeBg: 'bg-blue-50 text-blue-800 border-blue-100',
-          badgeIcon: 'text-blue-600',
-          accentText: 'text-blue-600',
-          bgPage: 'bg-[#F8FAFC]',
-        };
-    }
-  };
-  const themeStyle = getThemeStyles();
 
   // Pencarian Cepat Layanan Publik (Izin / Tagihan / Hafalan)
   const handleSearchPublicPortal = () => {
@@ -212,17 +174,15 @@ export default function TenantPesantrenPortal({
       );
 
       if (!match) {
-        setSearchError(`Data santri "${quickQuery}" tidak ditemukan di database. Coba kata kunci: Farhan, Zaid, atau NIS 202601.`);
+        setSearchError(`Data santri "${quickQuery}" tidak ditemukan di database. Pastikan nama atau NIS sesuai.`);
         setLoadingSearch(false);
         return;
       }
 
       if (activePortalTab === 'izin') {
-        // Cek Izin
         setTrackerSantri(match);
         setIsTrackerOpen(true);
       } else if (activePortalTab === 'bayar') {
-        // Cek Tagihan
         const allBills = firestoreGetBills();
         const santriBills = allBills.filter(b => b.santriId === match.id || b.santri?.nama === match.nama);
         setSearchResultInfo({
@@ -231,7 +191,6 @@ export default function TenantPesantrenPortal({
           bills: santriBills
         });
       } else if (activePortalTab === 'tahfidz') {
-        // Cek Hafalan
         setSearchResultInfo({
           type: 'tahfidz',
           santri: match
@@ -245,7 +204,7 @@ export default function TenantPesantrenPortal({
   };
 
   return (
-    <div className={`min-h-screen ${themeStyle.bgPage} text-[#111827] flex flex-col font-sans text-xs selection:bg-blue-600 selection:text-white`}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans text-xs">
       
       {/* ========================================================================= */}
       {/* 1. HEADER / NAVBAR RESMI                                                  */}
@@ -258,15 +217,15 @@ export default function TenantPesantrenPortal({
             {logoPondok ? (
               <img src={logoPondok} alt="Logo" className="w-10 h-10 object-contain rounded-xl border border-slate-200 p-1 flex-shrink-0 bg-white" />
             ) : (
-              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-blue-500/20 flex-shrink-0">
-                <Layers className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black text-sm shadow-sm flex-shrink-0">
+                <Building2 className="w-5 h-5" />
               </div>
             )}
             <div className="min-w-0">
-              <span className="font-['Righteous'] text-lg sm:text-xl text-slate-900 tracking-tight block truncate">
+              <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight block truncate">
                 {namaLembaga}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium block truncate">
+              <span className="text-[11px] text-slate-600 font-medium block truncate">
                 {taglineLembaga}
               </span>
             </div>
@@ -274,12 +233,12 @@ export default function TenantPesantrenPortal({
 
           {/* Navigasi Desktop Link Menu */}
           <nav className="hidden lg:flex items-center gap-6 font-semibold text-xs text-slate-600">
-            <a href="#beranda" className="hover:text-blue-600 transition-colors">Beranda</a>
-            <a href="#kegiatan" className="hover:text-blue-600 transition-colors">Kegiatan Santri</a>
-            <a href="#pengumuman" className="hover:text-blue-600 transition-colors">Pengumuman</a>
-            <a href="#layanan-publik" className="hover:text-blue-600 transition-colors">Portal Cek Izin</a>
-            <a href="#faq" className="hover:text-blue-600 transition-colors">FAQ</a>
-            <a href="#kontak" className="hover:text-blue-600 transition-colors">Kontak</a>
+            <a href="#beranda" className="hover:text-emerald-700 transition-colors">Beranda</a>
+            <a href="#layanan-publik" className="hover:text-emerald-700 transition-colors">Cek Santri</a>
+            <a href="#kegiatan" className="hover:text-emerald-700 transition-colors">Kegiatan Santri</a>
+            <a href="#pengumuman" className="hover:text-emerald-700 transition-colors">Pengumuman</a>
+            <a href="#faq" className="hover:text-emerald-700 transition-colors">FAQ</a>
+            <a href="#kontak" className="hover:text-emerald-700 transition-colors">Kontak</a>
           </nav>
 
           {/* Tombol Akses: Portal Wali & Login Petugas */}
@@ -288,14 +247,14 @@ export default function TenantPesantrenPortal({
               onClick={() => onOpenPortalWali('')}
               className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-all shadow-sm flex items-center gap-1.5"
             >
-              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+              <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
               <span className="hidden sm:inline">Portal Wali Santri</span>
               <span className="sm:hidden">Wali</span>
             </button>
 
             <button
               onClick={onLoginPetugas}
-              className={`px-4 py-2 rounded-xl ${themeStyle.primaryBtn} font-bold transition-all shadow-sm flex items-center gap-1.5 hover:-translate-y-0.5`}
+              className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition-all shadow-sm flex items-center gap-1.5"
             >
               <Lock className="w-3.5 h-3.5" />
               <span>Login Petugas</span>
@@ -305,10 +264,10 @@ export default function TenantPesantrenPortal({
         </div>
       </header>
 
-      {/* Banner Pengumuman Marquee / Header */}
+      {/* Banner Pengumuman Resmi */}
       {showAnnouncement && announcementText && (
-        <div className="bg-blue-600 text-white py-2 px-4 text-center text-xs font-bold shadow-inner flex items-center justify-center gap-2">
-          <Info className="w-4 h-4 flex-shrink-0" />
+        <div className="bg-emerald-800 text-white py-2.5 px-4 text-center text-xs font-semibold shadow-inner flex items-center justify-center gap-2">
+          <Info className="w-4 h-4 flex-shrink-0 text-emerald-200" />
           <span>{announcementText}</span>
         </div>
       )}
@@ -321,115 +280,95 @@ export default function TenantPesantrenPortal({
         <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-8">
           
           {/* Banner Hero Foto Pesantren */}
-          <div className="rounded-2xl overflow-hidden border border-slate-200 max-h-80 w-full shadow-inner relative group">
+          <div className="rounded-2xl overflow-hidden border border-slate-200 max-h-80 w-full relative group">
             <img 
               src={heroImage} 
               alt="Kampus Pesantren" 
-              className="w-full h-56 sm:h-80 object-cover group-hover:scale-105 transition-transform duration-700" 
+              className="w-full h-56 sm:h-80 object-cover" 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent flex items-end p-6">
-              <div className="text-white space-y-1">
-                <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  Lingkungan Asri & Bernuansa Islami
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent flex items-end p-6 sm:p-8">
+              <div className="text-white space-y-1.5 max-w-2xl">
+                <span className="px-3 py-1 bg-emerald-900/80 backdrop-blur-md text-emerald-100 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-emerald-700/50">
+                  Kampus Pendidikan Islam Terpadu
                 </span>
-                <h3 className="font-extrabold text-lg sm:text-xl text-white">
+                <h3 className="font-extrabold text-xl sm:text-2xl text-white">
                   {namaLembaga}
                 </h3>
+                <p className="text-slate-200 text-xs sm:text-sm line-clamp-2">
+                  {alamatLembaga}
+                </p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-6 border-b border-slate-100">
             <div className="space-y-4 max-w-3xl">
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${themeStyle.badgeBg} font-bold text-xs border`}>
-                <Building2 className={`w-3.5 h-3.5 ${themeStyle.badgeIcon}`} />
-                <span>Portal Resmi Digital Lembaga Pesantren</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-900 font-bold text-xs border border-emerald-200">
+                <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Pondok Pesantren Salafiyah Terpadu</span>
               </div>
               
-              <h2 className="font-['Poppins'] font-black text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
+              <h1 className="font-extrabold text-2xl sm:text-3xl lg:text-4xl text-slate-900 tracking-tight leading-tight">
                 {heroTitle}
-              </h2>
+              </h1>
 
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                 {heroSubtitle}
               </p>
 
-              {greetingNote && (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 italic flex items-start gap-3 text-xs">
-                  <Quote className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <span>"{greetingNote}"</span>
-                </div>
-              )}
-
-              {/* Action Buttons: Login Petugas & Daftar PSB */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={onLoginPetugas}
-                  className={`px-6 py-3 rounded-2xl ${themeStyle.primaryBtn} font-black text-xs shadow-md transition-all flex items-center gap-2`}
-                >
-                  <Lock className="w-4 h-4" />
-                  <span>Masuk Dashboard Petugas</span>
-                </button>
-
-                <a
-                  href={`https://wa.me/${whatsappAdmin}?text=Halo%20Admin%20${encodeURIComponent(namaLembaga)},%20saya%20ingin%20mendaftar%20PSB%20Santri%20Baru.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition-all flex items-center gap-2"
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Pendaftaran PSB Online</span>
-                </a>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs italic flex items-center gap-3">
+                <Quote className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                <span>"{greetingNote}"</span>
               </div>
             </div>
 
-            {/* Info Box Pengasuh & Status */}
-            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 min-w-[280px]">
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                  Pengasuh / Pimpinan Pondok:
-                </span>
-                <h4 className="font-bold text-sm text-slate-900">
-                  {pengasuhLembaga}
-                </h4>
-                <p className="text-[11px] text-slate-500">{alamatLembaga.split(',')[0]}</p>
-              </div>
+            {/* Tombol Aksi Cepat */}
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 flex-shrink-0 w-full lg:w-72">
+              <button
+                onClick={() => {
+                  const el = document.getElementById('layanan-publik');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full px-5 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition-all shadow-sm flex items-center justify-center gap-2 text-xs"
+              >
+                <Search className="w-4 h-4" />
+                <span>Cek Izin & Tagihan Santri</span>
+              </button>
 
-              <div className="pt-3 border-t border-slate-200 space-y-2">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">Tahun Ajaran:</span>
-                  <span className="font-bold text-slate-900">2026 / 2027</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">Akreditasi:</span>
-                  <span className="font-bold text-emerald-600">Terakreditasi A (Unggul)</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500">Sistem Saku:</span>
-                  <span className="font-bold text-blue-600">100% Cashless NFC</span>
-                </div>
-              </div>
+              <button
+                onClick={() => onOpenPortalWali('')}
+                className="w-full px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-all shadow-sm flex items-center justify-center gap-2 text-xs"
+              >
+                <UserCheck className="w-4 h-4 text-emerald-700" />
+                <span>Buka Portal Wali Santri</span>
+              </button>
+
+              <a
+                href={linkPsb}
+                className="w-full px-5 py-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition-all text-center text-xs block"
+              >
+                Pendaftaran Santri Baru (PSB)
+              </a>
             </div>
-
           </div>
 
-          {/* 4 Card Highlight Statistik */}
+          {/* 4 Card Highlight Statistik Institusional (No AI Slop / No Purple) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 text-center">
-              <div className="text-2xl font-black text-blue-950">300+</div>
-              <div className="text-[10px] text-blue-700 font-bold uppercase">Santri Mukim Aktif</div>
+            <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200/60 text-center space-y-1">
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-950 font-mono">300+</div>
+              <div className="text-xs text-emerald-800 font-bold uppercase tracking-wider">Santri Mukim Aktif</div>
             </div>
-            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 text-center">
-              <div className="text-2xl font-black text-emerald-950">30 Juz</div>
-              <div className="text-[10px] text-emerald-700 font-bold uppercase">Tahfidzul Qur'an</div>
+            <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200/60 text-center space-y-1">
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-950 font-mono">30 Juz</div>
+              <div className="text-xs text-amber-800 font-bold uppercase tracking-wider">Tahfidzul Qur'an Mutqin</div>
             </div>
-            <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-center">
-              <div className="text-2xl font-black text-purple-950">25+</div>
-              <div className="text-[10px] text-purple-700 font-bold uppercase">Dewan Asatidz Alumni</div>
+            <div className="p-5 rounded-2xl bg-blue-50/70 border border-blue-200/60 text-center space-y-1">
+              <div className="text-2xl sm:text-3xl font-extrabold text-blue-950 font-mono">25+</div>
+              <div className="text-xs text-blue-800 font-bold uppercase tracking-wider">Dewan Asatidz Alumni</div>
             </div>
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-100 text-center">
-              <div className="text-2xl font-black text-amber-950">100%</div>
-              <div className="text-[10px] text-amber-700 font-bold uppercase">Digital Smart Card</div>
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">100%</div>
+              <div className="text-xs text-slate-700 font-bold uppercase tracking-wider">Smart Card Cashless</div>
             </div>
           </div>
 
@@ -438,107 +377,16 @@ export default function TenantPesantrenPortal({
       </section>
 
       {/* ========================================================================= */}
-      {/* 3. SECTION KEGIATAN SANTRI (GALERI & CAROUSEL)                            */}
+      {/* 3. PORTAL PUBLIK: CEK IZIN, CEK TAGIHAN, CEK HAFALAN                     */}
       {/* ========================================================================= */}
-      <section id="kegiatan" className="py-10 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
-        <div className="text-center space-y-2 max-w-xl mx-auto">
-          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-blue-100">
-            Aktivitas Harian
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Galeri Kegiatan Santri</h2>
-          <p className="text-slate-500 text-xs">
-            Keseharian santri dalam menuntut ilmu syar'i, tahfidz Al-Qur'an, sorogan kitab kuning, dan pembinaan karakter mandiri.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {galleryPhotos.map((item, idx) => (
-            <div key={idx} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm group hover:shadow-md transition-all flex flex-col">
-              <div className="h-44 overflow-hidden relative">
-                <img 
-                  src={item.img} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                />
-                <span className="absolute top-3 left-3 px-2.5 py-1 bg-slate-900/70 backdrop-blur-md text-white rounded-full text-[9px] font-bold">
-                  {item.category || 'Kegiatan'}
-                </span>
-              </div>
-              <div className="p-5 space-y-2 flex-1 flex flex-col justify-between">
-                <div>
-                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug">{item.title}</h4>
-                  <p className="text-[11px] text-slate-500 line-clamp-2 pt-1">{item.desc}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. SECTION PENGUMUMAN & AGENDA PESANTREN                                  */}
-      {/* ========================================================================= */}
-      <section id="pengumuman" className="py-10 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
+      <section id="layanan-publik" className="py-8 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
         <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="font-black text-xl text-slate-900">Pengumuman & Agenda Penting Pesantren</h3>
-              <p className="text-slate-500 text-xs">Informasi resmi dari sekretariat dan pengasuh pondok pesantren</p>
-            </div>
-            <span className="text-[10px] font-bold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full w-fit">
-              Terkini 1447 H / 2026 M
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>1 Ramadhan 1447 H</span>
-              </div>
-              <h4 className="font-extrabold text-sm text-slate-900">Program Khotmil Qur'an & Posonan Kitab</h4>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Dimulainya pengajian pasaran kilatan kitab Shahih Bukhari dan Ihya Ulumiddin selama bulan suci Ramadhan.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-amber-600">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Setiap Hari Ahad Pekan ke-2</span>
-              </div>
-              <h4 className="font-extrabold text-sm text-slate-900">Jadwal Sambangan / Kunjungan Wali</h4>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Wali santri diperkenankan berkunjung mulai pukul 08.00 s.d 16.30 WIB dengan mematuhi protokol sopan santun asrama.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Gelombang I Terbuka</span>
-              </div>
-              <h4 className="font-extrabold text-sm text-slate-900">Penerimaan Santri Baru (PSB) 2026</h4>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Kuota terbatas 120 santri putra dan 80 santri putri. Tes seleksi meliputi membaca Al-Qur'an dan wawancara diniyah.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 5. PORTAL PUBLIK: CEK IZIN, CEK TAGIHAN, CEK HAFALAN                     */}
-      {/* ========================================================================= */}
-      <section id="layanan-publik" className="py-10 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-emerald-100">
-              Layanan Digital Publik
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Cek Data Santri Cepat</h2>
-            <p className="text-slate-500 text-xs">
-              Pemeriksaan perizinan gerbang, tagihan syahriyah, dan capaian hafalan santri secara mandiri.
+          <div className="text-center space-y-2 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Pusat Pemeriksaan Mandiri Santri
+            </h2>
+            <p className="text-slate-600 text-xs sm:text-sm">
+              Layanan transparan bagi wali santri dan asatidz untuk memverifikasi izin keluar gerbang, riwayat syahriyah bulanan, serta capaian setoran hafalan Al-Qur'an.
             </p>
           </div>
 
@@ -548,7 +396,7 @@ export default function TenantPesantrenPortal({
               <button
                 onClick={() => { setActivePortalTab('izin'); setSearchResultInfo(null); }}
                 className={`px-4 py-2 rounded-xl transition-all ${
-                  activePortalTab === 'izin' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  activePortalTab === 'izin' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Cek Izin Keluar Gerbang
@@ -556,7 +404,7 @@ export default function TenantPesantrenPortal({
               <button
                 onClick={() => { setActivePortalTab('bayar'); setSearchResultInfo(null); }}
                 className={`px-4 py-2 rounded-xl transition-all ${
-                  activePortalTab === 'bayar' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  activePortalTab === 'bayar' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Cek Status Syahriyah
@@ -564,7 +412,7 @@ export default function TenantPesantrenPortal({
               <button
                 onClick={() => { setActivePortalTab('tahfidz'); setSearchResultInfo(null); }}
                 className={`px-4 py-2 rounded-xl transition-all ${
-                  activePortalTab === 'tahfidz' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  activePortalTab === 'tahfidz' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Cek Capaian Tahfidz
@@ -586,14 +434,14 @@ export default function TenantPesantrenPortal({
                     setSearchError('');
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearchPublicPortal()}
-                  className="w-full pl-10 pr-3.5 py-3 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-600 font-medium"
+                  className="w-full pl-10 pr-3.5 py-3 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 font-medium"
                 />
               </div>
 
               <button
                 onClick={handleSearchPublicPortal}
                 disabled={loadingSearch}
-                className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 flex-shrink-0 text-xs"
+                className="w-full sm:w-auto px-6 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 flex-shrink-0 text-xs"
               >
                 <span>{loadingSearch ? 'Memeriksa...' : 'Cari Data'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -607,31 +455,31 @@ export default function TenantPesantrenPortal({
 
           {/* Card Hasil Pencarian Tagihan / Hafalan */}
           {searchResultInfo && (
-            <div className="max-w-xl mx-auto p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in">
-              <div className="flex items-center justify-between border-b pb-2">
+            <div className="max-w-xl mx-auto p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div>
                   <h4 className="font-extrabold text-sm text-slate-900">{searchResultInfo.santri.nama}</h4>
-                  <p className="text-[10px] text-slate-400">NIS: {searchResultInfo.santri.nis} • {searchResultInfo.santri.kelas}</p>
+                  <p className="text-xs text-slate-600">NIS: {searchResultInfo.santri.nis} • {searchResultInfo.santri.kelas}</p>
                 </div>
-                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">
+                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-full font-bold text-xs border border-emerald-200">
                   {searchResultInfo.santri.status}
                 </span>
               </div>
 
               {searchResultInfo.type === 'bayar' && (
                 <div className="space-y-2">
-                  <div className="font-bold text-slate-700 text-xs">Riwayat Tagihan:</div>
+                  <div className="font-bold text-slate-800 text-xs">Riwayat Tagihan & Pembayaran:</div>
                   {searchResultInfo.bills.length > 0 ? (
                     searchResultInfo.bills.map(b => (
                       <div key={b.id} className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
                         <div>
                           <div className="font-bold text-slate-900">{b.title}</div>
-                          <div className="text-[10px] text-slate-400">Bulan: {b.hijriMonth} {b.hijriYear}</div>
+                          <div className="text-[11px] text-slate-600">Bulan: {b.hijriMonth} {b.hijriYear}</div>
                         </div>
                         <div className="text-right">
-                          <div className="font-bold text-slate-900">Rp {(b.amount || 0).toLocaleString('id-ID')}</div>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            b.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          <div className="font-bold text-slate-900 font-mono">Rp {(b.amount || 0).toLocaleString('id-ID')}</div>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            b.status === 'PAID' ? 'bg-emerald-100 text-emerald-900' : 'bg-rose-100 text-rose-900'
                           }`}>
                             {b.status === 'PAID' ? 'LUNAS' : 'BELUM LUNAS'}
                           </span>
@@ -639,16 +487,16 @@ export default function TenantPesantrenPortal({
                       </div>
                     ))
                   ) : (
-                    <p className="text-[11px] text-slate-500 italic">Tidak ada tagihan tertunggak.</p>
+                    <p className="text-xs text-slate-600 italic">Tidak ada tagihan tertunggak pada bulan berjalan.</p>
                   )}
                 </div>
               )}
 
               {searchResultInfo.type === 'tahfidz' && (
-                <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Capaian Mutqin Tahfidz:</span>
-                  <div className="text-base font-black text-blue-700">{searchResultInfo.santri.tahfidzJuz || 'Juz 30 Mutqin'}</div>
-                  <p className="text-[11px] text-slate-500">Muroja'ah dan setoran rutin harian bersama musyrif asrama.</p>
+                <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-1.5">
+                  <span className="text-[11px] text-slate-600 font-bold uppercase tracking-wider">Capaian Mutqin Tahfidz:</span>
+                  <div className="text-base font-extrabold text-emerald-800">{searchResultInfo.santri.tahfidzJuz || 'Juz 30 Mutqin'}</div>
+                  <p className="text-xs text-slate-600">Muroja'ah dan setoran rutin harian ba'da sholat Shubuh dan ba'da Ashar di bawah bimbingan musyrif halaqoh.</p>
                 </div>
               )}
             </div>
@@ -658,50 +506,140 @@ export default function TenantPesantrenPortal({
       </section>
 
       {/* ========================================================================= */}
-      {/* 6. TOMBOL CEPAT & DONASI INFAQ                                           */}
+      {/* 4. SECTION KEGIATAN SANTRI & KURIKULUM                                   */}
+      {/* ========================================================================= */}
+      <section id="kegiatan" className="py-8 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
+        <div className="text-center space-y-2 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Pilar Pendidikan & Kegiatan Harian Santri
+          </h2>
+          <p className="text-slate-600 text-xs sm:text-sm">
+            Keseharian santri dalam menuntut ilmu syar'i, tahfidz Al-Qur'an 30 juz, pengajian kitab salaf, dan pembinaan adab berkarakter mandiri.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {galleryPhotos.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+              <div className="h-44 overflow-hidden relative">
+                <img 
+                  src={item.img} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover" 
+                />
+                <span className="absolute top-3 left-3 px-2.5 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-lg text-[10px] font-bold">
+                  {item.category || 'Pendidikan'}
+                </span>
+              </div>
+              <div className="p-5 space-y-2 flex-1 flex flex-col justify-between">
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug">{item.title}</h4>
+                  <p className="text-xs text-slate-600 line-clamp-3 pt-1.5 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 5. SECTION PENGUMUMAN & AGENDA PESANTREN                                  */}
+      {/* ========================================================================= */}
+      <section id="pengumuman" className="py-8 px-4 sm:px-6 max-w-7xl mx-auto w-full space-y-6">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="font-extrabold text-xl text-slate-900">Agenda & Pengumuman Resmi Pesantren</h3>
+              <p className="text-slate-600 text-xs">Informasi resmi dari sekretariat dan pengasuh pondok pesantren</p>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg w-fit">
+              Tahun Ajaran 1447 H / 2026 M
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                <span>1 Ramadhan 1447 H</span>
+              </div>
+              <h4 className="font-extrabold text-sm text-slate-900">Program Pengajian Posonan Ramadhan</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Kajian kilatan kitab Fathul Mu'in dan Ihya Ulumiddin selama bulan suci Ramadhan bersama dewan masyayikh.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                <span>Setiap Hari Ahad Pekan ke-2</span>
+              </div>
+              <h4 className="font-extrabold text-sm text-slate-900">Jadwal Sambangan & Kunjungan Wali</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Kunjungan orang tua dibuka pukul 08.00 s.d 16.30 WIB dengan mematuhi protokol asrama dan tertib berpakaian syar'i.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-blue-800">
+                <Calendar className="w-3.5 h-3.5 text-blue-700" />
+                <span>Gelombang I Terbuka</span>
+              </div>
+              <h4 className="font-extrabold text-sm text-slate-900">Penerimaan Santri Baru (PSB) 2026</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Pendaftaran santri baru program reguler dan tahfidz mutqin. Tes seleksi meliputi membaca Al-Qur'an dan wawancara diniyah.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 6. TOMBOL LAYANAN & REKENING RESMI BSI                                     */}
       {/* ========================================================================= */}
       <section className="py-6 px-4 sm:px-6 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           <a
-            href={`https://wa.me/${whatsappAdmin}?text=Assalamu%27alaikum%20Admin%20${encodeURIComponent(namaLembaga)}`}
+            href={`https://wa.me/${whatsappAdmin}?text=Assalamu%27alaikum%20Sekretariat%20${encodeURIComponent(namaLembaga)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-6 rounded-3xl bg-emerald-600 text-white shadow-md hover:bg-emerald-700 transition-all space-y-2 flex flex-col justify-between"
+            className="p-6 rounded-3xl bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 transition-all space-y-2 flex flex-col justify-between"
           >
-            <div className="space-y-1">
-              <MessageCircle className="w-6 h-6 text-white" />
-              <h3 className="font-extrabold text-base">WhatsApp Sekretariat</h3>
-              <p className="text-emerald-100 text-xs">Konsultasi santri baru, sambangan, dan administrasi langsung ke staf.</p>
+            <div className="space-y-1.5">
+              <MessageCircle className="w-6 h-6 text-emerald-200" />
+              <h3 className="font-extrabold text-base text-white">WhatsApp Sekretariat</h3>
+              <p className="text-emerald-100 text-xs leading-relaxed">Konsultasi pendaftaran santri baru, jadwal sambangan, dan layanan administrasi pondok.</p>
             </div>
-            <span className="text-xs font-bold underline flex items-center gap-1 pt-2">
-              Kirim Pesan WhatsApp →
+            <span className="text-xs font-bold underline flex items-center gap-1 pt-3 text-white">
+              Hubungi Sekretariat WhatsApp →
             </span>
           </a>
 
-          <div className="p-6 rounded-3xl bg-blue-600 text-white shadow-md space-y-2 flex flex-col justify-between">
-            <div className="space-y-1">
-              <HeartHandshake className="w-6 h-6 text-white" />
-              <h3 className="font-extrabold text-base">Donasi & Infaq Pesantren</h3>
-              <p className="text-blue-100 text-xs">Dukung pembangunan asrama santri dan sarana tahfidzul qur'an.</p>
+          <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-sm space-y-2 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <HeartHandshake className="w-6 h-6 text-amber-400" />
+              <h3 className="font-extrabold text-base text-white">Rekening Donasi & Syahriyah</h3>
+              <p className="text-slate-300 text-xs leading-relaxed">Penyaluran syahriyah resmi, infaq pengembangan sarana santri, dan wakaf gedung tahfidz.</p>
             </div>
-            <div className="pt-2 text-xs font-mono">
+            <div className="pt-2 text-xs font-mono bg-slate-800/80 p-3 rounded-xl border border-slate-700">
               <div className="font-bold text-amber-300">{namaBank}</div>
-              <div>No: {rekeningBank}</div>
+              <div className="text-white text-sm font-extrabold">{rekeningBank}</div>
+              <div className="text-slate-300 text-[10px] truncate">a.n {atasNamaBank}</div>
             </div>
           </div>
 
           <div 
             onClick={onLoginPetugas}
-            className="p-6 rounded-3xl bg-slate-900 text-white shadow-md hover:bg-slate-800 transition-all space-y-2 flex flex-col justify-between cursor-pointer"
+            className="p-6 rounded-3xl bg-white border border-slate-200 text-slate-900 shadow-sm hover:border-emerald-700 transition-all space-y-2 flex flex-col justify-between cursor-pointer"
           >
-            <div className="space-y-1">
-              <Lock className="w-6 h-6 text-blue-400" />
-              <h3 className="font-extrabold text-base">Portal Khusus Petugas</h3>
-              <p className="text-slate-400 text-xs">Login Bendahara, Kepala Pondok, Pengurus Saku, dan Keamanan Kamtib.</p>
+            <div className="space-y-1.5">
+              <Lock className="w-6 h-6 text-emerald-700" />
+              <h3 className="font-extrabold text-base text-slate-900">Portal Petugas & Pengurus</h3>
+              <p className="text-slate-600 text-xs leading-relaxed">Akses dashboard terpusat bagi Bendahara, Kepala Asrama, Pengurus Uang Saku, dan Pos Kamtib.</p>
             </div>
-            <span className="text-xs font-bold text-blue-400 flex items-center gap-1 pt-2">
-              Buka Panel Dashboard V2 →
+            <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 pt-3">
+              Masuk ke Dashboard Sistem →
             </span>
           </div>
 
@@ -711,13 +649,14 @@ export default function TenantPesantrenPortal({
       {/* ========================================================================= */}
       {/* 7. SECTION FAQ (TANYA JAWAB UMUM)                                         */}
       {/* ========================================================================= */}
-      <section id="faq" className="py-10 px-4 sm:px-6 max-w-5xl mx-auto w-full space-y-6">
+      <section id="faq" className="py-8 px-4 sm:px-6 max-w-5xl mx-auto w-full space-y-6">
         <div className="text-center space-y-2">
-          <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full font-bold text-[10px] uppercase tracking-wider">
-            Bantuan & Panduan
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Pertanyaan yang Sering Diajukan (FAQ)</h2>
-          <p className="text-slate-500 text-xs">Jawaban atas pertanyaan umum wali santri dan calon pendaftar.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            Pertanyaan yang Sering Diajukan
+          </h2>
+          <p className="text-slate-600 text-xs sm:text-sm">
+            Panduan dan jawaban atas pertanyaan umum seputar kegiatan pesantren dan portal wali santri.
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -728,7 +667,7 @@ export default function TenantPesantrenPortal({
                 className="w-full p-4 sm:p-5 text-left font-bold text-xs sm:text-sm text-slate-900 flex items-center justify-between gap-4"
               >
                 <span>{faq.q}</span>
-                {openFaqIndex === idx ? <ChevronUp className="w-4 h-4 text-blue-600" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                {openFaqIndex === idx ? <ChevronUp className="w-4 h-4 text-emerald-700" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
               </button>
               {openFaqIndex === idx && (
                 <div className="px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
@@ -751,33 +690,36 @@ export default function TenantPesantrenPortal({
             {/* Profil Singkat */}
             <div className="space-y-3 md:col-span-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black">
-                  <Layers className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black">
+                  <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-base text-white">{namaLembaga}</h4>
-                  <p className="text-[11px] text-slate-400">{taglineLembaga}</p>
+                  <h4 className="font-extrabold text-base text-white">{namaLembaga}</h4>
+                  <p className="text-xs text-slate-400">{taglineLembaga}</p>
                 </div>
               </div>
               <p className="text-slate-400 text-xs leading-relaxed max-w-md">
-                Lembaga pendidikan Islam modern terpadu yang memadukan kedalaman tradisi salafus sholih dengan wawasan keilmuan kontemporer dan sistem digitalisasi pesantren smart card.
+                Lembaga pendidikan Islam berwawasan Ahlussunnah wal Jama'ah yang memadukan kedalaman tradisi salafus sholih dengan tata kelola digital terpadu demi kemaslahatan santri dan ummat.
               </p>
+              <div className="text-slate-300 text-xs pt-1">
+                <span className="font-bold">Pengasuh:</span> {pengasuhLembaga}
+              </div>
             </div>
 
             {/* Kontak & Alamat */}
             <div className="space-y-2">
-              <h5 className="font-extrabold text-white text-xs uppercase tracking-wider">Kontak Lembaga</h5>
-              <div className="space-y-1.5 text-slate-400 text-xs">
+              <h5 className="font-extrabold text-white text-xs uppercase tracking-wider">Sekretariat Lembaga</h5>
+              <div className="space-y-2 text-slate-400 text-xs">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                   <span>{alamatLembaga}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <span>{noTelpLembaga}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <span>{emailLembaga}</span>
                 </div>
               </div>
@@ -785,27 +727,27 @@ export default function TenantPesantrenPortal({
 
             {/* Rekening Resmi */}
             <div className="space-y-2">
-              <h5 className="font-extrabold text-white text-xs uppercase tracking-wider">Rekening Resmi Pesantren</h5>
-              <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                <span className="text-[10px] text-amber-400 font-bold block">{namaBank}</span>
-                <div className="font-mono font-bold text-white text-sm">{rekeningBank}</div>
+              <h5 className="font-extrabold text-white text-xs uppercase tracking-wider">Rekening Resmi BSI</h5>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 font-mono">
+                <span className="text-[11px] text-amber-400 font-bold block">{namaBank}</span>
+                <div className="font-extrabold text-white text-base">{rekeningBank}</div>
                 <p className="text-[10px] text-slate-400">a.n {atasNamaBank}</p>
               </div>
             </div>
 
           </div>
 
-          <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[11px]">
+          <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-xs">
             <div>
-              © {new Date().getFullYear()} {namaLembaga}. Powered by SIPESAND Enterprise V2.
+              © {new Date().getFullYear()} {namaLembaga}. Sistem Informasi Pesantren Terpadu.
             </div>
             <div className="flex items-center gap-4">
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                Petunjuk Arah (Google Maps)
+                Petunjuk Lokasi Google Maps
               </a>
               <span>•</span>
-              <button onClick={onLoginPetugas} className="hover:text-white transition-colors font-bold text-blue-400">
-                Login Dashboard Petugas
+              <button onClick={onLoginPetugas} className="hover:text-white transition-colors font-bold text-emerald-400">
+                Login Petugas
               </button>
             </div>
           </div>
@@ -814,14 +756,14 @@ export default function TenantPesantrenPortal({
       </footer>
 
       {/* ========================================================================= */}
-      {/* POP-UP MODAL PENGUMUMAN PENTING (JIKA ADA)                                */}
+      {/* POP-UP MODAL PENGUMUMAN PENTING                                           */}
       {/* ========================================================================= */}
       {isUrgentPopupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                 <h3 className="font-extrabold text-sm text-slate-900">{urgentPopupTitle}</h3>
               </div>
               <button onClick={() => setIsUrgentPopupOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -836,7 +778,7 @@ export default function TenantPesantrenPortal({
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setIsUrgentPopupOpen(false)}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-sm transition-all"
+                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-sm transition-all"
               >
                 Saya Mengerti
               </button>
