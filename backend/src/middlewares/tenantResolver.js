@@ -99,7 +99,10 @@ function tenantResolver(req, res, next) {
   req.isMaster = !subdomain;
   req.prisma = subdomain ? getTenantPrismaClient(subdomain) : masterPrisma;
 
-  next();
+  const { tenantStorage } = require('../config/prisma');
+  tenantStorage.run({ prisma: req.prisma }, () => {
+    next();
+  });
 }
 
 module.exports = {

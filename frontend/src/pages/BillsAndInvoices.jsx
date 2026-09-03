@@ -14,7 +14,8 @@ import {
   MessageSquare, 
   Send, 
   Calendar,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { 
   getMasterBills, 

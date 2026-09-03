@@ -79,6 +79,11 @@ exports.createPermit = async (req, res) => {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const permitCode = `IZIN-${dateStr}-${randomSuffix}`;
 
+    const depDate = departureTime ? new Date(departureTime) : new Date();
+    const retDate = returnTime ? new Date(returnTime) : new Date(Date.now() + 7200000);
+    const safeDepDate = !isNaN(depDate.getTime()) ? depDate : new Date();
+    const safeRetDate = !isNaN(retDate.getTime()) ? retDate : new Date(Date.now() + 7200000);
+
     const newPermit = await prisma.permit.create({
       data: {
         permitCode,
@@ -86,8 +91,8 @@ exports.createPermit = async (req, res) => {
         type: type || 'HARIAN',
         reason,
         destination: destination || null,
-        departureTime: new Date(departureTime),
-        returnTime: new Date(returnTime),
+        departureTime: safeDepDate,
+        returnTime: safeRetDate,
         status: status || 'PENDING',
         approvedBy: approvedBy || null,
         notes: notes || null,
