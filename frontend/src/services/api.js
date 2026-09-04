@@ -17,7 +17,7 @@ api.interceptors.request.use((config) => {
     if (tenantQuery) {
       config.headers['X-Tenant-Subdomain'] = tenantQuery.toLowerCase().trim();
     } else {
-      const baseDomains = ['sipesand.we.id', 'sipesand.web.id'];
+      const baseDomains = ['sipesand.we.id', 'sipesand.web.id', 'pages.dev'];
       const matchedBase = baseDomains.find((baseDomain) => hostname === baseDomain || hostname === `www.${baseDomain}` || hostname.endsWith(`.${baseDomain}`));
 
       if (matchedBase) {
@@ -162,41 +162,44 @@ export const exportSantriData = async () => {
 export const importSantriBulk = (data) => api.post('/santri/import/bulk', data);
 export const importFromFirebase = (data) => api.post('/santri/import/firebase', data);
 
-// Pocket Transactions (Uang Saku dengan Transaksi Atomik)
+// Pocket Transactions (Uang Saku dengan Transaksi Atomik Cloud)
 export const getPocketTxs = async (params = {}) => {
   try {
-    const txs = getCollectionData('pocket_transactions');
-    return { data: { success: true, data: txs } };
-  } catch (err) {
-    return api.get('/pocket-tx', { params });
-  }
+    const res = await api.get('/pocket-tx', { params });
+    if (res?.data?.success && Array.isArray(res.data.data)) {
+      setCollectionData('pocket_transactions', res.data.data);
+      return res;
+    }
+  } catch (err) {}
+  const txs = getCollectionData('pocket_transactions');
+  return { data: { success: true, data: txs } };
 };
 
 export const getPocketTransactions = getPocketTxs;
 
 export const createPocketTx = async (data) => {
-  const res = firestoreRunPocketTransaction({
-    santriId: data.santriId,
-    type: data.type || 'TOPUP',
-    amount: data.amount,
-    note: data.note,
-    merchantName: data.merchantName
-  });
-  try { api.post('/pocket-tx', data).catch(() => {}); } catch (e) {}
+  try {
+    const res = await api.post('/pocket-tx', data);
+    if (res?.data?.success) {
+      firestoreRunPocketTransaction(data);
+      return res;
+    }
+  } catch (e) {}
+  const res = firestoreRunPocketTransaction(data);
   return { data: res };
 };
 
 export const createPocketTransaction = createPocketTx;
 
 export const deductPocketBalance = async (data) => {
-  const res = firestoreRunPocketTransaction({
-    santriId: data.santriId,
-    type: 'DEDUCT',
-    amount: data.amount,
-    note: data.note,
-    merchantName: data.merchantName
-  });
-  try { api.post('/pocket-tx/deduct', data).catch(() => {}); } catch (e) {}
+  try {
+    const res = await api.post('/pocket-tx/deduct', data);
+    if (res?.data?.success) {
+      firestoreRunPocketTransaction({ ...data, type: 'DEDUCT' });
+      return res;
+    }
+  } catch (e) {}
+  const res = firestoreRunPocketTransaction({ ...data, type: 'DEDUCT' });
   return { data: res };
 };
 
@@ -207,7 +210,16 @@ export const createLedgerEntry = (data) => api.post('/ledger', data);
 export const deleteLedgerEntry = (id) => api.delete(`/ledger/${id}`);
 
 // Security & Permits (Perizinan Santri)
-export const getPermits = (params) => api.get('/permits', { params });
+export const getPermits = async (params = {}) => {
+  try {
+    const res = await api.get('/permits', { params });
+    if (res?.data?.success && Array.isArray(res.data.data)) {
+      setCollectionData('permits', res.data.data);
+      return res;
+    }
+  } catch (e) {}
+  return api.get('/permits', { params });
+};
 export const createPermit = (data) => api.post('/permits', data);
 export const updatePermitStatus = (id, data) => api.put(`/permits/${id}/status`, data);
 export const checkSantriOverdue = () => api.get('/permits/check-overdue');
@@ -219,17 +231,29 @@ export const createMasterBill = (data) => api.post('/bills/master', data);
 export const updateMasterBill = (id, data) => api.put(`/bills/master/${id}`, data);
 export const deleteMasterBill = (id) => api.delete(`/bills/master/${id}`);
 
-// Santri Bills & Invoices (Persistensi Tagihan & Status Lunas)
+// Santri Bills & Invoices (Persistensi Tagihan & Status Lunas Cloud)
 export const getSantriBills = async (params = {}) => {
   try {
-    const bills = firestoreGetBills(params);
-    return { data: { success: true, data: bills } };
-  } catch (err) {
-    return api.get('/bills', { params });
-  }
+    const res = await api.get('/bills', { params });
+    if (res?.data?.success && Array.isArray(res.data.data)) {
+      setCollectionData(FIRESTORE_COLLECTIONS.BILLS, res.data.data);
+      return res;
+    }
+  } catch (err) {}
+  const bills = firestoreGetBills(params);
+  return { data: { success: true, data: bills } };
 };
 
 export const generateMassBills = async (data) => {
+  try {
+    const res = await api.post('/bills/generate-mass', data);
+    if (res?.data?.success) {
+      if (Array.isArray(res.data.data)) {
+        setCollectionData(FIRESTORE_COLLECTIONS.BILLS, res.data.data);
+      }
+      return res;
+    }
+  } catch (e) {}
   try {
     const santriList = firestoreGetSantri();
     santriList.forEach(s => {
@@ -243,7 +267,7 @@ export const generateMassBills = async (data) => {
     });
     return { data: { success: true, message: 'Tagihan massal berhasil diterbitkan.' } };
   } catch (e) {
-    return api.post('/bills/generate-mass', data);
+    return { data: { success: false, message: 'Gagal membuat tagihan' } };
   }
 };
 
@@ -251,20 +275,26 @@ export const autoGenerateHijriBills = (data) => api.post('/bills/auto-generate-h
 
 export const updateSantriBill = async (id, data) => {
   try {
-    const res = firestorePayBill(id, data);
-    return { data: res };
-  } catch (err) {
-    return api.put(`/bills/${id}`, data);
-  }
+    const res = await api.put(`/bills/${id}`, data);
+    if (res?.data?.success) {
+      firestorePayBill(id, data);
+      return res;
+    }
+  } catch (err) {}
+  const res = firestorePayBill(id, data);
+  return { data: res };
 };
 
 export const deleteSantriBill = async (id) => {
   try {
-    const res = firestoreDeleteBill(id);
-    return { data: res };
-  } catch (err) {
-    return api.delete(`/bills/${id}`);
-  }
+    const res = await api.delete(`/bills/${id}`);
+    if (res?.data?.success) {
+      firestoreDeleteBill(id);
+      return res;
+    }
+  } catch (err) {}
+  const res = firestoreDeleteBill(id);
+  return { data: res };
 };
 
 // Divisi Pengajuan Dana & Verifikasi Pembayaran (Approvals)
