@@ -218,14 +218,31 @@ export async function onRequest(context) {
   }
 
   // Deteksi Cloudflare KV Storage untuk Persistensi Multi-Device Global
-  const kv = env ? (env.SIPESAND_KV || env.KV || env.TENANTS_KV || null) : null;
+  const kv = env ? (env.SIPESAND_KV || env.KV || env.TENANTS_KV || env.DATABASE_KV || env.STORAGE_KV || null) : null;
+
+  // --- ENDPOINT: GET /api/cloud-status (Cek Koneksi Cloud Database) ---
+  if (path === '/api/cloud-status' && method === 'GET') {
+    return jsonResponse({
+      success: true,
+      isCloudDatabaseActive: !!kv,
+      provider: kv ? 'Cloudflare KV Global Distributed Database' : 'Cloudflare Edge Storage',
+      tenant: activeTenantKey,
+      region: request.cf?.colo || 'EDGE',
+      timestamp: new Date().toISOString()
+    }, 200, origin);
+  }
 
   // --- ENDPOINT: POST /api/tenant/reset (Restart / Bersihkan Data Tenant ke 0 Data) ---
   if ((path === '/api/tenant/reset' || path === '/api/reset-data') && method === 'POST') {
     globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = [];
+    globalThis.EDGE_TENANT_BILLS = globalThis.EDGE_TENANT_BILLS || {};
+    globalThis.EDGE_TENANT_BILLS[activeTenantKey] = [];
     if (kv) {
       try {
         await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify([]));
+        await kv.put(`tenant:${activeTenantKey}:bills`, JSON.stringify([]));
+        await kv.put(`tenant:${activeTenantKey}:pocket_tx`, JSON.stringify([]));
+        await kv.put(`tenant:${activeTenantKey}:permits`, JSON.stringify([]));
       } catch (e) {}
     }
     return jsonResponse({
@@ -502,21 +519,51 @@ export async function onRequest(context) {
 
   // --- ENDPOINT: GET /api/bills ---
   if (path === '/api/bills' && method === 'GET') {
+    globalThis.EDGE_TENANT_BILLS = globalThis.EDGE_TENANT_BILLS || {};
+    let list = globalThis.EDGE_TENANT_BILLS[activeTenantKey];
+    if (kv) {
+      try {
+        const kvList = await kv.get(`tenant:${activeTenantKey}:bills`, 'json');
+        if (kvList !== null && Array.isArray(kvList)) {
+          list = kvList;
+          globalThis.EDGE_TENANT_BILLS[activeTenantKey] = kvList;
+        }
+      } catch (e) {}
+    }
+    if (list === undefined) {
+      list = [];
+      globalThis.EDGE_TENANT_BILLS[activeTenantKey] = list;
+    }
     return jsonResponse({
       success: true,
-      data: [
-        {
-          id: 1,
-          santriId: 1,
-          title: 'Syahriyah Ramadhan 1447 H',
-          amount: 300000,
-          status: 'PAID',
-          hijriMonth: 'Ramadhan',
-          hijriYear: '1447 H',
-          santri: MOCK_SANTRI[0]
-        }
-      ]
+      tenant: activeTenantKey,
+      data: list
     }, 200, origin);
+  }
+
+  // --- ENDPOINT: POST /api/bills ---
+  if (path === '/api/bills' && method === 'POST') {
+    globalThis.EDGE_TENANT_BILLS = globalThis.EDGE_TENANT_BILLS || {};
+    const newBill = {
+      id: Date.now(),
+      ...body,
+      status: body.status || 'UNPAID',
+      createdAt: new Date().toISOString()
+    };
+    globalThis.EDGE_TENANT_BILLS[activeTenantKey] = [
+      newBill,
+      ...(globalThis.EDGE_TENANT_BILLS[activeTenantKey] || [])
+    ];
+    if (kv) {
+      try {
+        await kv.put(`tenant:${activeTenantKey}:bills`, JSON.stringify(globalThis.EDGE_TENANT_BILLS[activeTenantKey]));
+      } catch (e) {}
+    }
+    return jsonResponse({
+      success: true,
+      message: 'Tagihan berhasil dibuat di Cloud Database',
+      data: newBill
+    }, 201, origin);
   }
 
   // --- ENDPOINT: GET /api/academics ---
