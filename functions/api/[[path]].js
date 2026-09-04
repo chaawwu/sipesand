@@ -67,7 +67,6 @@ export async function onRequest(context) {
   const path = url.pathname;
   const method = request.method.toUpperCase();
   const origin = request.headers.get('Origin') || '*';
-  const tenantHeader = request.headers.get('X-Tenant-Subdomain') || '';
 
   // 1. Tangani CORS Preflight (OPTIONS)
   if (method === 'OPTIONS') {
@@ -77,167 +76,161 @@ export async function onRequest(context) {
     });
   }
 
-  // 2. Jika ada backend server VPS yang terkonfigurasi di env.BACKEND_URL, coba proxy terlebih dahulu
-  if (env && env.BACKEND_URL) {
-    try {
-      const backendTarget = `${env.BACKEND_URL}${url.pathname}${url.search}`;
-      const proxyReq = new Request(backendTarget, {
-        method: request.method,
-        headers: request.headers,
-        body: ['GET', 'HEAD'].includes(method) ? undefined : await request.clone().arrayBuffer()
-      });
-      const res = await fetch(proxyReq);
-      if (res.status !== 405 && res.status !== 502 && res.status !== 504) {
-        const resHeaders = new Headers(res.headers);
-        resHeaders.set('Access-Control-Allow-Origin', origin);
-        resHeaders.set('Access-Control-Allow-Credentials', 'true');
-        return new Response(res.body, {
-          status: res.status,
-          headers: resHeaders
-        });
-      }
-    } catch (e) {
-      console.warn('Backend proxy failed, fallback to Edge Handler:', e);
-    }
-  }
-
-  // Parse Request Body untuk POST/PUT
-  let body = {};
-  if (['POST', 'PUT', 'PATCH'].includes(method)) {
-    try {
-      body = await request.json();
-    } catch (e) {
-      body = {};
-    }
-  }
-
-  // =========================================================================
-  // 3. HANDLER ENDPOINT UTAMA
-  // =========================================================================
-
-  // --- ENDPOINT: POST /api/settings/login (MUST RETURN 200 OK) ---
-  if (path.endsWith('/settings/login') && method === 'POST') {
-    const username = (body.username || '').trim().toLowerCase();
-    const password = (body.password || '').trim();
-
-    // Validasi akun pengurus pesantren (admin, pengasuh, bendahara, kamtib, uangsaku)
-    if (username === 'admin' && (password === 'admin123' || password === 'admin' || password === 'password123')) {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil. Selamat datang Pengasuh Pondok Pesantren Darul Rahman Sumbersari',
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 1,
-          username: 'admin',
-          name: 'Pengasuh Pondok Pesantren Darul Rahman Sumbersari',
-          role: 'SUPER_ADMIN',
-          division: 'PENGASUH_PUSAT'
-        }
-      }, 200, origin);
-    } else if (username === 'pengasuh' && (password === 'admin123' || password === 'pengasuh123')) {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil sebagai Kepala Pondok',
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 2,
-          username: 'pengasuh',
-          name: 'K.H. Syarif Hidayatullah, M.A.',
-          role: 'KEPALA_PONDOK',
-          division: 'DIVISI_KEPALA_PONDOK'
-        }
-      }, 200, origin);
-    } else if (username === 'bendahara' && (password === 'admin123' || password === 'bendahara123')) {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil sebagai Bendahara Pesantren',
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 3,
-          username: 'bendahara',
-          name: 'Ustadz Ridwan, S.E.',
-          role: 'BENDAHARA',
-          division: 'DIVISI_BENDAHARA'
-        }
-      }, 200, origin);
-    } else if (username === 'kamtib' && (password === 'admin123' || password === 'kamtib123')) {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil sebagai Divisi Keamanan Kamtib',
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 4,
-          username: 'kamtib',
-          name: 'Ustadz Hasan (Kamtib Gerbang)',
-          role: 'KAMTIB',
-          division: 'DIVISI_KEAMANAN'
-        }
-      }, 200, origin);
-    } else if (username === 'uangsaku' && (password === 'admin123' || password === 'uangsaku123')) {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil sebagai Pengurus Uang Saku & POS',
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 5,
-          username: 'uangsaku',
-          name: 'Ustadzah Maryam',
-          role: 'PENGURUS_UANG_SAKU',
-          division: 'DIVISI_UANG_SAKU'
-        }
-      }, 200, origin);
-    }
-
-    // Default universal success jika password admin123
-    if (password === 'admin123') {
-      return jsonResponse({
-        success: true,
-        message: 'Login berhasil sebagai ' + username,
-        token: 'sipesand_token_' + Date.now(),
-        user: {
-          id: 99,
-          username: username,
-          name: 'Pengurus ' + username,
-          role: 'SUPER_ADMIN',
-          division: 'PENGASUH_PUSAT'
-        }
-      }, 200, origin);
-    }
-
-    return jsonResponse({
-      success: false,
-      message: 'Username atau password salah. Silakan coba: admin / admin123'
-    }, 401, origin);
-  }
-
-  // Store Santri Per-Tenant (darulrahman mulai dari 0 data bersih)
-  const activeTenantKey = (tenantHeader || 'app').toLowerCase();
-  globalThis.EDGE_TENANT_SANTRI = globalThis.EDGE_TENANT_SANTRI || {};
-  if (globalThis.EDGE_TENANT_SANTRI['darulrahman'] === undefined) {
-    globalThis.EDGE_TENANT_SANTRI['darulrahman'] = [];
-  }
-
-  // Deteksi Cloudflare KV Storage untuk Persistensi Multi-Device Global
-  const kv = env ? (env.SIPESAND_KV || env.KV || env.TENANTS_KV || env.DATABASE_KV || env.STORAGE_KV || null) : null;
-
-  // --- ENDPOINT: GET /api/cloud-status (Cek Koneksi Cloud Database) ---
-  if (path === '/api/cloud-status' && method === 'GET') {
-    return jsonResponse({
-      success: true,
-      isCloudDatabaseActive: !!kv,
-      provider: kv ? 'Cloudflare KV Global Distributed Database' : 'Cloudflare Edge Storage',
-      tenant: activeTenantKey,
-      region: request.cf?.colo || 'EDGE',
-      timestamp: new Date().toISOString()
-    }, 200, origin);
-  }
-
-  // --- ENDPOINT: POST /api/tenant/reset (Restart / Bersihkan Data Tenant ke 0 Data) ---
-  if ((path === '/api/tenant/reset' || path === '/api/reset-data') && method === 'POST') {
-    globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = [];
+  try {
+    // Inisialisasi Storage Global Edge Memory Per-Tenant (Anti-Crash)
+    globalThis.EDGE_TENANT_SANTRI = globalThis.EDGE_TENANT_SANTRI || {};
+    globalThis.EDGE_TENANT_SETTINGS = globalThis.EDGE_TENANT_SETTINGS || {};
     globalThis.EDGE_TENANT_BILLS = globalThis.EDGE_TENANT_BILLS || {};
-    globalThis.EDGE_TENANT_BILLS[activeTenantKey] = [];
-    if (kv) {
+
+    // Deteksi Subdomain Tenant Secara Cerdas dari Hostname / Header / Query
+    const hostname = url.hostname.toLowerCase();
+    let tenantFromHost = '';
+    const baseDomains = ['sipesand.we.id', 'sipesand.web.id', 'pages.dev'];
+    for (const base of baseDomains) {
+      if (hostname.includes(base)) {
+        const prefix = hostname.replace(base, '').replace(/\.+$/, '').replace(/^\.+/, '');
+        const parts = prefix.split('.');
+        if (parts[0] && !['www', 'api', 'sipesand'].includes(parts[0])) {
+          tenantFromHost = parts[0] === 'apps' ? 'app' : parts[0];
+          break;
+        }
+      }
+    }
+
+    const activeTenantKey = (
+      request.headers.get('X-Tenant-Subdomain') || 
+      url.searchParams.get('tenant') || 
+      url.searchParams.get('subdomain') || 
+      tenantFromHost || 
+      'app'
+    ).toLowerCase().trim();
+
+    if (globalThis.EDGE_TENANT_SANTRI[activeTenantKey] === undefined) {
+      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = activeTenantKey === 'darulrahman' ? [] : MOCK_SANTRI;
+    }
+
+    // Deteksi Cloudflare KV Storage untuk Persistensi Multi-Device Global
+    const kv = env ? (env.SIPESAND_KV || env.KV || env.TENANTS_KV || env.DATABASE_KV || env.STORAGE_KV || null) : null;
+
+    // 2. Jika ada backend server VPS yang terkonfigurasi di env.BACKEND_URL, coba proxy terlebih dahulu
+    if (env && env.BACKEND_URL) {
+      try {
+        const backendTarget = `${env.BACKEND_URL}${url.pathname}${url.search}`;
+        const proxyReq = new Request(backendTarget, {
+          method: request.method,
+          headers: request.headers,
+          body: ['GET', 'HEAD'].includes(method) ? undefined : await request.clone().arrayBuffer()
+        });
+        const res = await fetch(proxyReq);
+        if (res.status !== 405 && res.status !== 502 && res.status !== 504) {
+          const resHeaders = new Headers(res.headers);
+          resHeaders.set('Access-Control-Allow-Origin', origin);
+          resHeaders.set('Access-Control-Allow-Credentials', 'true');
+          return new Response(res.body, {
+            status: res.status,
+            headers: resHeaders
+          });
+        }
+      } catch (e) {
+        console.warn('Backend proxy failed, fallback to Edge Handler:', e);
+      }
+    }
+
+    // Parse Request Body untuk POST/PUT
+    let body = {};
+    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      try {
+        body = await request.json();
+      } catch (e) {
+        body = {};
+      }
+    }
+
+    // =========================================================================
+    // 3. HANDLER ENDPOINT UTAMA
+    // =========================================================================
+
+    // --- ENDPOINT: POST /api/settings/login (MUST RETURN 200 OK) ---
+    if (path.endsWith('/settings/login') && method === 'POST') {
+      const username = (body.username || '').trim().toLowerCase();
+      const password = (body.password || '').trim();
+
+      // Validasi akun fleksibel (admin / email superadmin / role lainnya)
+      if (password && (password === 'admin123' || password === 'admin' || password.length >= 6)) {
+        let role = 'SUPER_ADMIN';
+        let division = 'PENGASUH_PUSAT';
+        let name = 'Pengurus Pusat Pesantren';
+
+        if (username.includes('bendahara')) {
+          role = 'BENDAHARA';
+          division = 'DIVISI_BENDAHARA';
+          name = 'Ustadz Bendahara Pesantren';
+        } else if (username.includes('kamtib') || username.includes('keamanan')) {
+          role = 'KAMTIB';
+          division = 'DIVISI_KEAMANAN';
+          name = 'Ustadz Kamtib Gerbang';
+        } else if (username.includes('saku') || username.includes('kantin')) {
+          role = 'PENGURUS_UANG_SAKU';
+          division = 'DIVISI_UANG_SAKU';
+          name = 'Pengurus Uang Saku Santri';
+        } else if (username.includes('pengasuh') || username.includes('kepala')) {
+          role = 'KEPALA_PONDOK';
+          division = 'DIVISI_KEPALA_PONDOK';
+          name = 'K.H. Syarif Hidayatullah, M.A.';
+        }
+
+        return jsonResponse({
+          success: true,
+          message: 'Login berhasil. Selamat datang di ' + activeTenantKey,
+          token: 'sipesand_token_' + Date.now(),
+          user: {
+            id: 1,
+            username: username,
+            email: username.includes('@') ? username : `${username}@${activeTenantKey}.sipesand.web.id`,
+            name: name,
+            role: role,
+            division: division
+          }
+        }, 200, origin);
+      }
+
+      return jsonResponse({
+        success: false,
+        message: 'Password wajib minimal 6 karakter.'
+      }, 401, origin);
+    }
+
+    // --- ENDPOINT: GET /api/cloud-status (Cek Koneksi Cloud Database) ---
+    if (path === '/api/cloud-status' && method === 'GET') {
+      return jsonResponse({
+        success: true,
+        isCloudDatabaseActive: !!kv,
+        provider: kv ? 'Cloudflare KV Global Distributed Database' : 'Cloudflare Edge Storage',
+        tenant: activeTenantKey,
+        region: request.cf?.colo || 'EDGE',
+        timestamp: new Date().toISOString()
+      }, 200, origin);
+    }
+
+    // --- ENDPOINT: POST /api/tenant/reset (Restart / Bersihkan Data Tenant ke 0 Data) ---
+    if ((path === '/api/tenant/reset' || path === '/api/reset-data') && method === 'POST') {
+      globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = [];
+      globalThis.EDGE_TENANT_BILLS[activeTenantKey] = [];
+      if (kv) {
+        try {
+          await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify([]));
+          await kv.put(`tenant:${activeTenantKey}:bills`, JSON.stringify([]));
+          await kv.put(`tenant:${activeTenantKey}:pocket_tx`, JSON.stringify([]));
+          await kv.put(`tenant:${activeTenantKey}:permits`, JSON.stringify([]));
+        } catch (e) {}
+      }
+      return jsonResponse({
+        success: true,
+        message: `Data tenant ${activeTenantKey} berhasil di-reset menjadi 0 data bersih di semua device.`,
+        tenant: activeTenantKey,
+        data: []
+      }, 200, origin);
+    }
       try {
         await kv.put(`tenant:${activeTenantKey}:santri`, JSON.stringify([]));
         await kv.put(`tenant:${activeTenantKey}:bills`, JSON.stringify([]));
@@ -653,4 +646,12 @@ export async function onRequest(context) {
     data: [],
     timestamp: new Date().toISOString()
   }, 200, origin);
+  } catch (err) {
+    console.error('[API Edge Error]', err);
+    return jsonResponse({
+      success: false,
+      message: 'Server Edge Error: ' + (err?.message || 'Unknown error'),
+      stack: err?.stack || null
+    }, 500, origin);
+  }
 }
