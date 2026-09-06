@@ -717,41 +717,133 @@ export async function onRequest(context) {
       }, 200, origin);
     }
 
+    // Helper untuk normalisasi teks pencarian (hapus tanda baca, apostrof, multi-spasi)
+    const cleanSearchStr = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .replace(/['`’.]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    // Helper filter pencocokan santri cerdas (Nama, NIS, NFC, Wali, Multi-kata)
+    const filterSantriMatches = (list, rawQuery) => {
+      if (!rawQuery) return list || [];
+      const qNorm = cleanSearchStr(rawQuery);
+      const qWords = qNorm.split(' ').filter(Boolean);
+
+      return (list || []).filter(s => {
+        const nama = cleanSearchStr(s.nama || s.name);
+        const nis = cleanSearchStr(s.nis);
+        const nfc = cleanSearchStr(s.nfcUid);
+        const wali = cleanSearchStr(s.namaWali || s.guardian);
+        const kelas = cleanSearchStr(s.kelas || s.class);
+        const kamar = cleanSearchStr(s.kamar);
+        const idStr = String(s.id).toLowerCase();
+
+        // Exact match ID, NIS, atau NFC
+        if (idStr === qNorm || nis === qNorm || nfc === qNorm) return true;
+
+        // Substring match di nama, nis, atau nama wali
+        if (nama.includes(qNorm) || nis.includes(qNorm) || wali.includes(qNorm)) return true;
+
+        // Multi-kata (setiap kata dalam query harus ada di dalam gabungan informasi santri)
+        if (qWords.length > 1) {
+          const combined = `${nama} ${nis} ${wali} ${kelas} ${kamar}`;
+          return qWords.every(w => combined.includes(w));
+        }
+        return false;
+      });
+    };
+
+    // --- ENDPOINT: GET /api/portal-wali/santri-list & GET /api/portal-wali/search ---
+    if (path === '/api/portal-wali/santri-list' || path.startsWith('/api/portal-wali/search')) {
+      const santriList = await loadFromKV(`tenant:${activeTenantKey}:santri`, []);
+      const q = (url.searchParams.get('q') || '').trim();
+      const matches = filterSantriMatches(santriList, q);
+
+      return jsonResponse({
+        success: true,
+        tenant: activeTenantKey,
+        total: matches.length,
+        data: matches.map(s => ({
+          id: s.id,
+          nis: s.nis,
+          nama: s.nama || s.name,
+          gender: s.gender || 'L',
+          kelas: s.kelas || s.class || '-',
+          kamar: s.kamar || s.class || '-',
+          namaWali: s.namaWali || s.guardian || '-',
+          noHpWali: s.noHpWali || '-',
+          alamat: s.alamat || s.address || '-',
+          saldo_saku: s.saldo_saku || s.balance || 0,
+          foto: s.foto || s.photo || null,
+          status: s.status || 'AKTIF'
+        }))
+      }, 200, origin);
+    }
+
     // --- ENDPOINT: GET /api/portal-wali/santri/:query (Pencarian Publik Wali Santri Multi-Device) ---
     if (path.startsWith('/api/portal-wali/santri/')) {
-      const query = decodeURIComponent(path.replace('/api/portal-wali/santri/', '')).trim().toLowerCase();
+      const rawQuery = decodeURIComponent(path.replace('/api/portal-wali/santri/', '')).trim();
       const santriList = await loadFromKV(`tenant:${activeTenantKey}:santri`, []);
       const billsList = await loadFromKV(`tenant:${activeTenantKey}:bills`, []);
       const permitsList = await loadFromKV(`tenant:${activeTenantKey}:permits`, []);
 
-      const found = santriList.find(s => 
-        (s.nama && s.nama.toLowerCase().includes(query)) ||
-        (s.nis && s.nis.toLowerCase() === query) ||
-        (s.nfcUid && s.nfcUid.toLowerCase() === query) ||
-        String(s.id) === query
-      );
+      const matchingSantri = filterSantriMatches(santriList, rawQuery);
 
-      if (!found) {
+      if (matchingSantri.length === 0) {
         return jsonResponse({
           success: false,
-          message: `Data santri "${query}" tidak ditemukan di ${activeTenantKey}. Silakan pastikan NIS atau nama santri benar.`
+          message: `Data santri dengan kata kunci "${rawQuery}" tidak ditemukan di ${activeTenantKey}. Silakan periksa ejaan nama atau nomor NIS.`
         }, 404, origin);
       }
 
-      const santriBills = billsList.filter(b => b.santriId === found.id);
-      const santriPermits = permitsList.filter(p => p.santriId === found.id);
-      const activePermit = santriPermits.find(p => p.status === 'ACTIVE');
+      const qNorm = cleanSearchStr(rawQuery);
+      // Prioritaskan exact match pada NIS atau ID jika ada
+      const exactMatch = matchingSantri.find(s => 
+        cleanSearchStr(s.nis) === qNorm || String(s.id).toLowerCase() === qNorm || cleanSearchStr(s.nfcUid) === qNorm
+      );
+      const found = exactMatch || matchingSantri[0];
 
-      const unpaidBills = santriBills.filter(b => b.status === 'UNPAID');
+      const santriBills = billsList.filter(b => 
+        String(b.santriId || b.santriID) === String(found.id) || 
+        String(b.santriId || b.santriID) === String(found.nis)
+      );
+      const santriPermits = permitsList.filter(p => 
+        String(p.santriId) === String(found.id) || 
+        String(p.santriId) === String(found.nis)
+      );
+      const activePermit = santriPermits.find(p => (p.status || '').toUpperCase() === 'ACTIVE');
+
+      const unpaidBills = santriBills.filter(b => (b.status || '').toUpperCase() === 'UNPAID');
       const totalTunggakan = unpaidBills.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
 
       const settings = await loadFromKV(`tenant:${activeTenantKey}:settings`, 
         activeTenantKey === 'darulrahman' ? defaultDarulRahmanSettings : defaultAppSettings);
 
+      const formattedMatches = matchingSantri.map(s => ({
+        id: s.id,
+        nis: s.nis,
+        nama: s.nama || s.name,
+        gender: s.gender || 'L',
+        kelas: s.kelas || s.class || '-',
+        kamar: s.kamar || s.class || '-',
+        namaWali: s.namaWali || s.guardian || '-',
+        noHpWali: s.noHpWali || '-',
+        alamat: s.alamat || s.address || '-',
+        saldo_saku: s.saldo_saku || s.balance || 0,
+        foto: s.foto || s.photo || null,
+        status: s.status || 'AKTIF'
+      }));
+
       return jsonResponse({
         success: true,
         data: {
           santri: found,
+          matches: formattedMatches,
+          totalMatches: matchingSantri.length,
           location: {
             status: activePermit ? 'IZIN_KELUAR' : 'DI_PESANTREN',
             label: activePermit ? `Sedang Izin: ${activePermit.reason}` : 'Berada di Kompleks Pesantren',
@@ -759,7 +851,7 @@ export async function onRequest(context) {
             activePermit: activePermit || null
           },
           financial: {
-            saldoSaku: found.saldo_saku || 0,
+            saldoSaku: found.saldo_saku || found.balance || 0,
             totalTunggakan,
             unpaidCount: unpaidBills.length,
             bills: santriBills,
@@ -770,8 +862,8 @@ export async function onRequest(context) {
           academics: [],
           paymentInfo: {
             bankName: settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)',
-            accountNo: settings.BANK_ACCOUNT_NO || '7192837465',
-            accountHolder: settings.BANK_ACCOUNT_HOLDER || settings.NAMA_LEMBAGA,
+            accountNo: settings.BANK_ACCOUNT_NO || '7205409507',
+            accountHolder: settings.BANK_ACCOUNT_HOLDER || settings.NAMA_BENDAHARA || settings.NAMA_LEMBAGA,
             whatsappCenter: settings.WHATSAPP_CENTER || settings.NO_TELP
           }
         }

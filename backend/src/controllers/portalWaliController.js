@@ -166,3 +166,46 @@ exports.getSantriBillsByQuery = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal mengambil tagihan santri', error: err.message });
   }
 };
+
+// 3. Cari Daftar Santri untuk Autocomplete / List Matching Portal Wali
+exports.searchSantriList = async (req, res) => {
+  try {
+    const { q } = req.query;
+    const where = q ? {
+      OR: [
+        { nama: { contains: q } },
+        { nis: { contains: q } },
+        { namaWali: { contains: q } },
+      ]
+    } : {};
+
+    const santriList = await prisma.santri.findMany({
+      where,
+      select: {
+        id: true,
+        nis: true,
+        nama: true,
+        gender: true,
+        kelas: true,
+        kamar: true,
+        namaWali: true,
+        noHpWali: true,
+        alamat: true,
+        saldo_saku: true,
+        foto: true,
+        status: true,
+      },
+      take: 50,
+      orderBy: { nama: 'asc' }
+    });
+
+    res.json({
+      success: true,
+      total: santriList.length,
+      data: santriList
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mencari daftar santri', error: err.message });
+  }
+};
+

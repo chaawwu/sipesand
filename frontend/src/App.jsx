@@ -76,7 +76,7 @@ function getInitialView() {
 function MainAppContent() {
   // Current View: 'landing' | 'landing-saas' | 'portal-wali' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
   const [currentView, setCurrentView] = useState(getInitialView);
-  const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
+  const [portalWaliQuery, setPortalWaliQuery] = useState('');
   
   // Auth Session State (Aman Multi-Device & Refresh Persistent)
   const [currentUser, setCurrentUser] = useState(() => {
@@ -165,7 +165,7 @@ function MainAppContent() {
     setIsMobileSidebarOpen(false);
   };
 
-  const handleOpenPortalWali = (query = 'Farhan') => {
+  const handleOpenPortalWali = (query = '') => {
     setPortalWaliQuery(query);
     setCurrentView('portal-wali');
   };

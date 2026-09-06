@@ -372,6 +372,26 @@ export const getPortalWaliData = (query) => api.get(`/portal-wali/santri/${encod
 export const getPublicSantriData = (query) => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`);
 export const getPublicSantriBills = (query) => api.get(`/portal-wali/bills/${encodeURIComponent(query)}`);
 export const uploadPaymentProof = (data) => api.post('/bills/pay-online', data);
+export const getPortalWaliSantriList = async (q = '') => {
+  try {
+    const res = await api.get('/portal-wali/santri-list', { params: { q } });
+    if (res?.data?.success && Array.isArray(res.data.data)) {
+      return res;
+    }
+  } catch (err) {
+    console.warn('[API] getPortalWaliSantriList fallback local:', err?.message);
+  }
+  const local = firestoreGetSantri({ search: q });
+  return {
+    data: {
+      success: true,
+      total: local.length,
+      data: local
+    }
+  };
+};
+export const searchPortalWaliSantri = (query) => getPortalWaliSantriList(query);
+
 
 // B2B SaaS King Digital Dev: Pendaftaran Mitra, Webhook, & Auto-Disbursement
 export const checkSubdomainAvailability = (subdomain) => api.get(`/mitra/check-subdomain/${encodeURIComponent(subdomain)}`);
