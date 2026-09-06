@@ -40,7 +40,7 @@ export function getActiveTenantId() {
   return 'app';
 }
 
-// Data Riil PPDR Darul Rahman dari Firestore webppdrv3
+// Data Riil PPDR Darul Rahman untuk Firestore sipesand-app
 export const SEED_DARULRAHMAN_SANTRI = [
   { id: "PDR121365", nis: "PDR121365", nfcUid: "PDR121365", nama: "AHMAD SIFA'I ROMADHON", name: "AHMAD SIFA'I ROMADHON", gender: "L", kelas: "3 tsanawiyah", class: "3 tsanawiyah", kamar: "3 tsanawiyah", namaWali: "NASIR", guardian: "NASIR", noHpWali: "+62 812-4978-9903", alamat: "Kedungprahu Forawi Ngawi", address: "Kedungprahu Forawi Ngawi", saldo_saku: 0, balance: 0, status: "AKTIF" },
   { id: "PDR186495", nis: "PDR186495", nfcUid: "PDR186495", nama: "AHMAD SHOLIHAN", name: "AHMAD SHOLIHAN", gender: "L", kelas: "1 tsanawiyah", class: "1 tsanawiyah", kamar: "1 tsanawiyah", namaWali: "JIYANTO", guardian: "JIYANTO", noHpWali: "+62 812-4978-9903", alamat: "bumi ilir anak tuha lampung tengah", address: "bumi ilir anak tuha lampung tengah", saldo_saku: 285500, balance: 285500, pengurusUs: "Awwu", status: "AKTIF" },
