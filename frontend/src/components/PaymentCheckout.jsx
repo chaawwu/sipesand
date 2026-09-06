@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getMitraOrderStatus, simulatePaymentSuccess } from '../services/api';
+import { ensureTenantProvisioned } from '../services/firebaseConfig';
 import AestheticToast from './AestheticToast';
 
 export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTenant }) {
@@ -114,6 +115,17 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
       const res = await simulatePaymentSuccess(order.orderId);
       if (res.data.success) {
         setProvisionResult(res.data.data);
+        
+        // Auto-provision tenant collection di Firebase
+        ensureTenantProvisioned(order.subdomain, {
+          name: order.namaPondok,
+          NAMA_LEMBAGA: order.namaPondok,
+          email: order.email,
+          noWhatsapp: order.noWhatsapp,
+          packageType: order.packageType,
+          status: 'ACTIVE'
+        }).catch(e => console.warn('[PaymentCheckout Provision]:', e?.message));
+
         setToast({
           isOpen: true,
           type: 'success',

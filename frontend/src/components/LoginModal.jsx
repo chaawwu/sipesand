@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { loginUser } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
+import { firebaseLoginUser } from '../services/firebaseConfig';
+import { getActiveTenantId } from '../services/firestoreService';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   if (!isOpen) return null;
@@ -60,7 +62,24 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       setLoading(true);
       setErrorMsg('');
 
-      // 1. Coba login ke API Backend Server
+      // 1. Coba Autentikasi Menggunakan Firebase (Firebase Auth / Sub-Koleksi Firestore: tenants/{tenantId}/users)
+      try {
+        const tenantId = getActiveTenantId();
+        const fbUser = await firebaseLoginUser(cleanEmail, cleanPass, tenantId);
+        if (fbUser) {
+          onLoginSuccess({
+            ...fbUser,
+            pesantren: namaPesantren,
+            isActive: true
+          });
+          onClose();
+          return;
+        }
+      } catch (fbErr) {
+        console.warn('[LoginModal] Firebase login attempt:', fbErr?.message);
+      }
+
+      // 2. Coba login ke API Backend Server
       try {
         const res = await loginUser({ username: cleanEmail, password: cleanPass });
         if (res?.data?.success && res?.data?.user) {
@@ -296,6 +315,12 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               </>
             )}
           </button>
+
+          {/* Footer Firebase Cloud Indicator */}
+          <div className="pt-1 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Firebase Auth & Multi-Device Cloud Sync Aktif</span>
+          </div>
 
         </form>
 

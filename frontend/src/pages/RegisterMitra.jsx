@@ -18,6 +18,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { registerMitraTenant } from '../services/api';
+import { ensureTenantProvisioned } from '../services/firebaseConfig';
 import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 
@@ -65,6 +66,18 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
 
     try {
       setLoading(true);
+
+      // Auto-Provisioning Ruang Koleksi & Data Mandiri di Firebase Firestore untuk Tenant Baru
+      ensureTenantProvisioned(formData.subdomain, {
+        name: formData.namaPondok,
+        NAMA_LEMBAGA: formData.namaPondok,
+        namaPengelola: formData.namaPengelola,
+        email: formData.email,
+        noWhatsapp: formData.noWhatsapp,
+        NO_TELP: formData.noWhatsapp,
+        packageType: formData.packageType
+      }).catch(e => console.warn('[Firebase Register Mitra Provision]:', e?.message));
+
       const res = await registerMitraTenant(formData);
       if (res.data.success) {
         setCreatedOrder(res.data.data);

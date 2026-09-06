@@ -7,7 +7,18 @@
  * 4. Resolusi 8 Bug CRUD Utama (Create, Read, Update, Delete permanen).
  */
 
-import { FIRESTORE_COLLECTIONS } from './firebaseConfig';
+import { 
+  db, 
+  getTenantCollection, 
+  getTenantDoc, 
+  ensureTenantProvisioned, 
+  FIRESTORE_COLLECTIONS 
+} from './firebaseConfig';
+import { 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot 
+} from 'firebase/firestore';
 export { FIRESTORE_COLLECTIONS };
 
 // Helper: Ambil ID Tenant / Subdomain Aktif (Isolasi Mutlak)
@@ -341,6 +352,144 @@ export function subscribeToCollection(collectionName, callback, tenantId = getAc
 }
 
 // =============================================================================
+// FIREBASE CLOUD SYNC & MULTI-DEVICE REAL-TIME PERSISTENCE
+// Proyek General: sipesand-app
+// Format Path: tenants/{tenantId}/{collectionName}/{docId}
+// =============================================================================
+
+// Tulis Dokumen ke Firestore Sub-Koleksi Tenant (tenants/{tenantId}/{collectionName}/{docId})
+export async function syncDocToFirestore(collectionName, docId, data, tenantId = getActiveTenantId()) {
+  try {
+    const safeTenant = (tenantId || 'app').toLowerCase().trim();
+    const docRef = getTenantDoc(collectionName, String(docId), safeTenant);
+    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (err) {
+    console.warn(`[Firestore Cloud Sync] Gagal sync ${collectionName}/${docId}:`, err?.message);
+  }
+}
+
+// Hapus Dokumen dari Firestore Sub-Koleksi Tenant
+export async function deleteDocFromFirestore(collectionName, docId, tenantId = getActiveTenantId()) {
+  try {
+    const safeTenant = (tenantId || 'app').toLowerCase().trim();
+    const docRef = getTenantDoc(collectionName, String(docId), safeTenant);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn(`[Firestore Cloud Sync] Gagal hapus ${collectionName}/${docId}:`, err?.message);
+  }
+}
+
+// Registry Listener Aktif per Tenant & Koleksi
+const activeTenantListeners = new Map();
+
+// Inisialisasi Sinkronisasi Real-Time Multi-Device Firebase Firestore
+export function initFirestoreRealtimeSync(tenantId = getActiveTenantId()) {
+  if (typeof window === 'undefined') return;
+  const safeTenant = (tenantId || 'app').toLowerCase().trim();
+
+  // 1. Pastikan Ruang Koleksi & Data Root Tenant Baru Diprovisi di Firestore
+  ensureTenantProvisioned(safeTenant).catch(err => {
+    console.warn(`[Firestore Provisioner] Note (${safeTenant}):`, err?.message);
+  });
+
+  const collectionsToListen = [
+    FIRESTORE_COLLECTIONS.SANTRI,
+    FIRESTORE_COLLECTIONS.BILLS,
+    FIRESTORE_COLLECTIONS.POCKET_TX,
+  ];
+
+  collectionsToListen.forEach((colName) => {
+    const listenerKey = `${safeTenant}_${colName}`;
+    if (activeTenantListeners.has(listenerKey)) return;
+
+    try {
+      const colRef = getTenantCollection(colName, safeTenant);
+      const unsubscribe = onSnapshot(colRef, (snapshot) => {
+        if (!snapshot.empty) {
+          const cloudDocs = snapshot.docs.map(docSnap => {
+            const docData = docSnap.data();
+            return {
+              ...docData,
+              id: docData.id !== undefined ? docData.id : docSnap.id
+            };
+          });
+
+          // Urutkan dokumen berdasarkan waktu terbaru
+          cloudDocs.sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.id || 0).getTime();
+            const timeB = new Date(b.createdAt || b.id || 0).getTime();
+            return timeB - timeA;
+          });
+
+          // Perbarui local cache jika ada perbedaan (mencegah loop)
+          const currentLocal = getCollectionData(colName, safeTenant);
+          if (JSON.stringify(currentLocal) !== JSON.stringify(cloudDocs)) {
+            localStorage.setItem(getStorageKey(colName, safeTenant), JSON.stringify(cloudDocs));
+            window.dispatchEvent(new CustomEvent(`sipesand:firestore:${colName}`, {
+              detail: { tenantId: safeTenant, collectionName: colName, data: cloudDocs }
+            }));
+          }
+        } else {
+          // Jika di Firestore masih kosong untuk tenant ini, seed data awal ke cloud
+          const localData = getCollectionData(colName, safeTenant);
+          if (Array.isArray(localData) && localData.length > 0) {
+            localData.forEach(item => {
+              syncDocToFirestore(colName, item.id || Date.now(), item, safeTenant);
+            });
+          }
+        }
+      }, (err) => {
+        console.warn(`[Firestore Realtime Listener] (${safeTenant}/${colName}):`, err?.message);
+      });
+
+      activeTenantListeners.set(listenerKey, unsubscribe);
+    } catch (err) {
+      console.warn(`[Firestore Sync Init] (${colName}):`, err?.message);
+    }
+  });
+
+  // Listener Real-Time Pengaturan Lembaga: tenants/{tenantId}/settings/config
+  const settingsKey = `${safeTenant}_settings`;
+  if (!activeTenantListeners.has(settingsKey)) {
+    try {
+      const settingsDocRef = getTenantDoc(FIRESTORE_COLLECTIONS.SETTINGS, 'config', safeTenant);
+      const unsubSettings = onSnapshot(settingsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const cloudSettings = docSnap.data();
+          const localKey = `sipesand_settings_${safeTenant}`;
+          const current = localStorage.getItem(localKey);
+          if (JSON.stringify(cloudSettings) !== current) {
+            localStorage.setItem(localKey, JSON.stringify(cloudSettings));
+            localStorage.setItem('sipesand_tenant_settings', JSON.stringify(cloudSettings));
+            window.dispatchEvent(new CustomEvent('sipesand:firestore:settings', {
+              detail: { tenantId: safeTenant, data: cloudSettings }
+            }));
+          }
+        } else {
+          const currentSettings = firestoreGetSettings(safeTenant);
+          if (currentSettings) {
+            syncDocToFirestore(FIRESTORE_COLLECTIONS.SETTINGS, 'config', currentSettings, safeTenant);
+          }
+        }
+      }, (err) => {
+        console.warn(`[Firestore Settings Listener] (${safeTenant}):`, err?.message);
+      });
+
+      activeTenantListeners.set(settingsKey, unsubSettings);
+    } catch (err) {
+      console.warn(`[Firestore Settings Sync]:`, err?.message);
+    }
+  }
+}
+
+// Jalankan otomatis sync Firestore real-time saat modul dimuat di browser
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    initFirestoreRealtimeSync(getActiveTenantId());
+  }, 100);
+}
+
+// =============================================================================
 // CRUD SANTRI (Selesaikan Bug 1, 2, 5, 6, 8)
 // =============================================================================
 
@@ -395,6 +544,7 @@ export function firestoreCreateSantri(data, tenantId = getActiveTenantId()) {
 
   const updated = [newSantri, ...list];
   setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.SANTRI, newSantri.id, newSantri, tenantId);
   return newSantri;
 }
 
@@ -416,6 +566,7 @@ export function firestoreUpdateSantri(id, updates, tenantId = getActiveTenantId(
 
   list[index] = updatedSantri;
   setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.SANTRI, updatedSantri.id, updatedSantri, tenantId);
   return updatedSantri;
 }
 
@@ -429,6 +580,7 @@ export function firestoreDeleteSantri(id, tenantId = getActiveTenantId()) {
   }
 
   setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.SANTRI, targetId, tenantId);
   return { success: true, message: `Santri #${id} berhasil dihapus permanen.` };
 }
 
@@ -473,6 +625,7 @@ export function firestoreRunPocketTransaction({ santriId, type, amount, note, me
     updatedAt: new Date().toISOString()
   };
   setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, santriList, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.SANTRI, currentSantri.id, santriList[santriIdx], tenantId);
 
   // 2. Tambah Dokumen Transaksi Saku
   const txList = getCollectionData(FIRESTORE_COLLECTIONS.POCKET_TX, tenantId);
@@ -491,6 +644,7 @@ export function firestoreRunPocketTransaction({ santriId, type, amount, note, me
   };
 
   setCollectionData(FIRESTORE_COLLECTIONS.POCKET_TX, [newTx, ...txList], tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.POCKET_TX, newTx.id, newTx, tenantId);
 
   return {
     success: true,
@@ -580,6 +734,7 @@ export function firestorePayBill(billId, paymentDetails = {}, tenantId = getActi
 
   bills[index] = updatedBill;
   setCollectionData(FIRESTORE_COLLECTIONS.BILLS, bills, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.BILLS, updatedBill.id, updatedBill, tenantId);
 
   return {
     success: true,
@@ -608,6 +763,7 @@ export function firestoreCreateBill(billData, tenantId = getActiveTenantId()) {
 
   const updated = [newBill, ...bills];
   setCollectionData(FIRESTORE_COLLECTIONS.BILLS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.BILLS, newBill.id, newBill, tenantId);
   return newBill;
 }
 
@@ -617,6 +773,7 @@ export function firestoreDeleteBill(id, tenantId = getActiveTenantId()) {
   const filtered = bills.filter(b => b.id !== targetId);
 
   setCollectionData(FIRESTORE_COLLECTIONS.BILLS, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.BILLS, targetId, tenantId);
   return { success: true, message: `Tagihan #${id} berhasil dihapus.` };
 }
 
@@ -696,6 +853,10 @@ export function firestoreSaveSettings(newSettings, tenantId = getActiveTenantId(
     window.dispatchEvent(new CustomEvent('sipesand:firestore:settings', {
       detail: { tenantId, data: updated }
     }));
+
+    // Simpan ke Firestore Dokumen Config Sub-Koleksi Tenant
+    syncDocToFirestore(FIRESTORE_COLLECTIONS.SETTINGS, 'config', updated, tenantId);
+
     return updated;
   } catch (e) {
     console.error('[FirestoreService] Error saving settings:', e);

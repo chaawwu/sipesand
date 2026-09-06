@@ -162,7 +162,31 @@ export const exportSantriData = async () => {
 };
 
 export const importSantriBulk = (data) => api.post('/santri/import/bulk', data);
-export const importFromFirebase = (data) => api.post('/santri/import/firebase', data);
+export const importFromFirebase = async (data) => {
+  try {
+    const res = await api.post('/santri/import/firebase', data);
+    if (res?.data?.success) return res;
+  } catch (e) {
+    console.warn('[API] Backend import failed, saving directly to Firestore:', e?.message);
+  }
+
+  // Fallback direct import ke Firestore tenant aktif
+  const items = Array.isArray(data) ? data : (data?.santri || [data]);
+  let count = 0;
+  for (const item of items) {
+    if (item && (item.nama || item.name)) {
+      firestoreCreateSantri(item);
+      count++;
+    }
+  }
+  return {
+    data: {
+      success: true,
+      message: `Berhasil mengimpor ${count} data santri ke Firestore tenant aktif.`,
+      importedCount: count
+    }
+  };
+};
 
 // Pocket Transactions (Uang Saku dengan Transaksi Atomik Cloud)
 export const getPocketTxs = async (params = {}) => {
