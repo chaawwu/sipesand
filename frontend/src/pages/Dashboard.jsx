@@ -51,7 +51,7 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
       setLoading(true);
       const res = await getDashboardStats();
       if (res.data.success) {
-        setStats(res.data.data.stats);
+        setStats(res.data.data.stats || res.data.data.summary || {});
         setRecentPocketTxs(res.data.data.recentPocketTxs || []);
         setRecentLedgerTxs(res.data.data.recentLedgerTxs || []);
         setCurrentActivePermits(res.data.data.currentActivePermits || []);

@@ -43,9 +43,9 @@ function getInitialTenantSettings() {
   const tenantParam = (searchParams.get('tenant') || searchParams.get('pondok') || searchParams.get('subdomain') || '').toLowerCase();
   
   let tenantSubdomain = tenantParam;
-  if (!tenantSubdomain && (hostname.includes('sipesand.web.id') || hostname.includes('sipesand.we.id'))) {
-    const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').split('.');
-    if (parts[0] && parts[0] !== 'www') {
+  if (!tenantSubdomain && (hostname.includes('sipesand.web.id') || hostname.includes('sipesand.we.id') || hostname.includes('pages.dev'))) {
+    const parts = hostname.replace('.sipesand.web.id', '').replace('.sipesand.we.id', '').replace('.pages.dev', '').split('.');
+    if (parts[0] && !['www', 'api', 'sipesand'].includes(parts[0])) {
       tenantSubdomain = parts[0] === 'apps' ? 'app' : parts[0];
     }
   }
@@ -64,14 +64,31 @@ function getInitialTenantSettings() {
   if (tenantSubdomain === 'darulrahman' || hostname.startsWith('darulrahman.')) {
     return {
       ...defaultSettings,
-      NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
+      NAMA_LEMBAGA: 'PONPES DARUL RAHMAN',
+      nama: 'PONPES DARUL RAHMAN',
       TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
-      ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
-      NO_TELP: '+62 851-2373-4342',
-      EMAIL_LEMBAGA: 'darulrahmansumbersari@gmail.com',
+      ALAMAT_LEMBAGA: 'Sumbersari, kencong kepung kediri',
+      alamat: 'Sumbersari, kencong kepung kediri',
+      NO_TELP: '+62 812-4978-9903',
+      telp: '+62 812-4978-9903',
+      WHATSAPP_CENTER: '081249789903',
+      EMAIL_LEMBAGA: 'darulrahman.kediri@gmail.com',
       NAMA_KEPALA_PONDOK: 'K.H. Syarif Hidayatullah, M.A.',
+      NAMA_BENDAHARA: 'mahrum ali',
+      bendahara: 'mahrum ali',
+      BANK_NAME: 'BSI',
+      bank: 'BSI',
+      BANK_ACCOUNT_NO: '7205409507',
+      rek: '7205409507',
+      BANK_ACCOUNT_HOLDER: 'mahrum ali',
+      an: 'mahrum ali',
+      DISBURSEMENT_BANK: 'BSI',
+      DISBURSEMENT_ACCOUNT_NO: '7205409507',
+      DISBURSEMENT_ACCOUNT_HOLDER: 'mahrum ali',
+      GOOGLE_SHEET_WEBHOOK_URL: 'https://script.google.com/macros/s/AKfycbzPqS9wMaQdqTfxZftrkCg0y9Np7E3i3fGuQfX4VJCyR63LsPl5LrLdHtMspXH3lrNl/exec',
+      sheetUrl: 'https://script.google.com/macros/s/AKfycbzPqS9wMaQdqTfxZftrkCg0y9Np7E3i3fGuQfX4VJCyR63LsPl5LrLdHtMspXH3lrNl/exec',
       WEB_THEME: 'islamic_green',
-      WEB_HERO_TITLE: 'Selamat Datang di Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
+      WEB_HERO_TITLE: 'Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
       WEB_HERO_SUBTITLE: 'Pusat pendidikan Islam terpadu, tahfidzul quran, sorogan kitab kuning, dan pembinaan akhlak karimah di Kediri.',
       WEB_GREETING_NOTE: 'Mengabdi untuk Umat, Menjaga Tradisi Salaf & Wawasan Global',
       WEB_SHOW_PERMIT_CHECKER: 'true',
@@ -80,6 +97,8 @@ function getInitialTenantSettings() {
       WEB_SHOW_ANNOUNCEMENT: 'true',
       WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!',
       WEB_MAPS_URL: 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri',
+      NFC_FEATURE_ENABLED: 'true',
+      ONBOARDING_COMPLETED: 'true'
     };
   }
 

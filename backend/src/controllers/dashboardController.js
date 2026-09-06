@@ -85,23 +85,26 @@ exports.getDashboardStats = async (req, res) => {
       }),
     ]);
 
+    const summaryObj = {
+      totalSantri,
+      activeSantri,
+      totalPocketBalance,
+      ledgerBalance,
+      totalIncome,
+      totalExpense,
+      totalTunggakan,
+      countTunggakan,
+      activePermitsCount,
+      overduePermits,
+      pendingOnlinePaymentsCount,
+      pendingDivisionFundsCount,
+    };
+
     res.json({
       success: true,
       data: {
-        stats: {
-          totalSantri,
-          activeSantri,
-          totalPocketBalance,
-          ledgerBalance,
-          totalIncome,
-          totalExpense,
-          totalTunggakan,
-          countTunggakan,
-          activePermitsCount,
-          overduePermits,
-          pendingOnlinePaymentsCount,
-          pendingDivisionFundsCount,
-        },
+        stats: summaryObj,
+        summary: summaryObj,
         recentPocketTxs,
         recentLedgerTxs,
         currentActivePermits,

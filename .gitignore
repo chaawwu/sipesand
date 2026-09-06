@@ -32,3 +32,6 @@ Thumbs.db
 
 # Impeccable Design Toolkit & CLI Cache
 .impeccable/
+
+# Script Dumps
+scripts/*.json

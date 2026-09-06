@@ -79,8 +79,10 @@ export const getSantriList = async (params = {}) => {
   try {
     const res = await api.get('/santri', { params });
     if (res?.data?.success && Array.isArray(res.data.data)) {
-      // Sinkronisasi data server ke cache lokal device
-      setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, res.data.data);
+      // Sinkronisasi data server ke cache lokal device hanya jika fetch seluruh data
+      if (!params || Object.keys(params).length === 0) {
+        setCollectionData(FIRESTORE_COLLECTIONS.SANTRI, res.data.data);
+      }
       return res;
     }
   } catch (err) {
@@ -96,7 +98,7 @@ export const getSantriById = async (id) => {
     if (res?.data?.success && res.data.data) return res;
   } catch (e) {}
   const list = firestoreGetSantri();
-  const found = list.find(s => s.id === (parseInt(id) || id));
+  const found = list.find(s => String(s.id) === String(id) || String(s.nis) === String(id));
   if (found) return { data: { success: true, data: found } };
   return { data: { success: false, message: 'Santri tidak ditemukan' } };
 };
@@ -167,7 +169,9 @@ export const getPocketTxs = async (params = {}) => {
   try {
     const res = await api.get('/pocket-tx', { params });
     if (res?.data?.success && Array.isArray(res.data.data)) {
-      setCollectionData('pocket_transactions', res.data.data);
+      if (!params || Object.keys(params).length === 0) {
+        setCollectionData('pocket_transactions', res.data.data);
+      }
       return res;
     }
   } catch (err) {}
@@ -214,7 +218,9 @@ export const getPermits = async (params = {}) => {
   try {
     const res = await api.get('/permits', { params });
     if (res?.data?.success && Array.isArray(res.data.data)) {
-      setCollectionData('permits', res.data.data);
+      if (!params || Object.keys(params).length === 0) {
+        setCollectionData('permits', res.data.data);
+      }
       return res;
     }
   } catch (e) {}
@@ -236,7 +242,9 @@ export const getSantriBills = async (params = {}) => {
   try {
     const res = await api.get('/bills', { params });
     if (res?.data?.success && Array.isArray(res.data.data)) {
-      setCollectionData(FIRESTORE_COLLECTIONS.BILLS, res.data.data);
+      if (!params || Object.keys(params).length === 0) {
+        setCollectionData(FIRESTORE_COLLECTIONS.BILLS, res.data.data);
+      }
       return res;
     }
   } catch (err) {}

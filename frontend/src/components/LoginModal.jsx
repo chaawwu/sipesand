@@ -40,14 +40,9 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // Validasi Wajib Email & Password >= 6 Karakter
+    // Validasi Username / Email & Password
     if (!cleanEmail) {
-      setErrorMsg('Email superadmin wajib diisi.');
-      return;
-    }
-
-    if (!validateEmail(cleanEmail)) {
-      setErrorMsg('Username superadmin wajib berupa email valid (contoh: admin@darulrahman.sch.id).');
+      setErrorMsg('Username atau Email wajib diisi.');
       return;
     }
 
@@ -56,8 +51,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       return;
     }
 
-    if (cleanPass.length < 6) {
-      setErrorMsg('Password wajib memiliki minimal 6 karakter.');
+    if (cleanPass.length < 4) {
+      setErrorMsg('Password minimal 4 karakter.');
       return;
     }
 
@@ -183,46 +178,46 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             </div>
           )}
 
-          {/* Input Email Superadmin */}
+          {/* Input Username / Email */}
           <div className="space-y-1">
             <label className="font-bold text-slate-700 flex items-center justify-between">
-              <span>Username Superadmin (Wajib Email) *</span>
-              <span className="text-[10px] text-slate-400 font-normal">Format email</span>
+              <span>Username / Email Petugas *</span>
+              <span className="text-[10px] text-slate-400 font-normal">Username atau email</span>
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setErrorMsg('');
                 }}
-                placeholder="contoh: admin@darulrahman.sch.id"
+                placeholder="contoh: admin / admin@darulrahman.sch.id"
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-xs font-medium"
               />
             </div>
           </div>
 
-          {/* Input Password (Min 6 Karakter) */}
+          {/* Input Password */}
           <div className="space-y-1">
             <label className="font-bold text-slate-700 flex items-center justify-between">
-              <span>Password Superadmin *</span>
-              <span className="text-[10px] text-slate-400 font-normal">Min. 6 Karakter</span>
+              <span>Password *</span>
+              <span className="text-[10px] text-slate-400 font-normal">Min. 5 Karakter</span>
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={5}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setErrorMsg('');
                 }}
-                placeholder="Minimal 6 karakter..."
+                placeholder="Masukkan kata sandi..."
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700 text-xs font-medium"
               />
             </div>
@@ -234,6 +229,27 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
               Pilihan Akun Cepat:
             </div>
             <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              <button
+                type="button"
+                onClick={() => handleQuickFill('admin', 'admin')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                🔑 Admin Utama (PPDR)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('Awwu', '12345')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                💰 Pengurus Saku (Awwu)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickFill('admin03', '12345')}
+                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+              >
+                🛡️ Keamanan (admin03)
+              </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin@darulrahman.sch.id', 'admin123')}

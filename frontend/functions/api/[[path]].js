@@ -61,17 +61,46 @@ const MOCK_SANTRI = [
   }
 ];
 
+const PPDR_SANTRI = [
+  { id: "PDR121365", nis: "PDR121365", nfcUid: "PDR121365", nama: "AHMAD SIFA'I ROMADHON", name: "AHMAD SIFA'I ROMADHON", gender: "L", kelas: "3 tsanawiyah", class: "3 tsanawiyah", kamar: "3 tsanawiyah", namaWali: "NASIR", guardian: "NASIR", noHpWali: "+62 812-4978-9903", alamat: "Kedungprahu Forawi Ngawi", address: "Kedungprahu Forawi Ngawi", saldo_saku: 0, balance: 0, status: "AKTIF" },
+  { id: "PDR186495", nis: "PDR186495", nfcUid: "PDR186495", nama: "AHMAD SHOLIHAN", name: "AHMAD SHOLIHAN", gender: "L", kelas: "1 tsanawiyah", class: "1 tsanawiyah", kamar: "1 tsanawiyah", namaWali: "JIYANTO", guardian: "JIYANTO", noHpWali: "+62 812-4978-9903", alamat: "bumi ilir anak tuha lampung tengah", address: "bumi ilir anak tuha lampung tengah", saldo_saku: 285500, balance: 285500, pengurusUs: "Awwu", status: "AKTIF" },
+  { id: "PDR223687", nis: "PDR223687", nfcUid: "PDR223687", nama: "Abdul suhud", name: "Abdul suhud", gender: "L", kelas: "MIs", class: "MIs", kamar: "MIs", namaWali: "mahrum", guardian: "mahrum", noHpWali: "+62 812-4978-9903", alamat: "sumbersari", address: "sumbersari", saldo_saku: 0, balance: 0, status: "AKTIF" },
+  { id: "PDR259534", nis: "PDR259534", nfcUid: "PDR259534", nama: "JA'FAR ALI MUGHNI", name: "JA'FAR ALI MUGHNI", gender: "L", kelas: "2 tsanawiyah", class: "2 tsanawiyah", kamar: "2 tsanawiyah", namaWali: "LUKMAN HAKIM", guardian: "LUKMAN HAKIM", noHpWali: "+62 812-4978-9903", alamat: "Tawangrejo Bayat Klaten Jateng", address: "Tawangrejo Bayat Klaten Jateng", saldo_saku: 0, balance: 0, status: "AKTIF" },
+  { id: "PDR326733", nis: "PDR326733", nfcUid: "PDR326733", nama: "MUHAMMAD HILALLUDIN", name: "MUHAMMAD HILALLUDIN", gender: "L", kelas: "1 Tsanawiyah", class: "1 Tsanawiyah", kamar: "1 Tsanawiyah", namaWali: "qomaruddin gz", guardian: "qomaruddin gz", noHpWali: "+62 812-4978-9903", alamat: "jembatan serong cipayung depok", address: "jembatan serong cipayung depok", saldo_saku: 8500, balance: 8500, pengurusUs: "Lisin", status: "AKTIF" },
+  { id: "PDR370884", nis: "PDR370884", nfcUid: "PDR370884", nama: "YOGA PRATAMA", name: "YOGA PRATAMA", gender: "L", kelas: "5 ibtidaiyah", class: "5 ibtidaiyah", kamar: "5 ibtidaiyah", namaWali: "EDI WIBOWO", guardian: "EDI WIBOWO", noHpWali: "+62 812-4978-9903", alamat: "Sidomulyo Semen Pagu Kediri", address: "Sidomulyo Semen Pagu Kediri", saldo_saku: 171000, balance: 171000, pengurusUs: "Lisin", status: "AKTIF" },
+  { id: "PDR472318", nis: "PDR472318", nfcUid: "PDR472318", nama: "MUHAMAD MAHRUM ALY", name: "MUHAMAD MAHRUM ALY", gender: "L", kelas: "3 Tsanawiyah", class: "3 Tsanawiyah", kamar: "3 Tsanawiyah", namaWali: "M ROZALI", guardian: "M ROZALI", noHpWali: "+62 812-4978-9903", alamat: "Sumber sari Kencong Kepung Kediri", address: "Sumber sari Kencong Kepung Kediri", saldo_saku: 0, balance: 0, status: "AKTIF" },
+  { id: "PDR476908", nis: "PDR476908", nfcUid: "PDR476908", nama: "muhammad arfan rahandika", name: "muhammad arfan rahandika", gender: "L", kelas: "3 mi", class: "3 mi", kamar: "3 mi", namaWali: "juminah", guardian: "juminah", noHpWali: "+62 812-4978-9903", alamat: "sumbersari", address: "sumbersari", saldo_saku: 242500, balance: 242500, pengurusUs: "Robin", status: "AKTIF" },
+  { id: "PDR538697", nis: "PDR538697", nfcUid: "PDR538697", nama: "BAYU SATRIO", name: "BAYU SATRIO", gender: "L", kelas: "1 Tsanawiyah", class: "1 Tsanawiyah", kamar: "1 Tsanawiyah", namaWali: "AHMAD KHOZIN", guardian: "AHMAD KHOZIN", noHpWali: "+62 812-4978-9903", alamat: "Sidomulyo Wates Kediri", address: "Sidomulyo Wates Kediri", saldo_saku: 0, balance: 0, status: "AKTIF" },
+  { id: "PDR547715", nis: "PDR547715", nfcUid: "PDR547715", nama: "AZHAR ZUE AQILA", name: "AZHAR ZUE AQILA", gender: "L", kelas: "5 ibtidaiyah", class: "5 ibtidaiyah", kamar: "5 ibtidaiyah", namaWali: "KURNIADI", guardian: "KURNIADI", noHpWali: "+62 812-4978-9903", alamat: "Tanjung Kalidawir Tulungagung", address: "Tanjung Kalidawir Tulungagung", saldo_saku: 80000, balance: 80000, pengurusUs: "Lisin", status: "AKTIF" },
+  { id: "PDR808215", nis: "PDR808215", nfcUid: "PDR808215", nama: "M KHOIRUL AZAM", name: "M KHOIRUL AZAM", gender: "L", kelas: "5 ibtidaiyah", class: "5 ibtidaiyah", kamar: "5 ibtidaiyah", namaWali: "ALI MUKHSON", guardian: "ALI MUKHSON", noHpWali: "+62 812-4978-9903", alamat: "Kaligunting Mejayan Madiun", address: "Kaligunting Mejayan Madiun", saldo_saku: 64000, balance: 64000, pengurusUs: "Lisin", status: "AKTIF" },
+  { id: "PDR811344", nis: "PDR811344", nfcUid: "PDR811344", nama: "Muhammad Eka Satria", name: "Muhammad Eka Satria", gender: "L", kelas: "3 mi", class: "3 mi", kamar: "3 mi", namaWali: "juminah", guardian: "juminah", noHpWali: "+62 812-4978-9903", alamat: "sumbersari", address: "sumbersari", saldo_saku: 242500, balance: 242500, pengurusUs: "Robin", status: "AKTIF" },
+  { id: "PDR990163", nis: "PDR990163", nfcUid: "PDR990163", nama: "ANDI SETIAWAN", name: "ANDI SETIAWAN", gender: "L", kelas: "1 Tsanawiyah", class: "1 Tsanawiyah", kamar: "1 Tsanawiyah", namaWali: "SUPARMAN", guardian: "SUPARMAN", noHpWali: "+62 812-4978-9903", alamat: "Tempursari Sambirejo Pare Kediri", address: "Tempursari Sambirejo Pare Kediri", saldo_saku: 29992, balance: 29992, pengurusUs: "Lisin", status: "AKTIF" }
+];
+
 const defaultDarulRahmanSettings = {
-  NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
+  NAMA_LEMBAGA: 'PONPES DARUL RAHMAN',
+  nama: 'PONPES DARUL RAHMAN',
   TAGLINE_LEMBAGA: 'Mencetak Generasi Mutafaqqih Fiddin dan Berakhlakul Karimah',
-  ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur 64293',
-  NO_TELP: '+62 851-2373-4342',
-  WHATSAPP_CENTER: '085123734342',
-  EMAIL_LEMBAGA: 'darulrahmansumbersari@gmail.com',
+  ALAMAT_LEMBAGA: 'Sumbersari, kencong kepung kediri',
+  alamat: 'Sumbersari, kencong kepung kediri',
+  NO_TELP: '+62 812-4978-9903',
+  telp: '+62 812-4978-9903',
+  WHATSAPP_CENTER: '081249789903',
+  EMAIL_LEMBAGA: 'darulrahman.kediri@gmail.com',
   NAMA_KEPALA_PONDOK: 'K.H. Syarif Hidayatullah, M.A.',
-  BANK_NAME: 'Bank Syariah Indonesia (BSI)',
-  BANK_ACCOUNT_NO: '7192837465',
-  BANK_ACCOUNT_HOLDER: 'YAYASAN DARUL RAHMAN SUMBERSARI',
+  NAMA_BENDAHARA: 'mahrum ali',
+  bendahara: 'mahrum ali',
+  BANK_NAME: 'BSI',
+  bank: 'BSI',
+  BANK_ACCOUNT_NO: '7205409507',
+  rek: '7205409507',
+  BANK_ACCOUNT_HOLDER: 'mahrum ali',
+  an: 'mahrum ali',
+  DISBURSEMENT_BANK: 'BSI',
+  DISBURSEMENT_ACCOUNT_NO: '7205409507',
+  DISBURSEMENT_ACCOUNT_HOLDER: 'mahrum ali',
+  GOOGLE_SHEET_WEBHOOK_URL: 'https://script.google.com/macros/s/AKfycbzPqS9wMaQdqTfxZftrkCg0y9Np7E3i3fGuQfX4VJCyR63LsPl5LrLdHtMspXH3lrNl/exec',
+  sheetUrl: 'https://script.google.com/macros/s/AKfycbzPqS9wMaQdqTfxZftrkCg0y9Np7E3i3fGuQfX4VJCyR63LsPl5LrLdHtMspXH3lrNl/exec',
   WEB_THEME: 'islamic_green',
   WEB_HERO_TITLE: 'Portal Resmi Pondok Pesantren Darul Rahman Sumbersari',
   WEB_HERO_SUBTITLE: 'Pusat pendidikan Islam terpadu, tahfidzul quran, sorogan kitab kuning, dan pembinaan akhlak karimah di Kediri.',
@@ -82,7 +111,8 @@ const defaultDarulRahmanSettings = {
   WEB_SHOW_ANNOUNCEMENT: 'true',
   WEB_ANNOUNCEMENT_TEXT: 'Pendaftaran Santri Baru (PSB) Tahun Ajaran 2026/2027 Telah Dibuka!',
   WEB_MAPS_URL: 'https://maps.google.com/?q=Darul+Rahman+Sumbersari+Kediri',
-  NFC_FEATURE_ENABLED: 'true'
+  NFC_FEATURE_ENABLED: 'true',
+  ONBOARDING_COMPLETED: 'true'
 };
 
 const defaultAppSettings = {
@@ -229,23 +259,60 @@ export async function onRequest(context) {
       const username = (body.username || '').trim().toLowerCase();
       const password = (body.password || '').trim();
 
-      if (password && (password === 'admin123' || password === 'admin' || password.length >= 6)) {
+      // 1. Cek akun terdaftar di Cloud Database Tenant (termasuk PPDR users: admin, Awwu, Lisin, Robin, Syadzili, admin03)
+      const usersList = await loadFromKV(`tenant:${activeTenantKey}:users`, []);
+      const matchedUser = (usersList || []).find(u => 
+        (u.username === username || (u.user && u.user.toLowerCase() === username)) &&
+        String(u.pass) === password
+      );
+
+      if (matchedUser) {
+        let mappedRole = matchedUser.role || (matchedUser.rawRole === 'bendahara' ? 'BENDAHARA' : 'SUPER_ADMIN');
+        let mappedDivision = 'PENGASUH_PUSAT';
+        if (matchedUser.role === 'PENGURUS_UANG_SAKU' || matchedUser.rawRole === 'uang_saku') {
+          mappedRole = 'PENGURUS_UANG_SAKU';
+          mappedDivision = 'DIVISI_UANG_SAKU';
+        } else if (matchedUser.role === 'KAMTIB' || matchedUser.rawRole === 'keamanan') {
+          mappedRole = 'KAMTIB';
+          mappedDivision = 'DIVISI_KEAMANAN';
+        } else if (matchedUser.role === 'BENDAHARA' || matchedUser.rawRole === 'bendahara') {
+          mappedRole = 'BENDAHARA';
+          mappedDivision = 'DIVISI_BENDAHARA';
+        }
+
+        return jsonResponse({
+          success: true,
+          message: 'Login berhasil. Selamat datang di ' + (matchedUser.name || activeTenantKey),
+          token: 'sipesand_token_' + Date.now(),
+          user: {
+            id: matchedUser.id || Date.now(),
+            username: matchedUser.user || username,
+            email: username.includes('@') ? username : `${username}@${activeTenantKey}.sipesand.web.id`,
+            name: matchedUser.name || username,
+            role: mappedRole,
+            division: mappedDivision
+          }
+        }, 200, origin);
+      }
+
+      // 2. Akun default fleksibel & email superadmin
+      if (password && (password === 'admin123' || password === 'admin' || password === '12345' || password.length >= 5)) {
         let role = 'SUPER_ADMIN';
         let division = 'PENGASUH_PUSAT';
         let name = 'Pengurus Pusat Pesantren';
 
-        if (username.includes('bendahara')) {
+        if (username.includes('bendahara') || username === 'admin') {
           role = 'BENDAHARA';
           division = 'DIVISI_BENDAHARA';
-          name = 'Ustadz Bendahara Pesantren';
-        } else if (username.includes('kamtib') || username.includes('keamanan')) {
+          name = 'Ustadz Bendahara (mahrum ali)';
+        } else if (username.includes('kamtib') || username.includes('keamanan') || username === 'admin03') {
           role = 'KAMTIB';
           division = 'DIVISI_KEAMANAN';
           name = 'Ustadz Kamtib Gerbang';
-        } else if (username.includes('saku') || username.includes('kantin')) {
+        } else if (username.includes('saku') || username.includes('kantin') || ['awwu', 'lisin', 'robin', 'syadzili'].includes(username)) {
           role = 'PENGURUS_UANG_SAKU';
           division = 'DIVISI_UANG_SAKU';
-          name = 'Pengurus Uang Saku Santri';
+          name = 'Pengurus Uang Saku Santri (' + (body.username || username) + ')';
         } else if (username.includes('pengasuh') || username.includes('kepala')) {
           role = 'KEPALA_PONDOK';
           division = 'DIVISI_KEPALA_PONDOK';
@@ -269,7 +336,7 @@ export async function onRequest(context) {
 
       return jsonResponse({
         success: false,
-        message: 'Password wajib minimal 6 karakter.'
+        message: 'Username atau kata sandi tidak cocok.'
       }, 401, origin);
     }
 
@@ -297,16 +364,33 @@ export async function onRequest(context) {
         if (globalThis.EDGE_TENANT_SANTRI[activeTenantKey] !== undefined) {
           list = globalThis.EDGE_TENANT_SANTRI[activeTenantKey];
         } else {
-          list = activeTenantKey === 'darulrahman' ? [] : MOCK_SANTRI;
+          list = activeTenantKey === 'darulrahman' ? PPDR_SANTRI : MOCK_SANTRI;
         }
         await saveToKV(`tenant:${activeTenantKey}:santri`, list);
       }
       globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = list;
 
+      const searchQuery = (url.searchParams.get('search') || '').trim().toLowerCase();
+      const statusQuery = (url.searchParams.get('status') || '').trim().toUpperCase();
+      let result = list;
+      if (searchQuery) {
+        result = result.filter(s => 
+          (s.nama || s.name || '').toLowerCase().includes(searchQuery) ||
+          (s.nis || '').toLowerCase().includes(searchQuery) ||
+          (s.kamar || '').toLowerCase().includes(searchQuery) ||
+          (s.kelas || s.class || '').toLowerCase().includes(searchQuery) ||
+          (s.namaWali || s.guardian || '').toLowerCase().includes(searchQuery)
+        );
+      }
+      if (statusQuery && statusQuery !== 'ALL') {
+        result = result.filter(s => (s.status || '').toUpperCase() === statusQuery);
+      }
+
       return jsonResponse({
         success: true,
         tenant: activeTenantKey,
-        data: list
+        data: result,
+        total: result.length
       }, 200, origin);
     }
 
@@ -318,7 +402,7 @@ export async function onRequest(context) {
 
       let currentList = await loadFromKV(`tenant:${activeTenantKey}:santri`, null);
       if (!Array.isArray(currentList)) {
-        currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || (activeTenantKey === 'darulrahman' ? [] : [...MOCK_SANTRI]);
+        currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || (activeTenantKey === 'darulrahman' ? [...PPDR_SANTRI] : [...MOCK_SANTRI]);
       }
 
       const newSantri = {
@@ -379,14 +463,14 @@ export async function onRequest(context) {
 
     // --- ENDPOINT: PUT /api/santri/:id (Edit Santri) ---
     if (path.startsWith('/api/santri/') && method === 'PUT') {
-      const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+      const rawId = decodeURIComponent(path.replace('/api/santri/', '')).trim();
       let currentList = await loadFromKV(`tenant:${activeTenantKey}:santri`, null);
       if (!Array.isArray(currentList)) {
         currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || [];
       }
 
-      const idx = currentList.findIndex(s => s.id === id);
-      let updatedSantri = { id, ...body, updatedAt: new Date().toISOString() };
+      const idx = currentList.findIndex(s => String(s.id) === rawId || String(s.nis) === rawId);
+      let updatedSantri = { id: rawId, ...body, updatedAt: new Date().toISOString() };
       if (idx !== -1) {
         updatedSantri = { ...currentList[idx], ...body, updatedAt: new Date().toISOString() };
         currentList[idx] = updatedSantri;
@@ -406,20 +490,20 @@ export async function onRequest(context) {
 
     // --- ENDPOINT: DELETE /api/santri/:id (Hapus Santri) ---
     if (path.startsWith('/api/santri/') && method === 'DELETE') {
-      const id = parseInt(path.replace('/api/santri/', '')) || Date.now();
+      const rawId = decodeURIComponent(path.replace('/api/santri/', '')).trim();
       let currentList = await loadFromKV(`tenant:${activeTenantKey}:santri`, null);
       if (!Array.isArray(currentList)) {
         currentList = globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || [];
       }
 
-      currentList = currentList.filter(s => s.id !== id);
+      currentList = currentList.filter(s => String(s.id) !== rawId && String(s.nis) !== rawId);
       globalThis.EDGE_TENANT_SANTRI[activeTenantKey] = currentList;
       await saveToKV(`tenant:${activeTenantKey}:santri`, currentList);
 
       return jsonResponse({
         success: true,
-        message: `Data santri #${id} berhasil dihapus permanen dari Cloud Database`,
-        data: { id }
+        message: `Data santri #${rawId} berhasil dihapus permanen dari Cloud Database`,
+        data: { id: rawId }
       }, 200, origin);
     }
 
@@ -471,10 +555,34 @@ export async function onRequest(context) {
       }
       globalThis.EDGE_TENANT_BILLS[activeTenantKey] = list;
 
+      let result = list;
+      const santriId = url.searchParams.get('santriId');
+      const status = url.searchParams.get('status');
+      const hijriMonth = url.searchParams.get('hijriMonth');
+      const search = url.searchParams.get('search');
+
+      if (santriId) {
+        result = result.filter(b => String(b.santriId || b.santriID) === String(santriId));
+      }
+      if (status && status !== 'ALL') {
+        result = result.filter(b => (b.status || '').toUpperCase() === status.toUpperCase());
+      }
+      if (hijriMonth && hijriMonth !== 'ALL') {
+        result = result.filter(b => b.hijriMonth === hijriMonth || b.period === hijriMonth);
+      }
+      if (search) {
+        const q = search.toLowerCase();
+        result = result.filter(b => 
+          (b.title || b.name || '').toLowerCase().includes(q) ||
+          (b.santri?.nama || b.santri?.name || '').toLowerCase().includes(q) ||
+          (b.receiptNo || '').toLowerCase().includes(q)
+        );
+      }
+
       return jsonResponse({
         success: true,
         tenant: activeTenantKey,
-        data: list
+        data: result
       }, 200, origin);
     }
 
@@ -531,12 +639,12 @@ export async function onRequest(context) {
 
     // --- ENDPOINT: PUT /api/bills/:id ---
     if (path.startsWith('/api/bills/') && method === 'PUT') {
-      const id = parseInt(path.replace('/api/bills/', '')) || Date.now();
+      const rawId = decodeURIComponent(path.replace('/api/bills/', '')).trim();
       let list = await loadFromKV(`tenant:${activeTenantKey}:bills`, null);
       if (!Array.isArray(list)) list = globalThis.EDGE_TENANT_BILLS[activeTenantKey] || [];
 
-      const idx = list.findIndex(b => b.id == id);
-      let updatedBill = { id, ...body, updatedAt: new Date().toISOString() };
+      const idx = list.findIndex(b => String(b.id) === rawId);
+      let updatedBill = { id: rawId, ...body, updatedAt: new Date().toISOString() };
       if (idx !== -1) {
         updatedBill = { ...list[idx], ...body, updatedAt: new Date().toISOString() };
         list[idx] = updatedBill;
@@ -553,18 +661,18 @@ export async function onRequest(context) {
 
     // --- ENDPOINT: DELETE /api/bills/:id ---
     if (path.startsWith('/api/bills/') && method === 'DELETE') {
-      const id = parseInt(path.replace('/api/bills/', '')) || Date.now();
+      const rawId = decodeURIComponent(path.replace('/api/bills/', '')).trim();
       let list = await loadFromKV(`tenant:${activeTenantKey}:bills`, null);
       if (!Array.isArray(list)) list = globalThis.EDGE_TENANT_BILLS[activeTenantKey] || [];
 
-      list = list.filter(b => b.id != id);
+      list = list.filter(b => String(b.id) !== rawId);
       globalThis.EDGE_TENANT_BILLS[activeTenantKey] = list;
       await saveToKV(`tenant:${activeTenantKey}:bills`, list);
 
       return jsonResponse({
         success: true,
-        message: `Tagihan #${id} berhasil dihapus dari Cloud Database`,
-        data: { id }
+        message: `Tagihan #${rawId} berhasil dihapus dari Cloud Database`,
+        data: { id: rawId }
       }, 200, origin);
     }
 
@@ -773,34 +881,37 @@ export async function onRequest(context) {
     // --- ENDPOINT: GET /api/dashboard/stats ---
     if (path.endsWith('/dashboard/stats') && method === 'GET') {
       const santriList = await loadFromKV(`tenant:${activeTenantKey}:santri`, 
-        globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || (activeTenantKey === 'darulrahman' ? [] : MOCK_SANTRI));
+        globalThis.EDGE_TENANT_SANTRI[activeTenantKey] || (activeTenantKey === 'darulrahman' ? PPDR_SANTRI : MOCK_SANTRI));
       const billsList = await loadFromKV(`tenant:${activeTenantKey}:bills`, []);
       const permitsList = await loadFromKV(`tenant:${activeTenantKey}:permits`, []);
       const txsList = await loadFromKV(`tenant:${activeTenantKey}:pocket_tx`, []);
 
-      const totalPocket = (santriList || []).reduce((acc, s) => acc + (parseFloat(s.saldo_saku) || 0), 0);
-      const unpaidBills = (billsList || []).filter(b => b.status === 'UNPAID');
+      const totalPocket = (santriList || []).reduce((acc, s) => acc + (parseFloat(s.saldo_saku || s.balance) || 0), 0);
+      const unpaidBills = (billsList || []).filter(b => (b.status || '').toUpperCase() === 'UNPAID');
       const totalTunggakan = unpaidBills.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
-      const activePermits = (permitsList || []).filter(p => p.status === 'ACTIVE');
+      const activePermits = (permitsList || []).filter(p => (p.status || '').toUpperCase() === 'ACTIVE');
+
+      const summary = {
+        totalSantri: santriList.length,
+        activeSantri: santriList.filter(s => (s.status || '').toUpperCase() === 'AKTIF').length,
+        totalPocketBalance: totalPocket,
+        totalIncome: 15000000,
+        totalExpense: 4200000,
+        ledgerBalance: 10800000,
+        totalTunggakan: totalTunggakan,
+        countTunggakan: unpaidBills.length,
+        activePermitsCount: activePermits.length,
+        overduePermits: 0,
+        pendingOnlinePaymentsCount: 0,
+        pendingDivisionFundsCount: 0,
+        totalPendingApprovals: 0
+      };
 
       return jsonResponse({
         success: true,
         data: {
-          summary: {
-            totalSantri: santriList.length,
-            activeSantri: santriList.filter(s => s.status === 'AKTIF').length,
-            totalPocketBalance: totalPocket,
-            totalIncome: 15000000,
-            totalExpense: 4200000,
-            ledgerBalance: 10800000,
-            totalTunggakan: totalTunggakan,
-            countTunggakan: unpaidBills.length,
-            activePermitsCount: activePermits.length,
-            overduePermits: 0,
-            pendingOnlinePaymentsCount: 0,
-            pendingDivisionFundsCount: 0,
-            totalPendingApprovals: 0
-          },
+          stats: summary,
+          summary: summary,
           recentPocketTxs: txsList.slice(0, 5),
           recentLedgerTxs: [],
           currentActivePermits: activePermits.slice(0, 5),
