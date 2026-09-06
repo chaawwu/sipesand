@@ -27,6 +27,7 @@ import {
   signOut, 
   onAuthStateChanged 
 } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 // Decode API Key saat runtime untuk mencegah pemblokiran Secret Scanning GitHub
 const _fApiKey = typeof atob !== 'undefined' 
@@ -46,6 +47,7 @@ export const firebaseConfig = {
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Standar Nama Sub-Koleksi Firestore per Tenant
 export const FIRESTORE_COLLECTIONS = {
@@ -59,7 +61,9 @@ export const FIRESTORE_COLLECTIONS = {
   SETTINGS: 'settings',
   ACCOUNTS: 'users',
   TRANSACTIONS: 'txSantri',
-  APPROVALS: 'pengajuan'
+  APPROVALS: 'pengajuan',
+  VIOLATIONS: 'violations',
+  MITRA: 'mitra'
 };
 
 /**

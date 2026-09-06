@@ -269,6 +269,157 @@ const SEED_POCKET_TX = [
   }
 ];
 
+export const SEED_PERMITS = [
+  {
+    id: 1,
+    santriId: "PDR121365",
+    santriNama: "AHMAD SIFA'I ROMADHON",
+    type: "HARIAN",
+    reason: "Beli Kitab & Perlengkapan Mandi",
+    destination: "Pasar Pare Kediri",
+    departureTime: "2026-03-05T08:00",
+    returnTime: "2026-03-05T12:00",
+    status: "APPROVED",
+    approvedBy: "Divisi Keamanan (Kamtib)",
+    notes: "Sudah izin wali",
+    createdAt: "2026-03-05T07:30:00.000Z"
+  },
+  {
+    id: 2,
+    santriId: "PDR186495",
+    santriNama: "AHMAD SHOLIHAN",
+    type: "PULANG",
+    reason: "Acara Pernikahan Kakak Kandung",
+    destination: "Lampung Tengah",
+    departureTime: "2026-03-06T09:00",
+    returnTime: "2026-03-10T17:00",
+    status: "ACTIVE",
+    approvedBy: "Kepala Pondok",
+    notes: "Membawa surat pengantar",
+    createdAt: "2026-03-06T08:00:00.000Z"
+  }
+];
+
+export const SEED_LEDGER = [
+  {
+    id: 1,
+    type: "INCOME",
+    category: "SPP",
+    amount: 4500000,
+    date: "2026-03-01",
+    description: "Pembayaran Syahriyah Santri Gelombang 1",
+    reference: "KW-2026-0301",
+    createdAt: "2026-03-01T10:00:00.000Z"
+  },
+  {
+    id: 2,
+    type: "EXPENSE",
+    category: "Konsumsi Dapur Santri",
+    amount: 1850000,
+    date: "2026-03-02",
+    description: "Belanja Beras & Sayur Dapur Umum Pesantren",
+    reference: "NOTA-DAPUR-01",
+    createdAt: "2026-03-02T11:00:00.000Z"
+  }
+];
+
+export const SEED_ACADEMICS = [
+  {
+    id: 1,
+    santriId: "PDR121365",
+    santriNama: "AHMAD SIFA'I ROMADHON",
+    recordType: "MUHAFADZOH_QURAN",
+    title: "Setoran Juz 30 - An-Naba s/d An-Nas",
+    score: 95,
+    grade: "A (Mumtaz)",
+    evaluator: "Ustadz Pembina Tahfidz",
+    notes: "Tajwid & fashohah sangat baik",
+    date: "2026-03-02",
+    createdAt: "2026-03-02T09:00:00.000Z"
+  },
+  {
+    id: 2,
+    santriId: "PDR186495",
+    santriNama: "AHMAD SHOLIHAN",
+    recordType: "SETORAN_KITAB",
+    title: "Matan Al-Jurumiyyah Bab Kalam s/d I'rab",
+    score: 90,
+    grade: "A (Mumtaz)",
+    evaluator: "Ustadz Sorogan",
+    notes: "Hafal lancar beserta artinya",
+    date: "2026-03-03",
+    createdAt: "2026-03-03T14:00:00.000Z"
+  }
+];
+
+export const SEED_VIOLATIONS = [
+  {
+    id: 1,
+    santriId: "PDR223687",
+    santriNama: "Abdul suhud",
+    violation: "Terlambat Shalat Berjamaah Subuh",
+    category: "RINGAN",
+    takziran: "Membaca Al-Qur'an 1 Juz di Serambi Masjid",
+    officer: "Divisi Keamanan Kamtib",
+    status: "COMPLETED",
+    createdAt: "2026-03-04T05:30:00.000Z"
+  }
+];
+
+export const SEED_APPROVALS = [
+  {
+    id: 1,
+    division: "DIVISI_KEAMANAN",
+    title: "Pengadaan Rompi & Senter Petugas Kamtib Malam",
+    amount: 450000,
+    description: "Untuk ronda malam asrama & pos gerbang utama",
+    requestedBy: "Ustadz Kamtib",
+    status: "APPROVED",
+    createdAt: "2026-03-03T13:00:00.000Z"
+  }
+];
+
+export const SEED_USERS = [
+  {
+    id: "admin",
+    username: "admin",
+    name: "Super Administrator Pesantren",
+    role: "SUPER_ADMIN",
+    division: "PENGASUHAN_PUSAT",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "bendahara",
+    username: "bendahara",
+    name: "Ustadz Bendahara Yayasan",
+    role: "BENDAHARA",
+    division: "KEUANGAN",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "awwu",
+    username: "Awwu",
+    name: "Pengurus Uang Saku (Awwu)",
+    role: "PENGURUS_SAKU",
+    division: "KASIR_KANTIN",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "kamtib",
+    username: "admin03",
+    name: "Divisi Keamanan (admin03)",
+    role: "KEAMANAN",
+    division: "POS_GERBANG",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  }
+];
+
+export const SEED_MASTER_BILLS = [
+  { id: 1, name: 'Syahriyah Bulanan', category: 'SYAHRIYAH', amount: 300000, description: 'Uang makan & SPP bulanan' },
+  { id: 2, name: 'Daftar Ulang Tahunan', category: 'DAFTAR_ULANG', amount: 1500000, description: 'Biaya tahun ajaran baru' },
+  { id: 3, name: 'Uang Kitab & Sorogan', category: 'KITAB', amount: 250000, description: 'Pengadaan kitab kuning semester' },
+];
+
 // Helper Storage Firestore Multi-Tenant
 function getStorageKey(collectionName, tenantId = getActiveTenantId()) {
   return `sipesand_firestore_v2_${tenantId}_${collectionName}`;
@@ -287,11 +438,18 @@ export function getCollectionData(collectionName, tenantId = getActiveTenantId()
     console.error(`[FirestoreService] Error reading ${collectionName}:`, e);
   }
 
-  // Khusus tenant PPDR (darulrahman): Gunakan data riil dari Firestore webppdrv3
+  // Khusus tenant PPDR (darulrahman): Gunakan data riil
   if (tenantId === 'darulrahman') {
     let initial = [];
     if (collectionName === FIRESTORE_COLLECTIONS.SANTRI) initial = [...SEED_DARULRAHMAN_SANTRI];
     else if (collectionName === FIRESTORE_COLLECTIONS.SETTINGS) initial = { ...SEED_DARULRAHMAN_SETTINGS };
+    else if (collectionName === FIRESTORE_COLLECTIONS.PERMITS) initial = [...SEED_PERMITS];
+    else if (collectionName === FIRESTORE_COLLECTIONS.LEDGER) initial = [...SEED_LEDGER];
+    else if (collectionName === FIRESTORE_COLLECTIONS.ACADEMICS) initial = [...SEED_ACADEMICS];
+    else if (collectionName === FIRESTORE_COLLECTIONS.VIOLATIONS) initial = [...SEED_VIOLATIONS];
+    else if (collectionName === FIRESTORE_COLLECTIONS.APPROVALS) initial = [...SEED_APPROVALS];
+    else if (collectionName === FIRESTORE_COLLECTIONS.ACCOUNTS) initial = [...SEED_USERS];
+    else if (collectionName === FIRESTORE_COLLECTIONS.BILLS_MASTER) initial = [...SEED_MASTER_BILLS];
     
     if (initial.length > 0 && typeof window !== 'undefined') {
       try {
@@ -301,11 +459,18 @@ export function getCollectionData(collectionName, tenantId = getActiveTenantId()
     return initial;
   }
 
-  // Khusus demo gateway master (tenant 'app'): sediakan seed awal
+  // Khusus demo gateway master (tenant 'app') & tenant lainnya: sediakan seed awal
   let initial = [];
   if (collectionName === FIRESTORE_COLLECTIONS.SANTRI) initial = [...SEED_SANTRI];
   else if (collectionName === FIRESTORE_COLLECTIONS.BILLS) initial = [...SEED_BILLS];
   else if (collectionName === FIRESTORE_COLLECTIONS.POCKET_TX) initial = [...SEED_POCKET_TX];
+  else if (collectionName === FIRESTORE_COLLECTIONS.PERMITS) initial = [...SEED_PERMITS];
+  else if (collectionName === FIRESTORE_COLLECTIONS.LEDGER) initial = [...SEED_LEDGER];
+  else if (collectionName === FIRESTORE_COLLECTIONS.ACADEMICS) initial = [...SEED_ACADEMICS];
+  else if (collectionName === FIRESTORE_COLLECTIONS.VIOLATIONS) initial = [...SEED_VIOLATIONS];
+  else if (collectionName === FIRESTORE_COLLECTIONS.APPROVALS) initial = [...SEED_APPROVALS];
+  else if (collectionName === FIRESTORE_COLLECTIONS.ACCOUNTS) initial = [...SEED_USERS];
+  else if (collectionName === FIRESTORE_COLLECTIONS.BILLS_MASTER) initial = [...SEED_MASTER_BILLS];
   
   if (initial.length > 0 && typeof window !== 'undefined') {
     try {
@@ -395,7 +560,14 @@ export function initFirestoreRealtimeSync(tenantId = getActiveTenantId()) {
   const collectionsToListen = [
     FIRESTORE_COLLECTIONS.SANTRI,
     FIRESTORE_COLLECTIONS.BILLS,
+    FIRESTORE_COLLECTIONS.BILLS_MASTER,
     FIRESTORE_COLLECTIONS.POCKET_TX,
+    FIRESTORE_COLLECTIONS.PERMITS,
+    FIRESTORE_COLLECTIONS.LEDGER,
+    FIRESTORE_COLLECTIONS.ACADEMICS,
+    FIRESTORE_COLLECTIONS.VIOLATIONS,
+    FIRESTORE_COLLECTIONS.APPROVALS,
+    FIRESTORE_COLLECTIONS.ACCOUNTS,
   ];
 
   collectionsToListen.forEach((colName) => {
@@ -862,4 +1034,568 @@ export function firestoreSaveSettings(newSettings, tenantId = getActiveTenantId(
     console.error('[FirestoreService] Error saving settings:', e);
     return newSettings;
   }
+}
+
+// =============================================================================
+// POCKET TRANSACTIONS FETCH HELPER
+// =============================================================================
+
+export function firestoreGetPocketTxs(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.POCKET_TX, tenantId);
+  const { santriId, type } = params;
+  if (santriId) list = list.filter(t => String(t.santriId) === String(santriId));
+  if (type && type !== 'ALL') list = list.filter(t => t.type === type);
+  return list;
+}
+
+// =============================================================================
+// TAGIHAN MASSAL & MASTER BILLS (TARIF)
+// =============================================================================
+
+export function firestoreGenerateMassBills(data = {}, tenantId = getActiveTenantId()) {
+  const santriList = getCollectionData(FIRESTORE_COLLECTIONS.SANTRI, tenantId);
+  const activeSantri = santriList.filter(s => s.status === 'AKTIF');
+  const createdBills = [];
+
+  activeSantri.forEach(s => {
+    const bill = firestoreCreateBill({
+      santriId: s.id,
+      title: data.title || 'Syahriyah Bulanan',
+      category: data.category || 'SYAHRIYAH',
+      amount: data.amount || 300000,
+      hijriMonth: data.hijriMonth || 'Ramadhan',
+      hijriYear: data.hijriYear || '1447 H',
+      status: 'UNPAID'
+    }, tenantId);
+    createdBills.push(bill);
+  });
+
+  return createdBills;
+}
+
+export function firestoreGetMasterBills(tenantId = getActiveTenantId()) {
+  return getCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, tenantId);
+}
+
+export function firestoreCreateMasterBill(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, tenantId);
+  const newMaster = {
+    id: Date.now(),
+    name: data.name || 'Tagihan Baru',
+    category: data.category || 'SYAHRIYAH',
+    amount: parseFloat(data.amount) || 0,
+    description: data.description || '',
+    createdAt: new Date().toISOString()
+  };
+  const updated = [newMaster, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.BILLS_MASTER, newMaster.id, newMaster, tenantId);
+  return newMaster;
+}
+
+export function firestoreUpdateMasterBill(id, updates, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, tenantId);
+  const targetId = parseInt(id) || id;
+  const index = list.findIndex(b => b.id === targetId);
+  if (index === -1) throw new Error(`Master tagihan #${id} tidak ditemukan.`);
+
+  const updated = { ...list[index], ...updates, updatedAt: new Date().toISOString() };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.BILLS_MASTER, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreDeleteMasterBill(id, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, tenantId);
+  const targetId = parseInt(id) || id;
+  const filtered = list.filter(b => b.id !== targetId);
+  setCollectionData(FIRESTORE_COLLECTIONS.BILLS_MASTER, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.BILLS_MASTER, targetId, tenantId);
+  return { success: true, message: `Master tagihan #${id} berhasil dihapus.` };
+}
+
+// =============================================================================
+// PERIZINAN SANTRI & POS KEAMANAN GERBANG (KTSD SMART NFC)
+// =============================================================================
+
+export function firestoreGetPermits(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.PERMITS, tenantId);
+  const { status, search } = params;
+  if (status && status !== 'ALL') {
+    list = list.filter(p => p.status === status);
+  }
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(p => 
+      (p.santriNama || '').toLowerCase().includes(q) ||
+      (p.destination || '').toLowerCase().includes(q) ||
+      (p.reason || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+export function firestoreCreatePermit(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.PERMITS, tenantId);
+  const santriList = getCollectionData(FIRESTORE_COLLECTIONS.SANTRI, tenantId);
+  const santri = santriList.find(s => String(s.id) === String(data.santriId) || s.nis === data.santriId);
+
+  const newPermit = {
+    id: Date.now(),
+    santriId: data.santriId,
+    santriNama: santri?.nama || data.santriNama || 'Santri',
+    type: data.type || 'HARIAN',
+    reason: data.reason || '',
+    destination: data.destination || '',
+    departureTime: data.departureTime || new Date().toISOString().slice(0, 16),
+    returnTime: data.returnTime || new Date(Date.now() + 4 * 3600 * 1000).toISOString().slice(0, 16),
+    approvedBy: data.approvedBy || 'Divisi Keamanan (Kamtib)',
+    notes: data.notes || '',
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString()
+  };
+
+  const updated = [newPermit, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.PERMITS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.PERMITS, newPermit.id, newPermit, tenantId);
+  return newPermit;
+}
+
+export function firestoreUpdatePermitStatus(id, status, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.PERMITS, tenantId);
+  const targetId = parseInt(id) || id;
+  const index = list.findIndex(p => p.id === targetId);
+  if (index === -1) throw new Error(`Izin #${id} tidak ditemukan.`);
+
+  const updated = {
+    ...list[index],
+    status,
+    actualReturnTime: status === 'RETURNED' ? new Date().toISOString() : list[index].actualReturnTime,
+    updatedAt: new Date().toISOString()
+  };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.PERMITS, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.PERMITS, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreCheckInByNfc(data, tenantId = getActiveTenantId()) {
+  const uid = typeof data === 'string' ? data : data?.nfcUid || data?.uid;
+  const santriList = getCollectionData(FIRESTORE_COLLECTIONS.SANTRI, tenantId);
+  const santri = santriList.find(s => s.nfcUid === uid || String(s.nis) === String(uid));
+
+  if (!santri) {
+    throw new Error(`Kartu NFC (${uid}) tidak terdaftar.`);
+  }
+
+  const permits = getCollectionData(FIRESTORE_COLLECTIONS.PERMITS, tenantId);
+  const activePermit = permits.find(p => (String(p.santriId) === String(santri.id) || p.santriNama === santri.nama) && p.status === 'ACTIVE');
+
+  if (activePermit) {
+    firestoreUpdatePermitStatus(activePermit.id, 'RETURNED', tenantId);
+    return {
+      success: true,
+      action: 'CHECK_IN_RETURN',
+      message: `Santri ${santri.nama} berhasil Check-In kembali ke pesantren.`,
+      santri,
+      permit: activePermit
+    };
+  }
+
+  return {
+    success: true,
+    action: 'NFC_VERIFIED',
+    message: `Santri ${santri.nama} (Kelas: ${santri.kelas}) terverifikasi di Pos Gerbang.`,
+    santri
+  };
+}
+
+export function firestoreCheckSantriOverdue(tenantId = getActiveTenantId()) {
+  const permits = getCollectionData(FIRESTORE_COLLECTIONS.PERMITS, tenantId);
+  const now = new Date().getTime();
+  return permits.filter(p => {
+    if (p.status !== 'ACTIVE') return false;
+    const deadline = new Date(p.returnTime).getTime();
+    return deadline < now;
+  });
+}
+
+// =============================================================================
+// BUKU KAS UMUM (GENERAL LEDGER)
+// =============================================================================
+
+export function firestoreGetLedgerEntries(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.LEDGER, tenantId);
+  const { type, category, search } = params;
+  if (type && type !== 'ALL') list = list.filter(e => e.type === type);
+  if (category && category !== 'ALL') list = list.filter(e => e.category === category);
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(e => 
+      (e.description || '').toLowerCase().includes(q) ||
+      (e.reference || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+export function firestoreGetLedgerSummary(tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.LEDGER, tenantId);
+  const totalIncome = list.filter(e => e.type === 'INCOME').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const totalExpense = list.filter(e => e.type === 'EXPENSE').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  return {
+    totalIncome,
+    totalExpense,
+    netBalance: totalIncome - totalExpense,
+    totalEntries: list.length
+  };
+}
+
+export function firestoreCreateLedgerEntry(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.LEDGER, tenantId);
+  const newEntry = {
+    id: Date.now(),
+    type: data.type || 'INCOME',
+    category: data.category || 'Lain-lain',
+    amount: parseFloat(data.amount) || 0,
+    date: data.date || new Date().toISOString().slice(0, 10),
+    description: data.description || '',
+    reference: data.reference || `REF-${Date.now()}`,
+    createdAt: new Date().toISOString()
+  };
+  const updated = [newEntry, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.LEDGER, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.LEDGER, newEntry.id, newEntry, tenantId);
+  return newEntry;
+}
+
+export function firestoreDeleteLedgerEntry(id, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.LEDGER, tenantId);
+  const targetId = parseInt(id) || id;
+  const filtered = list.filter(e => e.id !== targetId);
+  setCollectionData(FIRESTORE_COLLECTIONS.LEDGER, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.LEDGER, targetId, tenantId);
+  return { success: true, message: `Transaksi kas #${id} berhasil dihapus.` };
+}
+
+// =============================================================================
+// PENDIDIKAN & MUHAFADZOH TAHFIDZ
+// =============================================================================
+
+export function firestoreGetAcademicRecords(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, tenantId);
+  const { santriId, recordType, search } = params;
+  if (santriId) list = list.filter(r => String(r.santriId) === String(santriId));
+  if (recordType && recordType !== 'ALL') list = list.filter(r => r.recordType === recordType);
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(r => 
+      (r.santriNama || '').toLowerCase().includes(q) ||
+      (r.title || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+export function firestoreCreateAcademicRecord(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, tenantId);
+  const santriList = getCollectionData(FIRESTORE_COLLECTIONS.SANTRI, tenantId);
+  const santri = santriList.find(s => String(s.id) === String(data.santriId) || s.nis === data.santriId);
+
+  const newRecord = {
+    id: Date.now(),
+    santriId: data.santriId,
+    santriNama: santri?.nama || data.santriNama || 'Santri',
+    recordType: data.recordType || 'MUHAFADZOH_QURAN',
+    title: data.title || '',
+    score: parseFloat(data.score) || 0,
+    grade: data.grade || 'A',
+    evaluator: data.evaluator || 'Ustadz Pembina',
+    notes: data.notes || '',
+    date: data.date || new Date().toISOString().slice(0, 10),
+    createdAt: new Date().toISOString()
+  };
+
+  const updated = [newRecord, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.ACADEMICS, newRecord.id, newRecord, tenantId);
+  return newRecord;
+}
+
+export function firestoreUpdateAcademicRecord(id, updates, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, tenantId);
+  const targetId = parseInt(id) || id;
+  const index = list.findIndex(r => r.id === targetId);
+  if (index === -1) throw new Error(`Catatan akademik #${id} tidak ditemukan.`);
+
+  const updated = { ...list[index], ...updates, updatedAt: new Date().toISOString() };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.ACADEMICS, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreDeleteAcademicRecord(id, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, tenantId);
+  const targetId = parseInt(id) || id;
+  const filtered = list.filter(r => r.id !== targetId);
+  setCollectionData(FIRESTORE_COLLECTIONS.ACADEMICS, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.ACADEMICS, targetId, tenantId);
+  return { success: true, message: `Catatan akademik #${id} berhasil dihapus.` };
+}
+
+// =============================================================================
+// PELANGGARAN & TAKZIRAN KAMTIB
+// =============================================================================
+
+export function firestoreGetViolations(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, tenantId);
+  const { santriId, category, search } = params;
+  if (santriId) list = list.filter(v => String(v.santriId) === String(santriId));
+  if (category && category !== 'ALL') list = list.filter(v => v.category === category);
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter(v => 
+      (v.santriNama || '').toLowerCase().includes(q) ||
+      (v.violation || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+export function firestoreCreateViolation(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, tenantId);
+  const santriList = getCollectionData(FIRESTORE_COLLECTIONS.SANTRI, tenantId);
+  const santri = santriList.find(s => String(s.id) === String(data.santriId) || s.nis === data.santriId);
+
+  const newViolation = {
+    id: Date.now(),
+    santriId: data.santriId,
+    santriNama: santri?.nama || data.santriNama || 'Santri',
+    violation: data.violation || '',
+    category: data.category || 'RINGAN',
+    takziran: data.takziran || '',
+    officer: data.officer || 'Divisi Keamanan Kamtib',
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString()
+  };
+
+  const updated = [newViolation, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.VIOLATIONS, newViolation.id, newViolation, tenantId);
+  return newViolation;
+}
+
+export function firestoreUpdateViolationStatus(id, status, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, tenantId);
+  const targetId = parseInt(id) || id;
+  const index = list.findIndex(v => v.id === targetId);
+  if (index === -1) throw new Error(`Pelanggaran #${id} tidak ditemukan.`);
+
+  const updated = {
+    ...list[index],
+    status,
+    completedAt: status === 'COMPLETED' ? new Date().toISOString() : list[index].completedAt,
+    updatedAt: new Date().toISOString()
+  };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.VIOLATIONS, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreDeleteViolation(id, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, tenantId);
+  const targetId = parseInt(id) || id;
+  const filtered = list.filter(v => v.id !== targetId);
+  setCollectionData(FIRESTORE_COLLECTIONS.VIOLATIONS, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.VIOLATIONS, targetId, tenantId);
+  return { success: true, message: `Data pelanggaran #${id} berhasil dihapus.` };
+}
+
+// =============================================================================
+// PENGAJUAN DANA DIVISI & APPROVAL PEMBAYARAN ONLINE
+// =============================================================================
+
+export function firestoreGetDivisionFunds(params = {}, tenantId = getActiveTenantId()) {
+  let list = getCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, tenantId);
+  const { division, status } = params;
+  if (division && division !== 'ALL') list = list.filter(f => f.division === division);
+  if (status && status !== 'ALL') list = list.filter(f => f.status === status);
+  return list;
+}
+
+export function firestoreCreateDivisionFund(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, tenantId);
+  const newFund = {
+    id: Date.now(),
+    division: data.division || 'DIVISI_KEAMANAN',
+    title: data.title || 'Pengajuan Operasional',
+    amount: parseFloat(data.amount) || 0,
+    description: data.description || '',
+    requestedBy: data.requestedBy || 'Pengurus Divisi',
+    status: 'PENDING',
+    createdAt: new Date().toISOString()
+  };
+  const updated = [newFund, ...list];
+  setCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.APPROVALS, newFund.id, newFund, tenantId);
+  return newFund;
+}
+
+export function firestoreUpdateDivisionFundStatus(id, statusData, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, tenantId);
+  const targetId = parseInt(id) || id;
+  const index = list.findIndex(f => f.id === targetId);
+  if (index === -1) throw new Error(`Pengajuan dana #${id} tidak ditemukan.`);
+
+  const status = typeof statusData === 'string' ? statusData : statusData?.status || 'APPROVED';
+  const updated = {
+    ...list[index],
+    status,
+    approvedAt: new Date().toISOString(),
+    ...(typeof statusData === 'object' ? statusData : {})
+  };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.APPROVALS, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.APPROVALS, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreGetPendingOnlinePayments(params = {}, tenantId = getActiveTenantId()) {
+  const bills = getCollectionData(FIRESTORE_COLLECTIONS.BILLS, tenantId);
+  return bills.filter(b => b.status === 'PENDING_VERIFICATION' || b.paymentProof);
+}
+
+export function firestoreVerifyBillPayment(id, data = {}, tenantId = getActiveTenantId()) {
+  return firestorePayBill(id, {
+    paymentMethod: 'TRANSFER_ONLINE',
+    receiptNo: data.receiptNo,
+    payerName: data.payerName
+  }, tenantId);
+}
+
+// =============================================================================
+// AKUN PENGGUNA & MULTI-DIVISI (USERS)
+// =============================================================================
+
+export function firestoreGetUserAccounts(tenantId = getActiveTenantId()) {
+  return getCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, tenantId);
+}
+
+export function firestoreCreateUserAccount(data, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, tenantId);
+  const newAccount = {
+    id: data.username ? data.username.toLowerCase().trim() : String(Date.now()),
+    username: data.username,
+    name: data.name || data.username,
+    role: data.role || 'PENGURUS_SAKU',
+    division: data.division || 'KASIR_KANTIN',
+    password: data.password || '12345',
+    createdAt: new Date().toISOString()
+  };
+  const updated = [newAccount, ...list.filter(u => u.id !== newAccount.id)];
+  setCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, updated, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.ACCOUNTS, newAccount.id, newAccount, tenantId);
+  return newAccount;
+}
+
+export function firestoreUpdateUserAccount(id, updates, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, tenantId);
+  const index = list.findIndex(u => String(u.id) === String(id) || u.username === id);
+  if (index === -1) throw new Error(`Akun #${id} tidak ditemukan.`);
+
+  const updated = { ...list[index], ...updates, updatedAt: new Date().toISOString() };
+  list[index] = updated;
+  setCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, list, tenantId);
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.ACCOUNTS, updated.id, updated, tenantId);
+  return updated;
+}
+
+export function firestoreDeleteUserAccount(id, tenantId = getActiveTenantId()) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, tenantId);
+  const filtered = list.filter(u => String(u.id) !== String(id) && u.username !== id);
+  setCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, filtered, tenantId);
+  deleteDocFromFirestore(FIRESTORE_COLLECTIONS.ACCOUNTS, id, tenantId);
+  return { success: true, message: `Akun ${id} berhasil dihapus.` };
+}
+
+// =============================================================================
+// MITRA B2B SAAS KING DIGITAL DEV
+// =============================================================================
+
+export function firestoreRegisterMitra(data) {
+  const orderId = `KGD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const order = {
+    orderId,
+    namaPondok: data.namaPondok,
+    subdomain: data.subdomain,
+    namaPengelola: data.namaPengelola,
+    email: data.email,
+    noWhatsapp: data.noWhatsapp,
+    packageType: data.packageType || 'TAHUNAN',
+    amount: data.packageType === 'LIFETIME' ? 5000000 : 1500000,
+    status: 'UNPAID',
+    vaNumber: `8809${Math.floor(100000000 + Math.random() * 900000000)}`,
+    vaBank: 'Bank Syariah Indonesia (BSI)',
+    qrisString: `00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A016304${orderId.slice(-4)}`,
+    createdAt: new Date().toISOString()
+  };
+
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.MITRA, 'app');
+  setCollectionData(FIRESTORE_COLLECTIONS.MITRA, [order, ...list], 'app');
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.MITRA, order.orderId, order, 'app');
+
+  ensureTenantProvisioned(order.subdomain, {
+    name: order.namaPondok,
+    NAMA_LEMBAGA: order.namaPondok,
+    email: order.email,
+    noWhatsapp: order.noWhatsapp,
+    packageType: order.packageType
+  });
+
+  return order;
+}
+
+export function firestoreGetMitraStatus(orderId) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.MITRA, 'app');
+  const found = list.find(m => m.orderId === orderId);
+  if (found) return found;
+  return {
+    orderId,
+    status: 'PAID',
+    isProvisioned: true
+  };
+}
+
+export function firestoreSimulatePayment(orderId) {
+  const list = getCollectionData(FIRESTORE_COLLECTIONS.MITRA, 'app');
+  const index = list.findIndex(m => m.orderId === orderId);
+  const updated = index !== -1 ? { ...list[index], status: 'PAID', isProvisioned: true } : {
+    orderId,
+    status: 'PAID',
+    isProvisioned: true,
+    subdomain: 'darulrahman',
+    namaPondok: 'Pondok Pesantren Darul Rahman'
+  };
+
+  if (index !== -1) {
+    list[index] = updated;
+    setCollectionData(FIRESTORE_COLLECTIONS.MITRA, list, 'app');
+  }
+  syncDocToFirestore(FIRESTORE_COLLECTIONS.MITRA, orderId, updated, 'app');
+
+  if (updated.subdomain) {
+    ensureTenantProvisioned(updated.subdomain, {
+      name: updated.namaPondok,
+      status: 'ACTIVE'
+    });
+  }
+
+  return updated;
+}
+
+export function firestoreGetAllMitra() {
+  return getCollectionData(FIRESTORE_COLLECTIONS.MITRA, 'app');
 }
