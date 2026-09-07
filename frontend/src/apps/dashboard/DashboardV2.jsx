@@ -449,9 +449,11 @@ export default function DashboardV2({ currentUser, onLogout, onOpenNfcModal, onB
             {/* Logo Box SIPESAND */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#0B5FFF] text-white flex items-center justify-center font-black shadow-sm">
-                  <Building2 className="w-5 h-5" />
-                </div>
+                <img 
+                  src="/logo-sipesand.png" 
+                  alt="SIPESAND Logo" 
+                  className="h-10 w-auto object-contain rounded-xl shadow-xs" 
+                />
                 <div>
                   <span className="font-['Righteous'] text-2xl text-[#0B5FFF] tracking-tight block leading-none">
                     SIPESAND

@@ -196,9 +196,11 @@ export default function PricingPage({ onBackToHome, onNavigateApp }) {
             </button>
             <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#0B4FE2] text-white flex items-center justify-center font-bold">
-                <Building2 className="w-4 h-4" />
-              </div>
+              <img 
+                src="/logo-sipesand.png" 
+                alt="SIPESAND Logo" 
+                className="h-8 w-auto object-contain rounded-lg shadow-xs" 
+              />
               <span className="font-['Righteous'] text-xl text-[#0B4FE2] tracking-tight">SIPESAND</span>
               <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-bold text-zinc-600">
                 Lisensi 2026

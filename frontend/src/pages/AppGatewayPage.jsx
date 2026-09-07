@@ -184,9 +184,11 @@ export default function AppGatewayPage({
         {/* ===================================================================== */}
         <header className="px-6 py-4 border-b border-[#E4E4E7] flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#0B4FE2] text-white flex items-center justify-center font-bold">
-              <Building2 className="w-4 h-4" />
-            </div>
+            <img 
+              src="/logo-sipesand.png" 
+              alt="SIPESAND Logo" 
+              className="h-9 sm:h-10 w-auto object-contain rounded-xl shadow-xs" 
+            />
             <div>
               <span className="font-['Righteous'] text-xl text-[#0B4FE2] tracking-tight">SIPESAND</span>
               <span className="ml-2 px-2.5 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-[10px] font-black text-zinc-700 uppercase">

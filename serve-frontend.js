@@ -10,7 +10,8 @@ app.use(express.static(distPath));
 
 // Multi-Host & Subdomain HTML Serving
 app.get('*', (req, res) => {
-  const host = (req.hostname || req.headers.host || '').toLowerCase();
+  const rawHost = (req.hostname || req.headers.host || '').toLowerCase();
+  const host = rawHost.split(':')[0];
   const searchParams = req.query || {};
 
   // 1. Cek Portal Mitra (mitra.sipesand.web.id)

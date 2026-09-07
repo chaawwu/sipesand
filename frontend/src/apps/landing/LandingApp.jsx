@@ -10,6 +10,30 @@ import NfcScannerModal from '../../components/NfcScannerModal';
 import { SettingsProvider, useSettings } from '../../context/SettingsContext';
 
 function LandingContent() {
+  // Fail-safe redirect jika diakses dari subdomain khusus (app, mitra, tenant)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hostname = window.location.hostname.toLowerCase();
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (!isLocal) {
+      if (hostname.startsWith('app.') || hostname.startsWith('apps.')) {
+        window.location.href = '/app.html' + window.location.search;
+        return;
+      }
+      if (hostname.startsWith('mitra.')) {
+        window.location.href = '/mitra.html' + window.location.search;
+        return;
+      }
+      const baseDomains = ['sipesand.web.id', 'sipesand.we.id'];
+      const isBase = baseDomains.some(b => hostname === b || hostname.startsWith('www.'));
+      if (!isBase && hostname.includes('sipesand.')) {
+        window.location.href = '/tenant.html' + window.location.search;
+        return;
+      }
+    }
+  }, []);
+
   const [subView, setSubView] = useState(() => {
     if (typeof window === 'undefined') return 'main';
     const path = window.location.pathname.toLowerCase();
