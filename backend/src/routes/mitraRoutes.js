@@ -24,4 +24,11 @@ router.get('/developer/transactions', mitraController.getTenantTransactions);
 router.post('/tenant/toggle-status/:id', mitraController.toggleTenantStatus);
 router.post('/tenant/create-manual', mitraController.createTenantManual);
 
+// Server Guard & Analysis & Tenant Credentials Vault
+router.get('/developer/server-analysis', mitraController.getServerAnalysis);
+router.post('/developer/server-diagnostics', mitraController.runServerDiagnostics);
+router.get('/developer/tenant-credentials', mitraController.getTenantCredentialsVault);
+router.get('/developer/web-config', mitraController.getWebPlatformConfig);
+router.post('/developer/web-config', mitraController.saveWebPlatformConfig);
+
 module.exports = router;

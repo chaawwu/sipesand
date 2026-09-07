@@ -160,13 +160,15 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
   return (
     <div className="space-y-6">
       
-      {/* Top Header & Sub-tab Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2">
+      {/* Header Tabs Navigasi Kamtib Woot Style */}
+      <div className="bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setSubTab('permits')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'permits' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+              subTab === 'permits'
+                ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold'
+                : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -175,8 +177,10 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
 
           <button
             onClick={() => setSubTab('violations')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'violations' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+              subTab === 'violations'
+                ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold'
+                : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
             <AlertTriangle className="w-4 h-4" />
@@ -185,8 +189,10 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
 
           <button
             onClick={() => setSubTab('rules')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'rules' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+              subTab === 'rules'
+                ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold'
+                : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -198,18 +204,18 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
           {subTab === 'permits' ? (
             <button
               onClick={() => setIsPermitModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center gap-2 uppercase tracking-wide"
             >
-              <Plus className="w-4 h-4" />
-              <span>Buat Izin Keluar/Pulang</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Buat Izin Pulang</span>
             </button>
           ) : subTab === 'violations' ? (
             <button
               onClick={() => setIsViolationModalOpen(true)}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#FF7A00] hover:bg-orange-600 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center gap-2 uppercase tracking-wide"
             >
-              <Plus className="w-4 h-4" />
-              <span>Catat Pelanggaran & Takziran</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Catat Pelanggaran</span>
             </button>
           ) : null}
         </div>
@@ -219,15 +225,15 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
       {/* 1. SUB-TAB PERIZINAN KELUAR / PULANG                                    */}
       {/* ======================================================================= */}
       {subTab === 'permits' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-xs">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-900">Daftar Perizinan Santri & Deteksi Overdue</h3>
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden text-xs">
+          <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
+            <h3 className="font-black text-sm text-[#18181B]">Daftar Perizinan Santri & Deteksi Overdue Gerbang</h3>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-black text-zinc-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">Santri</th>
                   <th className="py-3.5 px-4">Jenis & Keperluan</th>
                   <th className="py-3.5 px-4">Tujuan</th>

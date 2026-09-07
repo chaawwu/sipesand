@@ -148,21 +148,21 @@ export default function Approvals() {
   return (
     <div className="space-y-6">
       
-      {/* Top Banner & Tab Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2">
+      {/* Header Tabs Navigasi Woot Style */}
+      <div className="bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab('payments')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'payments'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold'
+                : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
             <Receipt className="w-4 h-4" />
-            <span>Verifikasi Pembayaran Wali Online</span>
+            <span>Verifikasi Pembayaran Wali</span>
             {pendingPayments.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-400 text-slate-950 font-black">
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#7CFF4F] text-[#18181B] font-black">
                 {pendingPayments.length}
               </span>
             )}
@@ -170,10 +170,10 @@ export default function Approvals() {
 
           <button
             onClick={() => setActiveTab('division-funds')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
               activeTab === 'division-funds'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold'
+                : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
@@ -184,9 +184,9 @@ export default function Approvals() {
         {activeTab === 'division-funds' && (
           <button
             onClick={() => setIsFundModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2"
+            className="px-5 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white text-xs font-black rounded-2xl shadow-sm transition-all flex items-center gap-2 uppercase tracking-wide"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
             <span>Ajukan Dana Divisi</span>
           </button>
         )}
@@ -205,27 +205,27 @@ export default function Approvals() {
       {/* 1. TAB VERIFIKASI PEMBAYARAN WALI ONLINE                                */}
       {/* ======================================================================= */}
       {activeTab === 'payments' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Pembayaran Online Wali Menunggu ACC Bendahara</h3>
-              <p className="text-xs text-slate-400">Verifikasi bukti transfer sebelum diterbitkan kwitansi dan dicatat ke Buku Kas</p>
+              <h3 className="font-black text-sm text-[#18181B]">Pembayaran Online Wali Menunggu ACC Bendahara</h3>
+              <p className="text-xs text-zinc-400 font-medium mt-0.5">Verifikasi bukti transfer sebelum diterbitkan kwitansi dan dicatat ke Buku Kas</p>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Santri & Wali</th>
-                  <th className="py-3.5 px-4">Pos Tagihan</th>
-                  <th className="py-3.5 px-4">Metode & Tanggal</th>
-                  <th className="py-3.5 px-4">Nominal</th>
-                  <th className="py-3.5 px-4 text-center">Bukti Transfer</th>
-                  <th className="py-3.5 px-4 text-center">Aksi Persetujuan</th>
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-black text-zinc-500 uppercase tracking-wider">
+                  <th className="py-4 px-5">Santri & Wali</th>
+                  <th className="py-4 px-4">Pos Tagihan</th>
+                  <th className="py-4 px-4">Metode & Tanggal</th>
+                  <th className="py-4 px-4">Nominal</th>
+                  <th className="py-4 px-4 text-center">Bukti Transfer</th>
+                  <th className="py-4 px-5 text-center">Aksi ACC</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-zinc-100">
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">Memuat verifikasi pembayaran...</td>
@@ -275,13 +275,13 @@ export default function Approvals() {
                           <span className="text-slate-400 italic text-[11px]">Tanpa lampiran</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-4 px-5 text-center">
                         <button
                           onClick={() => setSelectedPaymentForAcc(bill)}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 mx-auto"
+                          className="px-3.5 py-1.5 bg-[#7CFF4F] hover:bg-[#6be83f] text-[#18181B] rounded-xl font-black shadow-sm transition-all flex items-center gap-1.5 mx-auto uppercase tracking-wide text-xs"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>ACC & Kwitansi</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>ACC Kwitansi</span>
                         </button>
                       </td>
                     </tr>
@@ -297,18 +297,18 @@ export default function Approvals() {
       {/* 2. TAB PERSETUJUAN PENGGUNAAN DANA DIVISI                               */}
       {/* ======================================================================= */}
       {activeTab === 'division-funds' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Pengajuan & Persetujuan Dana Operasional Divisi</h3>
-              <p className="text-xs text-slate-400">Verifikasi pengajuan dana divisi Keamanan, Dapur, Sarpras, dan Pendidikan</p>
+              <h3 className="font-black text-sm text-[#18181B]">Pengajuan & Persetujuan Dana Operasional Divisi</h3>
+              <p className="text-xs text-zinc-400 font-medium mt-0.5">Verifikasi pengajuan dana divisi Keamanan, Dapur, Sarpras, dan Pendidikan</p>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-black text-zinc-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">Kode & Divisi</th>
                   <th className="py-3.5 px-4">Judul Pengajuan</th>
                   <th className="py-3.5 px-4">Nominal</th>

@@ -316,75 +316,76 @@ export default function AcademicMuhafadzoh() {
   return (
     <div className="space-y-6 text-xs font-sans">
       
-      {/* Top Banner Overview Kepala Pondok */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Banner Overview Kepala Pondok Woot Style */}
+      <div className="bg-white p-5 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Dashboard Devisi Kepala Pondok (Pengasuh)</h2>
-          <p className="text-slate-500 mt-0.5">
-            Pusat monitoring pengasuhan: muhafadzoh, pembuatan akun devisi, evaluasi pengurus, dan pemetaan uang saku santri.
+          <h2 className="text-base font-black text-[#18181B]">Divisi Akademik & Pengasuhan Pondok</h2>
+          <p className="text-zinc-500 mt-0.5 font-medium">
+            Pusat monitoring pengasuhan: muhafadzoh, pembuatan akun divisi, evaluasi pengurus, dan pemetaan uang saku santri.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsAccountModalOpen(true)}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-[#18181B] hover:bg-black text-white font-bold rounded-2xl shadow-sm transition-all flex items-center gap-1.5 text-xs"
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Buat Akun Devisi</span>
+            <span>Kelola Akun Staf</span>
           </button>
 
           <button
             onClick={handleOpenCreate}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white font-black rounded-2xl shadow-sm transition-all flex items-center gap-1.5 text-xs uppercase tracking-wide"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Input Evaluasi Santri</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Input Evaluasi</span>
           </button>
         </div>
       </div>
 
-      {/* 4 Metrik Monitoring Pengasuh */}
+      {/* 4 Metrik Monitoring Pengasuh (Woot Bento Grid) */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Total Santri Asuh</span>
-          <div className="text-xl font-black text-slate-900 mt-1">{(santriList || []).length} Santri</div>
-          <span className="text-[10px] text-emerald-600 font-bold">100% Terdaftar</span>
+        {/* CARD 1: SOLID BLUE (#0B5FFF) */}
+        <div className="bg-[#0B5FFF] text-white p-5 rounded-3xl shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black text-[#7CFF4F] uppercase tracking-wider block">Total Santri Asuh</span>
+          <div className="text-2xl font-black text-white mt-2">{(santriList || []).length} Santri</div>
+          <span className="text-[10px] text-white/80 font-semibold mt-1">100% Terdata di Cloud</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Santri Saldo Minus</span>
-          <div className="text-xl font-black text-rose-600 mt-1">
+        <div className="bg-white p-5 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider block">Santri Saldo Minus</span>
+          <div className="text-2xl font-black text-rose-600 mt-2">
             {(santriList || []).filter(s => (s?.saldo_saku || 0) < 0).length} Santri
           </div>
-          <span className="text-[10px] text-slate-400">Butuh perhatian / talangan</span>
+          <span className="text-[10px] text-zinc-400 font-medium mt-1">Butuh perhatian / talangan</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Perizinan Aktif</span>
-          <div className="text-xl font-black text-blue-700 mt-1">
+        <div className="bg-white p-5 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider block">Perizinan Aktif</span>
+          <div className="text-2xl font-black text-[#0B5FFF] mt-2">
             {(permitsList || []).filter(p => p?.status === 'ACTIVE' || p?.status === 'APPROVED').length} Izin
           </div>
-          <span className="text-[10px] text-slate-400">Dipantau real-time</span>
+          <span className="text-[10px] text-zinc-400 font-medium mt-1">Dipantau pos gerbang</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Pengurus Devisi</span>
-          <div className="text-xl font-black text-slate-900 mt-1">{(pengurusList || []).length} Akun</div>
-          <span className="text-[10px] text-emerald-600 font-bold">Aktif Bertugas</span>
+        <div className="bg-white p-5 rounded-3xl border border-[#E4E4E7] shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider block">Pengurus Divisi</span>
+          <div className="text-2xl font-black text-[#18181B] mt-2">{(pengurusList || []).length} Akun</div>
+          <span className="text-[10px] text-emerald-600 font-bold mt-1">Aktif Bertugas</span>
         </div>
       </div>
 
-      {/* Sub-Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      {/* Sub-Tabs Navigation Woot Style */}
+      <div className="flex items-center gap-2 pb-1 overflow-x-auto">
         <button
           onClick={() => setSubTab('muhafadzoh')}
-          className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-            subTab === 'muhafadzoh' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+            subTab === 'muhafadzoh' ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold' : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-[#E4E4E7]'
           }`}
         >
-          <Award className="w-3.5 h-3.5" />
-          <span>Muhafadzoh & Evaluasi Santri</span>
+          <Award className="w-4 h-4" />
+          <span>Muhafadzoh & Tahfidz</span>
         </button>
 
         <button

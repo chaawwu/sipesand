@@ -345,36 +345,36 @@ export default function BillsAndInvoices() {
   return (
     <div className="space-y-6 text-xs font-sans">
       
-      {/* Top Header & Sub-Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Top Header & Sub-Tabs Woot Style */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveSubTab('mass')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === 'mass' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
+              activeSubTab === 'mass' ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold' : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
-            <CheckSquare className="w-3.5 h-3.5" />
+            <CheckSquare className="w-4 h-4" />
             <span>Tagihan Massal Hijriyah</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('master')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === 'master' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
+              activeSubTab === 'master' ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold' : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
-            <DollarSign className="w-3.5 h-3.5" />
+            <DollarSign className="w-4 h-4" />
             <span>Master Tarif Tagihan</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('receipts')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === 'receipts' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
+              activeSubTab === 'receipts' ? 'bg-[#0B5FFF] text-white shadow-sm font-extrabold' : 'bg-zinc-50 text-zinc-600 hover:bg-zinc-100'
             }`}
           >
-            <Receipt className="w-3.5 h-3.5" />
+            <Receipt className="w-4 h-4" />
             <span>Riwayat Kwitansi Sah</span>
           </button>
         </div>
@@ -385,21 +385,21 @@ export default function BillsAndInvoices() {
             <button
               onClick={handleAutoGenerateHijri}
               disabled={autoGenerating}
-              className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-subtle transition-all flex items-center gap-1.5 disabled:opacity-50 text-xs"
+              className="px-4 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83f] text-[#18181B] font-black rounded-2xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50 text-xs uppercase tracking-wide"
               title="Terbitkan Otomatis Tagihan Syahriyah 1 Hijriyah untuk semua santri aktif yang belum memiliki tagihan bulan ini"
             >
-              <Calendar className="w-4 h-4 text-emerald-100" />
-              <span>{autoGenerating ? 'Menerbitkan...' : 'Auto-Tagihan 1 Hijriyah'}</span>
+              <Calendar className="w-4 h-4 stroke-[2.5]" />
+              <span>{autoGenerating ? 'Menerbitkan...' : 'Auto-Tagihan Hijriyah'}</span>
             </button>
           )}
 
           {activeSubTab === 'master' && (
             <button
               onClick={handleOpenCreateMaster}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+              className="px-4 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white font-black rounded-2xl shadow-sm transition-all flex items-center gap-1.5 text-xs uppercase tracking-wide"
             >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Master Tagihan</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Tambah Master</span>
             </button>
           )}
         </div>
@@ -411,16 +411,16 @@ export default function BillsAndInvoices() {
       {activeSubTab === 'mass' && (
         <div className="space-y-6">
           
-          {/* Card Generator Massal */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          {/* Card Generator Massal Woot Style */}
+          <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <div>
-                <h3 className="font-bold text-sm text-slate-900">Generator Tagihan Massal Santri</h3>
-                <p className="text-slate-500 mt-0.5">Pilih santri dan tentukan bulan kalender Hijriyah</p>
+                <h3 className="font-black text-sm text-[#18181B]">Generator Tagihan Massal Santri</h3>
+                <p className="text-zinc-500 text-xs font-medium mt-0.5">Pilih santri dan tentukan bulan kalender Hijriyah</p>
               </div>
               <div className="text-right">
-                <span className="text-slate-400">Santri Terpilih: </span>
-                <span className="font-bold text-blue-700 font-mono text-sm">{selectedSantriIds.length} / {santriList.length}</span>
+                <span className="text-zinc-400 text-xs">Santri Terpilih: </span>
+                <span className="font-black text-[#0B5FFF] font-mono text-sm">{selectedSantriIds.length} / {santriList.length}</span>
               </div>
             </div>
 
@@ -495,24 +495,24 @@ export default function BillsAndInvoices() {
             </div>
           </div>
 
-          {/* Filter Tagihan Santri */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          {/* Filter Tagihan Santri Woot Style */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm">
             <div className="flex flex-1 items-center gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Cari nama santri, pos tagihan, kode..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-600"
+                  className="w-full pl-10 pr-3.5 py-2.5 border border-zinc-200 rounded-full bg-zinc-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0B5FFF] text-xs font-semibold text-zinc-900 placeholder-zinc-400"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700"
+                className="px-4 py-2.5 border border-zinc-200 rounded-full bg-white text-zinc-700 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#0B5FFF]"
               >
                 <option value="">Semua Status</option>
                 <option value="UNPAID">Belum Lunas</option>
@@ -523,7 +523,7 @@ export default function BillsAndInvoices() {
               <select
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-slate-700"
+                className="px-4 py-2.5 border border-zinc-200 rounded-full bg-white text-zinc-700 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#0B5FFF]"
               >
                 <option value="">Semua Bulan Hijriyah</option>
                 {HIJRI_MONTHS.map(m => (
@@ -533,22 +533,22 @@ export default function BillsAndInvoices() {
             </div>
           </div>
 
-          {/* Tabel Tagihan Santri */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Tabel Tagihan Santri Bento */}
+          <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-4 w-10 text-center">Pilih</th>
-                    <th className="py-3.5 px-4">Santri</th>
-                    <th className="py-3.5 px-4">Pos Tagihan</th>
-                    <th className="py-3.5 px-4">Bulan Hijriyah</th>
-                    <th className="py-3.5 px-4">Nominal</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-center">Aksi & Follow-Up WA</th>
+                  <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black text-zinc-500 uppercase tracking-wider">
+                    <th className="py-4 px-4 w-10 text-center">Pilih</th>
+                    <th className="py-4 px-4">Santri</th>
+                    <th className="py-4 px-4">Pos Tagihan</th>
+                    <th className="py-4 px-4">Bulan Hijriyah</th>
+                    <th className="py-4 px-4">Nominal</th>
+                    <th className="py-4 px-4">Status</th>
+                    <th className="py-4 px-5 text-center">Aksi & Kwitansi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-zinc-100">
                   {loading ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-slate-400">

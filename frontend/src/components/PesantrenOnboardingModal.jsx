@@ -6,7 +6,6 @@ import {
   Mail, 
   User, 
   CreditCard, 
-  Sparkles, 
   CheckCircle2, 
   ArrowRight,
   ShieldCheck,

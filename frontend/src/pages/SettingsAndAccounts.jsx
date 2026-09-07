@@ -282,13 +282,13 @@ export default function SettingsAndAccounts() {
   return (
     <div className="space-y-6 text-xs font-sans">
       
-      {/* Top Header & Sub-Tabs Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Top Header & Sub-Tabs Switcher (Woot Pill Bar) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 rounded-2xl border border-[#E4E4E7] shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setSubTab('identity')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'identity' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'identity' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -298,17 +298,17 @@ export default function SettingsAndAccounts() {
           <button
             onClick={() => setSubTab('assets')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'assets' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'assets' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Image className="w-3.5 h-3.5" />
-            <span>Upload Foto Logo, Cap & TTD</span>
+            <span>Upload Logo & Cap</span>
           </button>
 
           <button
             onClick={() => setSubTab('nfc')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'nfc' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'nfc' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Radio className="w-3.5 h-3.5" />
@@ -318,27 +318,27 @@ export default function SettingsAndAccounts() {
           <button
             onClick={() => setSubTab('payment')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'payment' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'payment' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>Rekening & QRIS</span>
+            <span>Rekening & PG</span>
           </button>
 
           <button
             onClick={() => setSubTab('accounts')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'accounts' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'accounts' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Akun Devisi & Pemetaan Saku</span>
+            <span>Akun & Pemetaan Saku</span>
           </button>
 
           <button
             onClick={() => setSubTab('backup')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-              subTab === 'backup' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              subTab === 'backup' ? 'bg-[#0B5FFF] text-white shadow-xs' : 'bg-transparent text-slate-600 hover:bg-slate-100'
             }`}
           >
             <Database className="w-3.5 h-3.5" />
@@ -347,9 +347,9 @@ export default function SettingsAndAccounts() {
         </div>
 
         {saveSuccess && (
-          <div className="px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl font-bold flex items-center gap-1.5 animate-in fade-in">
+          <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full font-bold flex items-center gap-1.5 animate-in fade-in">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Pengaturan Berhasil Disimpan & Diperbarui</span>
+            <span>Pengaturan Berhasil Disimpan</span>
           </div>
         )}
       </div>
@@ -358,15 +358,15 @@ export default function SettingsAndAccounts() {
       {/* 1. SUB-TAB IDENTITAS LEMBAGA                                            */}
       {/* ======================================================================= */}
       {subTab === 'identity' && (
-        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <form onSubmit={handleSaveSettings} className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-5">
+          <div className="border-b border-[#E4E4E7] pb-4 flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Identitas & Profil Pesantren</h3>
+              <h3 className="font-extrabold text-sm text-slate-900">Identitas & Profil Pesantren</h3>
               <p className="text-slate-400 text-[11px]">Otomatis merubah nama di website, header navbar, kwitansi resmi, dan ID Card santri</p>
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center gap-1.5 text-xs"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Simpan Perubahan</span>
@@ -466,17 +466,17 @@ export default function SettingsAndAccounts() {
       {/* 2. SUB-TAB UPLOAD FOTO LOGO, CAP STEMPEL, TTD & QRIS                    */}
       {/* ======================================================================= */}
       {subTab === 'assets' && (
-        <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <form onSubmit={handleSaveSettings} className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="border-b border-[#E4E4E7] pb-4 flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Upload Aset Digital Pesantren</h3>
+              <h3 className="font-extrabold text-sm text-slate-900">Upload Aset Digital Pesantren</h3>
               <p className="text-slate-400 text-[11px]">
                 File yang diunggah otomatis mengubah logo web navbar, ID Card KTSD, kwitansi sah, dan QRIS portal wali
               </p>
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center gap-1.5 text-xs"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Simpan Seluruh Aset</span>
@@ -486,90 +486,90 @@ export default function SettingsAndAccounts() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             
             {/* 1. Upload Logo Pondok */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
                 <span className="font-bold text-slate-800 block text-xs">1. Foto Logo Pondok</span>
                 <p className="text-[10px] text-slate-400 mt-0.5">Tampil di header portal, sidebar & ID Card KTSD</p>
                 {formSettings.LOGO_PONDOK_URL && (
-                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1">
+                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-xl border border-[#E4E4E7] p-1">
                     <img src={formSettings.LOGO_PONDOK_URL} alt="Logo" className="max-h-16 object-contain" />
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg flex items-center justify-center gap-1.5 text-center shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-blue-600" />
+              <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-xl flex items-center justify-center gap-1.5 text-center shadow-xs">
+                <Upload className="w-3.5 h-3.5 text-[#0B5FFF]" />
                 <span>Pilih Foto Logo</span>
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload('LOGO_PONDOK_URL', e)} className="hidden" />
               </label>
             </div>
 
             {/* 2. Upload Cap Stempel Pondok */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
                 <span className="font-bold text-slate-800 block text-xs">2. File Cap Stempel Pondok</span>
                 <p className="text-[10px] text-slate-400 mt-0.5">Stempel basah digital transparan pada Kwitansi Resmi</p>
                 {formSettings.CAP_STEMPEL_URL && (
-                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1">
+                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-xl border border-[#E4E4E7] p-1">
                     <img src={formSettings.CAP_STEMPEL_URL} alt="Cap Stempel" className="max-h-16 object-contain" />
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg flex items-center justify-center gap-1.5 text-center shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-blue-600" />
+              <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-xl flex items-center justify-center gap-1.5 text-center shadow-xs">
+                <Upload className="w-3.5 h-3.5 text-[#0B5FFF]" />
                 <span>Pilih File Cap Stempel</span>
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload('CAP_STEMPEL_URL', e)} className="hidden" />
               </label>
             </div>
 
             {/* 3. Upload TTD Kepala Pondok */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
                 <span className="font-bold text-slate-800 block text-xs">3. File TTD Kepala Pondok</span>
                 <p className="text-[10px] text-slate-400 mt-0.5">Tanda tangan digital pada ID Card santri</p>
                 {formSettings.TTD_KEPALA_URL && (
-                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1">
+                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-xl border border-[#E4E4E7] p-1">
                     <img src={formSettings.TTD_KEPALA_URL} alt="TTD Kepala" className="max-h-16 object-contain" />
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg flex items-center justify-center gap-1.5 text-center shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-blue-600" />
+              <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-xl flex items-center justify-center gap-1.5 text-center shadow-xs">
+                <Upload className="w-3.5 h-3.5 text-[#0B5FFF]" />
                 <span>Pilih File TTD Kepala</span>
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload('TTD_KEPALA_URL', e)} className="hidden" />
               </label>
             </div>
 
             {/* 4. Upload TTD Bendahara */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
                 <span className="font-bold text-slate-800 block text-xs">4. File TTD Bendahara</span>
                 <p className="text-[10px] text-slate-400 mt-0.5">Tanda tangan digital pada Kwitansi Pembayaran</p>
                 {formSettings.TTD_BENDAHARA_URL && (
-                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1">
+                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-xl border border-[#E4E4E7] p-1">
                     <img src={formSettings.TTD_BENDAHARA_URL} alt="TTD Bendahara" className="max-h-16 object-contain" />
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg flex items-center justify-center gap-1.5 text-center shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-blue-600" />
+              <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-xl flex items-center justify-center gap-1.5 text-center shadow-xs">
+                <Upload className="w-3.5 h-3.5 text-[#0B5FFF]" />
                 <span>Pilih File TTD Bendahara</span>
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload('TTD_BENDAHARA_URL', e)} className="hidden" />
               </label>
             </div>
 
             {/* 5. Upload File QRIS */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
                 <span className="font-bold text-slate-800 block text-xs">5. File Gambar QRIS Resmi</span>
                 <p className="text-[10px] text-slate-400 mt-0.5">Gambar QRIS statis untuk scan pembayaran wali</p>
                 {formSettings.QRIS_PAYMENT_URL && (
-                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1">
+                  <div className="mt-2 h-20 flex items-center justify-center bg-white rounded-xl border border-[#E4E4E7] p-1">
                     <img src={formSettings.QRIS_PAYMENT_URL} alt="QRIS" className="max-h-16 object-contain" />
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg flex items-center justify-center gap-1.5 text-center shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-blue-600" />
+              <label className="cursor-pointer px-3.5 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-xl flex items-center justify-center gap-1.5 text-center shadow-xs">
+                <Upload className="w-3.5 h-3.5 text-[#0B5FFF]" />
                 <span>Pilih File QRIS</span>
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload('QRIS_PAYMENT_URL', e)} className="hidden" />
               </label>
@@ -583,18 +583,18 @@ export default function SettingsAndAccounts() {
       {/* 3. SUB-TAB SISTEM NFC / RFID (AKTIF / NON-AKTIF TOGGLE)                 */}
       {/* ======================================================================= */}
       {subTab === 'nfc' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-sm text-slate-900">Pengaturan Sistem Smart NFC / RFID Reader</h3>
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-5">
+          <div className="border-b border-[#E4E4E7] pb-4">
+            <h3 className="font-extrabold text-sm text-slate-900">Pengaturan Sistem Smart NFC / RFID Reader</h3>
             <p className="text-slate-400 text-[11px]">
               Aktifkan atau nonaktifkan fitur pemindaian kartu NFC/RFID di seluruh aplikasi SiPesand
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-6 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Radio className={`w-4 h-4 ${isNfcEnabled ? 'text-[#1D4ED8]' : 'text-slate-400'}`} />
+                <Radio className={`w-4 h-4 ${isNfcEnabled ? 'text-[#0B5FFF]' : 'text-slate-400'}`} />
                 <span className="font-bold text-sm text-slate-900">
                   Status Fitur NFC / RFID Reader: <strong className={isNfcEnabled ? 'text-emerald-700' : 'text-slate-500'}>{isNfcEnabled ? 'AKTIF' : 'NON-AKTIF'}</strong>
                 </span>
@@ -609,8 +609,8 @@ export default function SettingsAndAccounts() {
             <button
               type="button"
               onClick={toggleNfc}
-              className={`px-5 py-2.5 rounded-xl font-bold text-white transition-all flex items-center gap-2 shadow-sm ${
-                isNfcEnabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-700 hover:bg-slate-800'
+              className={`px-6 py-2.5 rounded-full font-extrabold text-xs transition-all flex items-center gap-2 shadow-xs ${
+                isNfcEnabled ? 'bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B]' : 'bg-slate-800 hover:bg-slate-900 text-white'
               }`}
             >
               {isNfcEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -627,15 +627,15 @@ export default function SettingsAndAccounts() {
         <form onSubmit={handleSaveSettings} className="space-y-6">
           
           {/* Card 1: Rekening Resmi Pembayaran Manual Pesantren */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+          <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-5">
+            <div className="border-b border-[#E4E4E7] pb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-sm text-slate-900">Rekening Resmi Pembayaran Pesantren (Manual Transfer)</h3>
+                <h3 className="font-extrabold text-sm text-slate-900">Rekening Resmi Pembayaran Pesantren (Manual Transfer)</h3>
                 <p className="text-slate-400 text-[11px]">Muncul pada Portal Wali santri saat memilih metode bayar transfer langsung</p>
               </div>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center gap-1.5 text-xs"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>Simpan Pengaturan</span>
@@ -679,22 +679,22 @@ export default function SettingsAndAccounts() {
             </div>
           </div>
 
-          {/* Card 2: Integrasi King Digital Payment Gateway & Auto-Disbursement */}
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          {/* Card 2: Integrasi King Digital Payment Gateway & Auto-Disbursement (Woot Solid Card) */}
+          <div className="bg-[#0B5FFF] text-white rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/20">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-blue-400" />
+                  <CreditCard className="w-5 h-5 text-[#7CFF4F]" />
                   <h3 className="font-extrabold text-base text-white">King Digital Payment Gateway (Auto-Disbursement)</h3>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
                     formSettings.KING_DIGITAL_PG_ENABLED === 'true'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-slate-700 text-slate-400'
+                      ? 'bg-[#7CFF4F] text-[#09090B]'
+                      : 'bg-white/20 text-white'
                   }`}>
                     {formSettings.KING_DIGITAL_PG_ENABLED === 'true' ? 'Aktif • Auto-Disburse' : 'Non-Aktif'}
                   </span>
                 </div>
-                <p className="text-slate-300 text-xs leading-relaxed max-w-2xl">
+                <p className="text-blue-100 text-xs leading-relaxed max-w-2xl">
                   Layanan Payment Gateway terintegrasi dari <strong>King Digital Payment</strong>. Pembayaran tagihan Syahriyah oleh wali santri akan diverifikasi instan dan saldo secara otomatis dicairkan (*auto-disburse*) ke rekening penampungan pesantren Anda.
                 </p>
               </div>
@@ -708,10 +708,10 @@ export default function SettingsAndAccounts() {
                   setFormSettings(updated);
                   updateSettings(updated);
                 }}
-                className={`px-5 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 flex-shrink-0 shadow-lg ${
+                className={`px-5 py-2.5 rounded-full font-extrabold transition-all flex items-center gap-2 flex-shrink-0 text-xs shadow-xs ${
                   formSettings.KING_DIGITAL_PG_ENABLED === 'true'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                    ? 'bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B]'
+                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
                 }`}
               >
                 {formSettings.KING_DIGITAL_PG_ENABLED === 'true' ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -720,19 +720,19 @@ export default function SettingsAndAccounts() {
             </div>
 
             {/* Form Rekening Auto-Disbursement */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-4">
+            <div className="bg-white/10 rounded-2xl p-5 border border-white/15 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-blue-300 uppercase tracking-wider">Rekening Tujuan Pencairan Otomatis (Auto-Disbursement)</span>
-                <span className="text-[10px] text-slate-400 font-mono">Settlement: Instan Real-Time</span>
+                <span className="font-bold text-xs text-white uppercase tracking-wider">Rekening Tujuan Pencairan Otomatis (Auto-Disbursement)</span>
+                <span className="text-[10px] text-blue-100 font-mono">Settlement: Instan Real-Time</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-slate-900">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[#09090B]">
                 <div>
-                  <label className="block font-bold text-slate-200 text-xs mb-1">Bank Penampungan Pencairan</label>
+                  <label className="block font-bold text-blue-100 text-xs mb-1">Bank Penampungan Pencairan</label>
                   <select
                     value={formSettings.DISBURSEMENT_BANK || 'Bank Syariah Indonesia (BSI)'}
                     onChange={(e) => setFormSettings({ ...formSettings, DISBURSEMENT_BANK: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 text-xs font-bold"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] text-xs font-bold"
                   >
                     <option value="Bank Syariah Indonesia (BSI)">Bank Syariah Indonesia (BSI)</option>
                     <option value="Bank Central Asia (BCA)">Bank Central Asia (BCA)</option>
@@ -744,30 +744,30 @@ export default function SettingsAndAccounts() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-200 text-xs mb-1">Nomor Rekening Lembaga</label>
+                  <label className="block font-bold text-blue-100 text-xs mb-1">Nomor Rekening Lembaga</label>
                   <input
                     type="text"
                     value={formSettings.DISBURSEMENT_ACCOUNT_NO || ''}
                     onChange={(e) => setFormSettings({ ...formSettings, DISBURSEMENT_ACCOUNT_NO: e.target.value })}
                     placeholder="Contoh: 7192837465"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 font-mono font-bold text-blue-700 text-xs"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] font-mono font-bold text-[#0B5FFF] text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-200 text-xs mb-1">Nama Pemilik Rekening Yayasan</label>
+                  <label className="block font-bold text-blue-100 text-xs mb-1">Nama Pemilik Rekening Yayasan</label>
                   <input
                     type="text"
                     value={formSettings.DISBURSEMENT_ACCOUNT_HOLDER || ''}
                     onChange={(e) => setFormSettings({ ...formSettings, DISBURSEMENT_ACCOUNT_HOLDER: e.target.value })}
                     placeholder="Contoh: YAYASAN PONDOK PESANTREN"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 font-bold text-xs"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] font-bold text-xs"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 text-[11px] text-slate-300 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="pt-2 text-[11px] text-blue-100 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#7CFF4F] flex-shrink-0 mt-0.5" />
                 <span>
                   Saat fitur ini <strong>AKTIF</strong>, setiap wali santri yang membayar via QRIS/VA King Digital Payment akan langsung terverifikasi lunas secara otomatis tanpa perlu ACC manual oleh bendahara, dan dana diteruskan ke rekening penampungan di atas.
                 </span>
@@ -777,7 +777,7 @@ export default function SettingsAndAccounts() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs"
+                className="px-5 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center gap-1.5 text-xs"
               >
                 <Save className="w-4 h-4" />
                 <span>Simpan Konfigurasi Payment Gateway</span>
@@ -793,12 +793,12 @@ export default function SettingsAndAccounts() {
       {/* 5. SUB-TAB AKUN PENGURUS DEVISI & PEMETAAN SANTRI ASUH                  */}
       {/* ======================================================================= */}
       {subTab === 'accounts' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-[#E4E4E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-900">Manajemen Akun Devisi & Firestore Users</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <h3 className="font-extrabold text-sm text-slate-900">Manajemen Akun Devisi & Firestore Users</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Firestore: tenants/{getActiveTenantId()}/users
                 </span>
               </div>
@@ -808,7 +808,7 @@ export default function SettingsAndAccounts() {
             </div>
             <button
               onClick={() => setIsAccountModalOpen(true)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 text-xs"
+              className="px-4 py-2 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] rounded-full font-extrabold shadow-xs transition-all flex items-center gap-1.5 text-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Buat Akun Devisi Baru</span>
@@ -818,7 +818,7 @@ export default function SettingsAndAccounts() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-[#FAFAF8] border-b border-[#E4E4E7] text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3.5 px-4">Nama Pengurus</th>
                   <th className="py-3.5 px-4">Username</th>
                   <th className="py-3.5 px-4">Password</th>
@@ -899,16 +899,16 @@ export default function SettingsAndAccounts() {
       {/* 6. SUB-TAB AUTO BACKUP DATA JSON                                        */}
       {/* ======================================================================= */}
       {subTab === 'backup' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-sm text-slate-900">Cadangan Database & Integrasi Google Sheets</h3>
+        <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="border-b border-[#E4E4E7] pb-4">
+            <h3 className="font-extrabold text-sm text-slate-900">Cadangan Database & Integrasi Google Sheets</h3>
             <p className="text-slate-400 text-[11px]">Amankan seluruh data santri, kas umum, dan transaksi saku</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-5 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
-                <h4 className="font-bold text-sm text-slate-900">Unduh Salinan Cadangan JSON</h4>
+                <h4 className="font-extrabold text-sm text-slate-900">Unduh Salinan Cadangan JSON</h4>
                 <p className="text-slate-500 mt-1">
                   Ekspor instan seluruh database dalam format JSON siap restore.
                 </p>
@@ -917,16 +917,16 @@ export default function SettingsAndAccounts() {
               <button
                 type="button"
                 onClick={handleDownloadBackup}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-[#0B5FFF] hover:bg-[#094edb] text-white font-bold rounded-full shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 <span>Unduh Cadangan Database (.json)</span>
               </button>
             </div>
 
-            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="p-5 rounded-2xl bg-[#FAFAF8] border border-[#E4E4E7] space-y-3 flex flex-col justify-between">
               <div>
-                <h4 className="font-bold text-sm text-slate-900">Tautan Google Sheets</h4>
+                <h4 className="font-extrabold text-sm text-slate-900">Tautan Google Sheets</h4>
                 <p className="text-slate-500 mt-1">
                   Sinkronisasi spreadsheet Google Sheets untuk rekonsiliasi kas umum secara online.
                 </p>
@@ -935,14 +935,14 @@ export default function SettingsAndAccounts() {
                   value={formSettings.GOOGLE_SHEET_SYNC_URL || ''}
                   onChange={(e) => setFormSettings({ ...formSettings, GOOGLE_SHEET_SYNC_URL: e.target.value })}
                   placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 font-mono text-[11px] mt-2"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] font-mono text-[11px] mt-2"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleSaveSettings}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-full shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 <span>Simpan Tautan Spreadsheet</span>
@@ -951,7 +951,7 @@ export default function SettingsAndAccounts() {
           </div>
 
           {/* Zona Bahaya: Restart / Kosongkan Data Tenant */}
-          <div className="p-5 rounded-xl bg-rose-50 border border-rose-200 space-y-3">
+          <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 space-y-3">
             <div className="flex items-center gap-2 text-rose-900 font-extrabold text-sm">
               <Trash2 className="w-4 h-4 text-rose-600" />
               <span>Zona Bahaya: Restart Seluruh Data Tenant (0 Data Bersih)</span>
@@ -962,7 +962,7 @@ export default function SettingsAndAccounts() {
             <button
               type="button"
               onClick={handleRestartTenantData}
-              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 text-xs"
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-full shadow-xs transition-all flex items-center gap-2 text-xs"
             >
               <Trash2 className="w-4 h-4" />
               <span>Restart & Bersihkan Data Tenant ke 0 Data</span>
@@ -974,24 +974,24 @@ export default function SettingsAndAccounts() {
       {/* Modal Dialog Pemetaan Santri Asuh */}
       {mappingAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-[#E4E4E7] flex flex-col max-h-[85vh]">
+            <div className="bg-[#0B5FFF] text-white px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-sm">Pemetaan Santri Asuh: {mappingAccount.name}</h3>
-                <p className="text-[11px] text-slate-400">Pilih santri yang uang sakunya dikelola pengurus ini</p>
+                <h3 className="font-extrabold text-sm text-white">Pemetaan Santri Asuh: {mappingAccount.name}</h3>
+                <p className="text-[11px] text-blue-100">Pilih santri yang uang sakunya dikelola pengurus ini</p>
               </div>
-              <button onClick={() => setMappingAccount(null)} className="text-white hover:opacity-80">
+              <button onClick={() => setMappingAccount(null)} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 space-y-3 overflow-y-auto flex-1">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="p-6 space-y-3 overflow-y-auto flex-1">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E4E4E7]">
                 <span className="font-bold text-slate-700">{selectedSantriIds.length} Santri Terpilih</span>
                 <span className="text-[11px] text-slate-400">Total {santriList.length} Santri</span>
               </div>
 
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              <div className="divide-y divide-[#E4E4E7] border border-[#E4E4E7] rounded-2xl overflow-hidden">
                 {santriList.map((s) => {
                   const isChecked = selectedSantriIds.includes(s.id);
                   return (
@@ -1004,7 +1004,7 @@ export default function SettingsAndAccounts() {
                     >
                       <div className="flex items-center gap-3">
                         {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          <CheckSquare className="w-4 h-4 text-[#0B5FFF] flex-shrink-0" />
                         ) : (
                           <Square className="w-4 h-4 text-slate-300 flex-shrink-0" />
                         )}
@@ -1025,11 +1025,11 @@ export default function SettingsAndAccounts() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2">
+            <div className="p-4 border-t border-[#E4E4E7] bg-[#FAFAF8] flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setMappingAccount(null)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold rounded-xl"
+                className="px-4 py-2 border border-[#E4E4E7] text-slate-700 font-bold rounded-full hover:bg-slate-100 transition-colors"
               >
                 Batal
               </button>
@@ -1037,7 +1037,7 @@ export default function SettingsAndAccounts() {
                 type="button"
                 onClick={handleSaveMapping}
                 disabled={savingMapping}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm"
+                className="px-6 py-2 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all"
               >
                 {savingMapping ? 'Menyimpan...' : 'Simpan Pemetaan Santri'}
               </button>
@@ -1049,20 +1049,20 @@ export default function SettingsAndAccounts() {
       {/* Modal Dialog Evaluasi Pengurus */}
       {evaluatingAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-sm">Evaluasi Kinerja: {evaluatingAccount.name}</h3>
-              <button onClick={() => setEvaluatingAccount(null)} className="text-white hover:opacity-80">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E4E4E7]">
+            <div className="bg-[#0B5FFF] text-white px-6 py-4 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-white">Evaluasi Kinerja: {evaluatingAccount.name}</h3>
+              <button onClick={() => setEvaluatingAccount(null)} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveEvaluation} className="p-5 space-y-4">
+            <form onSubmit={handleSaveEvaluation} className="p-6 space-y-4">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Predikat Kinerja</label>
                 <select
                   value={evalGrade}
                   onChange={(e) => setEvalGrade(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 font-bold"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] font-bold"
                 >
                   <option value="Mumtaz">Mumtaz (Sangat Baik / Istimewa)</option>
                   <option value="Jayyid Jiddan">Jayyid Jiddan (Baik Sekali)</option>
@@ -1079,21 +1079,21 @@ export default function SettingsAndAccounts() {
                   placeholder="Catatan kedisiplinan dan evaluasi kinerja pengurus..."
                   value={evalNotes}
                   onChange={(e) => setEvalNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl focus:ring-1 focus:ring-[#0B5FFF]"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200">
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4E4E7]">
                 <button
                   type="button"
                   onClick={() => setEvaluatingAccount(null)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-700"
+                  className="px-4 py-2 border border-[#E4E4E7] rounded-full font-bold text-slate-700 hover:bg-slate-100"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm"
+                  className="px-6 py-2 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] rounded-full font-extrabold shadow-xs"
                 >
                   Simpan Evaluasi
                 </button>
@@ -1106,14 +1106,14 @@ export default function SettingsAndAccounts() {
       {/* Modal Form Tambah Akun Pengurus */}
       {isAccountModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-sm">Buat Akun Devisi Baru</h3>
-              <button onClick={() => setIsAccountModalOpen(false)} className="text-white hover:opacity-80">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E4E4E7]">
+            <div className="bg-[#0B5FFF] text-white px-6 py-4 flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-white">Buat Akun Devisi Baru</h3>
+              <button onClick={() => setIsAccountModalOpen(false)} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleCreateAccount} className="p-5 space-y-4">
+            <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Pengurus *</label>
                 <input
@@ -1122,7 +1122,7 @@ export default function SettingsAndAccounts() {
                   placeholder="Contoh: Ustadz Ridwan Santoso"
                   value={accountFormData.name}
                   onChange={(e) => setAccountFormData({ ...accountFormData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl focus:ring-1 focus:ring-[#0B5FFF]"
                 />
               </div>
 
@@ -1134,7 +1134,7 @@ export default function SettingsAndAccounts() {
                   placeholder="ridwan_saku"
                   value={accountFormData.username}
                   onChange={(e) => setAccountFormData({ ...accountFormData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono focus:ring-1 focus:ring-blue-600"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl font-mono focus:ring-1 focus:ring-[#0B5FFF]"
                 />
               </div>
 
@@ -1146,7 +1146,7 @@ export default function SettingsAndAccounts() {
                   placeholder="••••••••"
                   value={accountFormData.password}
                   onChange={(e) => setAccountFormData({ ...accountFormData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl focus:ring-1 focus:ring-[#0B5FFF]"
                 />
               </div>
 
@@ -1162,7 +1162,7 @@ export default function SettingsAndAccounts() {
                       division: sel?.division || 'PUSAT',
                     });
                   }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600 font-semibold"
+                  className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl bg-white focus:ring-1 focus:ring-[#0B5FFF] font-semibold"
                 >
                   {DIVISION_ROLES.map(r => (
                     <option key={r.id} value={r.id}>{r.label} ({r.division})</option>
@@ -1170,17 +1170,17 @@ export default function SettingsAndAccounts() {
                 </select>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200">
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4E4E7]">
                 <button
                   type="button"
                   onClick={() => setIsAccountModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-700"
+                  className="px-4 py-2 border border-[#E4E4E7] rounded-full font-bold text-slate-700 hover:bg-slate-100"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm"
+                  className="px-6 py-2 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] rounded-full font-extrabold shadow-xs"
                 >
                   Buat Akun Pengurus
                 </button>

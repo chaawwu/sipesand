@@ -20,7 +20,6 @@ import {
   Scissors,
   Eye,
   Camera,
-  Sparkles,
   Award,
   ShieldCheck,
   QrCode,
@@ -759,7 +758,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
 
                       <div className="flex items-center gap-1.5">
                         <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[8px] font-bold">
-                          <Radio className="w-2.5 h-2.5 text-blue-600 animate-pulse" />
+                          <Radio className="w-2.5 h-2.5 text-blue-600" />
                           <span>NFC SMART</span>
                         </div>
                       </div>
@@ -884,7 +883,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                           <img src={logoPondok} alt="Logo" className="w-7 h-7 object-contain rounded border border-amber-400/50" />
                         ) : (
                           <div className="w-7 h-7 rounded bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
-                            <Sparkles className="w-4 h-4" />
+                            <Award className="w-4 h-4" />
                           </div>
                         )}
                         <div>

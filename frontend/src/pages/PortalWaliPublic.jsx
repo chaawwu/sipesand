@@ -24,7 +24,6 @@ import {
   Radio,
   Building,
   Users,
-  Sparkles,
   RefreshCw
 } from 'lucide-react';
 import { 
@@ -421,62 +420,62 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col font-sans text-xs">
+    <div className="min-h-screen bg-[#FAFAF8] text-[#09090B] flex flex-col font-sans text-xs">
       
       {/* 1. Header Portal Wali */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+      <header className="sticky top-0 z-30 bg-[#FAFAF8]/95 backdrop-blur-md border-b border-[#E4E4E7]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onBackToHome}
-              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1 font-semibold text-xs"
+              className="px-3 py-1.5 rounded-full bg-white hover:bg-slate-100 border border-[#E4E4E7] text-slate-700 transition-colors flex items-center gap-1.5 font-bold text-xs shadow-sm"
               title="Kembali ke Beranda"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Beranda</span>
             </button>
 
             {logoPondok ? (
-              <div className="w-8 h-8 rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-2xl bg-white p-0.5 border border-[#E4E4E7] shadow-sm flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img src={logoPondok} alt="Logo" className="w-full h-full object-contain" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold flex-shrink-0">
-                <Building2 className="w-4 h-4 text-blue-400" />
+              <div className="w-9 h-9 rounded-2xl bg-[#0B5FFF] flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm">
+                <Building2 className="w-4 h-4 text-white" />
               </div>
             )}
             
             <div className="min-w-0">
-              <h1 className="font-bold text-sm text-slate-900 truncate">
+              <h1 className="font-extrabold text-sm text-[#09090B] truncate">
                 Portal Mandiri Wali Santri
               </h1>
-              <p className="text-[10px] text-slate-400 font-medium truncate">
+              <p className="text-[10px] text-slate-500 font-medium truncate">
                 {namaLembaga}
               </p>
             </div>
           </div>
 
-          {/* Search Bar with Live Suggestions Dropdown */}
+          {/* Search Bar with Live Suggestions Dropdown (Woot Capsule) */}
           <div ref={searchContainerRef} className="relative max-w-xs sm:max-w-sm w-full">
-            <form onSubmit={handleSearch} className="flex items-center gap-1.5">
-              <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <form onSubmit={handleSearch} className="flex items-center gap-1 bg-white border border-[#E4E4E7] rounded-full p-1 pl-3.5 shadow-sm">
+              <div className="relative flex-1 flex items-center">
+                <Search className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Cari Nama Santri, Wali, NIS..."
+                  placeholder="Cari Santri, Wali, NIS..."
                   value={searchQuery}
                   onChange={handleInputChange}
                   onFocus={() => {
                     if (suggestions.length > 0) setIsDropdownOpen(true);
                   }}
-                  className="w-full pl-8 pr-7 py-1.5 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  className="w-full text-xs bg-transparent focus:outline-none text-slate-900 placeholder:text-slate-400 font-medium"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={handleClearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    className="text-slate-400 hover:text-slate-600 p-1 mr-1"
                     title="Hapus pencarian"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -485,15 +484,16 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
               </div>
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-sm flex-shrink-0"
+                className="px-3.5 py-1.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full transition-all shadow-xs flex-shrink-0 text-xs flex items-center gap-1"
               >
-                Cari
+                <span>Cari</span>
+                <span className="font-bold">→</span>
               </button>
             </form>
 
             {/* Live Autocomplete Suggestions Dropdown */}
             {isDropdownOpen && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-1">
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-[#E4E4E7] rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-[#E4E4E7] max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-1">
                 <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Pencocokan Santri ({suggestions.length})</span>
                   <span className="text-[9px] font-normal text-slate-400">Pilih untuk melihat</span>
@@ -548,9 +548,9 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
         ) : viewMode === 'match_list' && matchingResults.length > 0 ? (
           /* Tampilan Hasil Pencocokan Santri (Multi-Match) */
           <div className="space-y-4 animate-in fade-in">
-            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow">
+            <div className="bg-white border border-[#E4E4E7] rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-[#0B5FFF] text-white flex items-center justify-center shadow-sm">
                   <Users className="w-5 h-5" />
                 </div>
                 <div>
@@ -558,7 +558,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                     Hasil Pencocokan Santri ({matchingResults.length} Santri Ditemukan)
                   </h2>
                   <p className="text-[11px] text-slate-500">
-                    Ditemukan beberapa santri dengan kata kunci <strong className="text-blue-700">"{searchQuery}"</strong>. Silakan pilih santri Anda di bawah ini:
+                    Ditemukan beberapa santri dengan kata kunci <strong className="text-[#0B5FFF]">"{searchQuery}"</strong>. Silakan pilih santri Anda:
                   </p>
                 </div>
               </div>
@@ -570,7 +570,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                   setSearchQuery('');
                   setMatchingResults([]);
                 }}
-                className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors flex-shrink-0"
+                className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#E4E4E7] text-slate-700 font-bold rounded-full text-xs flex items-center gap-1.5 shadow-sm transition-colors flex-shrink-0"
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>Cari Kata Kunci Lain</span>
@@ -583,20 +583,20 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                 <div
                   key={s.id || s.nis}
                   onClick={() => handleSelectSantri(s)}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-blue-500 hover:ring-2 hover:ring-blue-100 cursor-pointer transition-all flex flex-col justify-between gap-4 group"
+                  className="bg-white rounded-3xl border border-[#E4E4E7] p-5 shadow-sm hover:shadow-md hover:border-[#0B5FFF] cursor-pointer transition-all flex flex-col justify-between gap-4 group"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         {s.foto ? (
-                          <img src={s.foto} alt={s.nama} className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-sm flex-shrink-0" />
+                          <img src={s.foto} alt={s.nama} className="w-12 h-12 rounded-2xl object-cover border border-[#E4E4E7] shadow-sm flex-shrink-0" />
                         ) : (
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex items-center justify-center font-extrabold text-lg shadow-sm flex-shrink-0">
+                          <div className="w-12 h-12 rounded-2xl bg-[#0B5FFF] text-white flex items-center justify-center font-extrabold text-lg shadow-sm flex-shrink-0">
                             {(s.nama || s.name || '?').charAt(0)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <h3 className="font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors text-sm truncate">
+                          <h3 className="font-extrabold text-slate-900 group-hover:text-[#0B5FFF] transition-colors text-sm truncate">
                             {s.nama || s.name}
                           </h3>
                           <div className="text-[10px] font-mono text-slate-500 mt-0.5">
@@ -604,22 +604,22 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                           </div>
                         </div>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex-shrink-0 ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border flex-shrink-0 ${
                         s.gender === 'P' ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-blue-50 text-blue-700 border-blue-200'
                       }`}>
                         {s.gender === 'P' ? 'Akhwat' : 'Ikhwan'}
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px]">
+                    <div className="space-y-1.5 pt-2 border-t border-[#E4E4E7] text-[11px]">
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="text-slate-400">Kelas / Kamar:</span>
                         <span className="font-bold text-slate-700">{s.kelas || '-'} / {s.kamar || '-'}</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="text-slate-400">Wali Santri:</span>
-                        <span className="font-bold text-blue-700 flex items-center gap-1">
-                          <UserCheck className="w-3 h-3 text-blue-600" />
+                        <span className="font-bold text-[#0B5FFF] flex items-center gap-1">
+                          <UserCheck className="w-3 h-3 text-[#0B5FFF]" />
                           <span>{s.namaWali || '-'}</span>
                         </span>
                       </div>
@@ -634,7 +634,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
                   <button
                     type="button"
-                    className="w-full py-2 bg-slate-50 group-hover:bg-blue-600 text-slate-700 group-hover:text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    className="w-full py-2.5 bg-slate-50 group-hover:bg-[#0B5FFF] text-slate-700 group-hover:text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs"
                   >
                     <span>Pilih & Buka Portal Santri</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -646,9 +646,9 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
         ) : viewMode === 'detail' && santriData ? (
           <div className="space-y-6 animate-in fade-in">
             {/* Sub-bar Navigasi / Ganti Santri */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 px-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 px-5 rounded-2xl border border-[#E4E4E7] shadow-sm">
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
                 <span className="text-slate-500 text-xs font-medium">Santri Terpilih:</span>
                 <strong className="text-slate-900 text-xs font-extrabold truncate">{santriData.nama}</strong>
                 <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">• NIS: {santriData.nis || '-'}</span>
@@ -659,7 +659,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                   <button
                     type="button"
                     onClick={() => setViewMode('match_list')}
-                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+                    className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0B5FFF] font-bold rounded-full text-xs flex items-center gap-1.5 transition-colors border border-blue-100"
                   >
                     <Users className="w-3.5 h-3.5" />
                     <span>Daftar Hasil ({matchingResults.length})</span>
@@ -672,7 +672,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                     setSearchQuery('');
                     setSantriData(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
+                  className="px-3.5 py-1.5 bg-white hover:bg-slate-100 border border-[#E4E4E7] text-slate-700 font-bold rounded-full text-xs flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   <Search className="w-3.5 h-3.5 text-slate-500" />
                   <span>Cari Santri Lain</span>
@@ -681,9 +681,9 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
             </div>
             
             {/* Profil Ringkas Santri & Status Lokasi */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-800 text-white flex items-center justify-center font-extrabold text-xl shadow-md flex-shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-[#0B5FFF] text-white flex items-center justify-center font-extrabold text-xl shadow-sm flex-shrink-0">
                   {santriData.nama.charAt(0)}
                 </div>
                 <div>
@@ -691,7 +691,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                     <h2 className="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">
                       {santriData.nama}
                     </h2>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0B5FFF] font-bold text-[10px] border border-blue-200">
                       {santriData.gender === 'L' ? 'Ikhwan' : 'Akhwat'}
                     </span>
                   </div>
@@ -706,7 +706,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
               {/* Status Keberadaan / Perizinan */}
               {portalRawData?.location && (
-                <div className={`px-4 py-3 rounded-xl border flex items-center gap-3 w-full md:w-auto ${
+                <div className={`px-4 py-3 rounded-2xl border flex items-center gap-3 w-full md:w-auto ${
                   portalRawData.location.status === 'DI_PESANTREN'
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                     : portalRawData.location.status === 'OVERDUE'
@@ -722,44 +722,46 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
               )}
             </div>
 
-            {/* Grid 3 Kolom Ringkasan: Tabungan, Tunggakan, Status */}
+            {/* Grid 3 Kolom Ringkasan: Woot Bento (1 Solid Electric Blue + 2 White Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
-              {/* Saldo Uang Saku */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
-                <div className="flex items-center justify-between text-slate-400">
+              {/* Saldo Uang Saku (Solid Electric Blue Card) */}
+              <div className="bg-[#0B5FFF] text-white rounded-3xl p-6 shadow-sm space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-blue-100">
                   <span className="font-bold text-[11px] uppercase tracking-wider">Tabungan Uang Saku</span>
-                  <Wallet className="w-4 h-4 text-emerald-600" />
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Wallet className="w-4 h-4 text-[#7CFF4F]" />
+                  </div>
                 </div>
-                <div className="font-mono font-black text-xl text-emerald-600">
+                <div className="font-mono font-black text-2xl text-[#7CFF4F]">
                   Rp {parseFloat(santriData.saldo_saku || 0).toLocaleString('id-ID')}
                 </div>
-                <p className="text-[10px] text-slate-400">Dikelola Pengurus Saku untuk belanja kantin smart NFC.</p>
+                <p className="text-[10px] text-blue-100/80">Dikelola Pengurus Saku untuk belanja kantin smart NFC.</p>
               </div>
 
-              {/* Total Tunggakan Tagihan */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
+              {/* Total Tunggakan Tagihan (White Bento Card) */}
+              <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="font-bold text-[11px] uppercase tracking-wider">Total Tagihan Belum Dibayar</span>
                   <FileText className="w-4 h-4 text-rose-600" />
                 </div>
-                <div className="font-mono font-black text-xl text-rose-600">
+                <div className="font-mono font-black text-2xl text-rose-600">
                   Rp {(portalRawData?.financial?.totalTunggakan || 0).toLocaleString('id-ID')}
                 </div>
                 <p className="text-[10px] text-slate-400">Termasuk Syahriyah bulanan dan operasional asrama.</p>
               </div>
 
-              {/* Status Pembayaran */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
+              {/* Status Pembayaran (White Bento Card) */}
+              <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="font-bold text-[11px] uppercase tracking-wider">Status Tagihan</span>
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <CheckCircle2 className="w-4 h-4 text-[#0B5FFF]" />
                 </div>
-                <div className="flex items-center gap-2 font-bold text-xs">
-                  <span className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg">
-                    {portalRawData?.financial?.pendingCount || 0} Sedang Diproses
+                <div className="flex items-center gap-2 font-bold text-xs pt-1">
+                  <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg">
+                    {portalRawData?.financial?.pendingCount || 0} Menunggu ACC
                   </span>
-                  <span className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
+                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg">
                     {portalRawData?.financial?.paidCount || 0} Lunas
                   </span>
                 </div>
@@ -769,15 +771,15 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
             </div>
 
             {/* Section Tagihan & Pembayaran Mandiri */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden space-y-4 p-6 sm:p-7">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E4E7] pb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-slate-900">Tagihan & Kwitansi Pembayaran</h3>
+                    <h3 className="font-extrabold text-sm text-slate-900">Tagihan & Kwitansi Pembayaran</h3>
                     {isKingDigitalPgActive && (
-                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-900 border border-blue-200 rounded-md font-bold text-[9px] flex items-center gap-1">
-                        <CreditCard className="w-3 h-3 text-blue-700" />
-                        <span>King Digital Payment Gateway (Auto-Disburse)</span>
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-[#0B5FFF] border border-blue-200 rounded-full font-bold text-[9px] flex items-center gap-1">
+                        <CreditCard className="w-3 h-3 text-[#0B5FFF]" />
+                        <span>King Digital Gateway</span>
                       </span>
                     )}
                   </div>
@@ -789,10 +791,11 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                 {selectedBillIds.length > 0 && (
                   <button
                     onClick={handleStartPayment}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs"
+                    className="px-5 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center justify-center gap-2 text-xs"
                   >
                     <CreditCard className="w-4 h-4" />
                     <span>Bayar {selectedBillIds.length} Tagihan (Rp {totalPaymentAmount.toLocaleString('id-ID')})</span>
+                    <span>→</span>
                   </button>
                 )}
               </div>
@@ -801,7 +804,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <tr className="bg-[#FAFAF8] border-b border-[#E4E4E7] text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       <th className="py-3 px-3 w-10 text-center">Pilih</th>
                       <th className="py-3 px-3">Pos & Judul Tagihan</th>
                       <th className="py-3 px-3">Periode Hijriyah</th>
@@ -810,7 +813,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                       <th className="py-3 px-3 text-center">Aksi / Kwitansi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[#E4E4E7]">
                     {bills.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-400">
@@ -832,7 +835,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => handleToggleBill(b.id)}
-                                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                  className="w-4 h-4 rounded border-slate-300 text-[#0B5FFF] focus:ring-[#0B5FFF] cursor-pointer"
                                 />
                               ) : (
                                 <span className="text-slate-300">-</span>
@@ -870,7 +873,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                               {isPaid ? (
                                 <button
                                   onClick={() => handleOpenReceipt(b)}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-1 text-[11px] shadow-sm mx-auto"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full transition-colors flex items-center justify-center gap-1.5 text-[11px] shadow-xs mx-auto"
                                 >
                                   <Printer className="w-3 h-3" />
                                   <span>Download Kwitansi</span>
@@ -886,7 +889,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                                     setPaymentStep(1);
                                     setIsPaymentModalOpen(true);
                                   }}
-                                  className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold rounded-lg text-[11px] transition-colors"
+                                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0B5FFF] border border-blue-200 font-bold rounded-full text-[11px] transition-colors"
                                 >
                                   Bayar Sekarang
                                 </button>
@@ -904,7 +907,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
           </div>
         ) : (
-          /* Tampilan Hero Search & Direktori Seluruh Santri */
+          /* Tampilan Hero Search & Direktori Seluruh Santri (Woot UI) */
           <div className="space-y-6 animate-in fade-in">
             {error && (
               <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 flex items-start gap-3">
@@ -912,43 +915,45 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                 <div className="flex-1 space-y-1">
                   <div className="font-bold text-xs">{error}</div>
                   <p className="text-[11px] text-slate-500">
-                    Pastikan ejaan nama santri atau nomor NIS sudah benar, atau klik langsung pada kartu santri di bawah ini.
+                    Pastikan ejaan nama santri atau nomor NIS sudah benar, atau klik langsung pada kartu santri di bawah.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Hero Card */}
-            <div className="bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 rounded-3xl text-white p-6 sm:p-10 shadow-xl relative overflow-hidden">
-              <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-12 translate-y-12">
-                <Building2 className="w-80 h-80 text-white" />
-              </div>
-
-              <div className="max-w-2xl space-y-4 relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-blue-200 text-[11px] font-bold backdrop-blur-sm">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            {/* Woot Solid Electric Blue Hero Card */}
+            <div className="bg-[#0B5FFF] rounded-3xl text-white p-8 sm:p-12 shadow-sm relative overflow-hidden">
+              <div className="max-w-3xl space-y-5 relative z-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-white text-[11px] font-bold">
+                  <Building2 className="w-3.5 h-3.5 text-[#7CFF4F]" />
                   <span>Portal Mandiri Wali Santri Terpadu</span>
                 </div>
 
-                <h2 className="font-black text-xl sm:text-3xl leading-tight">
-                  Layanan Cek Tabungan, Status Santri & Pembayaran Syahriyah Online
+                <h2 className="font-extrabold text-2xl sm:text-4xl leading-tight text-white tracking-tight">
+                  Cek Tabungan Santri & Pembayaran{' '}
+                  <span className="relative inline-block px-1">
+                    <span className="relative z-10 text-white">Syahriyah Online</span>
+                    <svg className="absolute -bottom-1.5 left-0 w-full h-3 text-[#7CFF4F] -rotate-1 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none" fill="none">
+                      <path d="M2 14 C 20 6, 60 4, 98 12" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+                    </svg>
+                  </span>
                 </h2>
 
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Silakan cari nama santri atau nomor NIS untuk melihat saldo uang saku belanja kantin smart NFC, riwayat kepulangan/izin asrama, dan kwitansi resmi pembayaran syahriyah.
+                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
+                  Pantau saldo uang saku belanja kantin smart NFC, riwayat kepulangan & izin asrama santri, serta unduh kwitansi resmi pembayaran syahriyah langsung dari smartphone Anda.
                 </p>
 
-                {/* Big Search Input */}
+                {/* Woot Capsule Search Bar */}
                 <form onSubmit={handleSearch} className="pt-2">
-                  <div className="relative flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl shadow-2xl border border-white/20 text-slate-900">
-                    <div className="relative flex-1 flex items-center">
-                      <Search className="w-4 h-4 text-slate-400 ml-3" />
+                  <div className="relative flex flex-col sm:flex-row items-center gap-2 bg-white p-2 rounded-full shadow-lg border border-white/30 text-[#09090B]">
+                    <div className="relative flex-1 flex items-center w-full">
+                      <Search className="w-4 h-4 text-slate-400 ml-4 flex-shrink-0" />
                       <input
                         type="text"
                         placeholder="Masukkan Nama Santri, Nama Wali, atau NIS..."
                         value={searchQuery}
                         onChange={handleInputChange}
-                        className="w-full pl-3 pr-3 py-2 text-xs sm:text-sm bg-transparent focus:outline-none font-medium"
+                        className="w-full pl-3 pr-4 py-2.5 text-xs sm:text-sm bg-transparent focus:outline-none font-medium text-slate-900 placeholder:text-slate-400"
                       />
                       {searchQuery && (
                         <button
@@ -962,24 +967,24 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                     </div>
                     <button
                       type="submit"
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md text-xs sm:text-sm flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold transition-all shadow-xs text-xs sm:text-sm flex items-center justify-center gap-2 flex-shrink-0"
                     >
-                      <Search className="w-4 h-4" />
                       <span>Cari Santri</span>
+                      <span className="font-bold">→</span>
                     </button>
                   </div>
                 </form>
 
                 {/* Popular / Quick Santri Chips */}
                 {santriDirectory.length > 0 && (
-                  <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                    <span className="font-semibold text-slate-400">Pencarian Cepat:</span>
+                  <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] text-blue-100">
+                    <span className="font-semibold text-white">Pencarian Cepat:</span>
                     {santriDirectory.slice(0, 6).map((s) => (
                       <button
                         key={s.id || s.nis}
                         type="button"
                         onClick={() => handleSelectSantri(s)}
-                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-slate-200 transition-colors font-medium"
+                        className="px-3 py-1 bg-white/15 hover:bg-white/25 border border-white/20 rounded-full text-white transition-colors font-medium text-xs"
                       >
                         {s.nama || s.name}
                       </button>
@@ -989,12 +994,12 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
               </div>
             </div>
 
-            {/* Direktori Santri Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+            {/* Direktori Santri Section (Woot Bento Grid) */}
+            <div className="bg-white rounded-3xl border border-[#E4E4E7] p-6 sm:p-8 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E4E4E7] pb-4">
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#0B5FFF]" />
                     <span>Daftar Santri Terdaftar ({santriDirectory.length} Santri)</span>
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -1005,7 +1010,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
               {loadingDirectory ? (
                 <div className="py-8 text-center text-slate-400">
-                  <div className="inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <div className="inline-block w-5 h-5 border-2 border-[#0B5FFF] border-t-transparent rounded-full animate-spin mb-2"></div>
                   <p>Memuat daftar santri...</p>
                 </div>
               ) : santriDirectory.length === 0 ? (
@@ -1019,26 +1024,26 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                       key={s.id || s.nis}
                       type="button"
                       onClick={() => handleSelectSantri(s)}
-                      className="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl transition-all text-left flex items-center justify-between gap-3 group"
+                      className="p-3.5 bg-[#FAFAF8] hover:bg-white border border-[#E4E4E7] hover:border-[#0B5FFF] rounded-2xl transition-all text-left flex items-center justify-between gap-3 group shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {s.foto ? (
-                          <img src={s.foto} alt={s.nama} className="w-9 h-9 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+                          <img src={s.foto} alt={s.nama} className="w-9 h-9 rounded-xl object-cover border border-[#E4E4E7] flex-shrink-0" />
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#0B5FFF] font-bold flex items-center justify-center text-xs flex-shrink-0 group-hover:bg-[#0B5FFF] group-hover:text-white transition-colors">
                             {(s.nama || s.name || '?').charAt(0)}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-900 group-hover:text-blue-700 text-xs truncate">
+                          <div className="font-bold text-slate-900 group-hover:text-[#0B5FFF] text-xs truncate">
                             {s.nama || s.name}
                           </div>
                           <div className="text-[10px] text-slate-500 truncate">
-                            NIS: <span className="font-mono">{s.nis}</span> • Wali: <span className="text-blue-600 font-medium">{s.namaWali || '-'}</span>
+                            NIS: <span className="font-mono">{s.nis}</span> • Wali: <span className="text-[#0B5FFF] font-medium">{s.namaWali || '-'}</span>
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 flex-shrink-0 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#0B5FFF] flex-shrink-0 transition-colors" />
                     </button>
                   ))}
                 </div>
@@ -1049,46 +1054,46 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
       </main>
 
-      {/* 3. MODAL PEMBAYARAN 3-STEP RESMI */}
+      {/* 3. MODAL PEMBAYARAN 3-STEP RESMI (Woot UI) */}
       {isPaymentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in text-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-3xl shadow-2xl border border-[#E4E4E7] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Header Modal */}
-            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+            <div className="bg-[#0B5FFF] text-white p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow">
-                  <CreditCard className="w-4 h-4" />
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white font-bold shadow-sm">
+                  <CreditCard className="w-5 h-5 text-[#7CFF4F]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">Pembayaran Tagihan Online</h3>
-                  <p className="text-[10px] text-slate-400">
-                    {isKingDigitalPgActive ? 'King Digital Payment Gateway • Auto-Disbursement' : 'Langkah Verifikasi & Bukti Transfer'}
+                  <h3 className="font-extrabold text-sm text-white">Pembayaran Tagihan Online</h3>
+                  <p className="text-[10px] text-blue-100">
+                    {isKingDigitalPgActive ? 'King Digital Gateway • Auto-Disbursement' : 'Langkah Verifikasi & Bukti Transfer'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Stepper Wizard Bar */}
-            <div className="bg-slate-100 px-6 py-3 border-b border-slate-200 flex items-center justify-between text-[11px] font-bold">
-              <div className={`flex items-center gap-1.5 ${paymentStep >= 1 ? 'text-blue-600' : 'text-slate-400'}`}>
-                <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">1</span>
+            <div className="bg-[#FAFAF8] px-6 py-3.5 border-b border-[#E4E4E7] flex items-center justify-between text-[11px] font-bold">
+              <div className={`flex items-center gap-1.5 ${paymentStep >= 1 ? 'text-[#0B5FFF]' : 'text-slate-400'}`}>
+                <span className="w-5 h-5 rounded-full bg-[#0B5FFF] text-white flex items-center justify-center text-[10px]">1</span>
                 <span>Rincian</span>
               </div>
-              <div className="h-0.5 w-8 bg-slate-300"></div>
-              <div className={`flex items-center gap-1.5 ${paymentStep >= 2 ? 'text-blue-600' : 'text-slate-400'}`}>
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${paymentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-300 text-slate-600'}`}>2</span>
+              <div className="h-0.5 w-8 bg-[#E4E4E7]"></div>
+              <div className={`flex items-center gap-1.5 ${paymentStep >= 2 ? 'text-[#0B5FFF]' : 'text-slate-400'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${paymentStep >= 2 ? 'bg-[#0B5FFF] text-white' : 'bg-slate-300 text-slate-600'}`}>2</span>
                 <span>Metode</span>
               </div>
-              <div className="h-0.5 w-8 bg-slate-300"></div>
-              <div className={`flex items-center gap-1.5 ${paymentStep >= 3 ? 'text-blue-600' : 'text-slate-400'}`}>
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${paymentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-300 text-slate-600'}`}>3</span>
+              <div className="h-0.5 w-8 bg-[#E4E4E7]"></div>
+              <div className={`flex items-center gap-1.5 ${paymentStep >= 3 ? 'text-[#0B5FFF]' : 'text-slate-400'}`}>
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${paymentStep >= 3 ? 'bg-[#0B5FFF] text-white' : 'bg-slate-300 text-slate-600'}`}>3</span>
                 <span>Konfirmasi</span>
               </div>
             </div>
@@ -1097,7 +1102,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
               
               {paymentSuccessMsg ? (
-                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-3">
+                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
                   <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
                   <h4 className="font-bold text-sm text-emerald-900">Pembayaran Berhasil Terkirim!</h4>
                   <p className="text-[11px] text-emerald-700 leading-relaxed">{paymentSuccessMsg}</p>
@@ -1107,15 +1112,15 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                   {/* STEP 1: Verifikasi Rincian Tagihan */}
                   {paymentStep === 1 && (
                     <div className="space-y-4">
-                      <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-200">
-                        <div className="text-[10px] font-bold text-blue-700 uppercase">Santri Terpilih:</div>
-                        <div className="font-bold text-sm text-slate-900">{santriData?.nama}</div>
+                      <div className="p-4 bg-blue-50/70 rounded-2xl border border-blue-100">
+                        <div className="text-[10px] font-bold text-[#0B5FFF] uppercase">Santri Terpilih:</div>
+                        <div className="font-extrabold text-sm text-slate-900">{santriData?.nama}</div>
                         <div className="text-[11px] text-slate-500 font-mono">NIS: {santriData?.nis} • Kelas: {santriData?.kelas}</div>
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="font-bold text-slate-700 text-xs">Rincian Tagihan yang Dibayar:</div>
-                        <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                        <div className="divide-y divide-[#E4E4E7] border border-[#E4E4E7] rounded-2xl overflow-hidden">
                           {selectedBills.map(b => (
                             <div key={b.id} className="p-3 flex items-center justify-between bg-white text-xs">
                               <div>
@@ -1127,9 +1132,9 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                               </div>
                             </div>
                           ))}
-                          <div className="p-3 bg-slate-50 flex items-center justify-between font-bold border-t border-slate-200">
+                          <div className="p-3 bg-[#FAFAF8] flex items-center justify-between font-bold border-t border-[#E4E4E7]">
                             <span>TOTAL PEMBAYARAN:</span>
-                            <span className="font-mono text-base text-blue-700">
+                            <span className="font-mono text-base text-[#0B5FFF]">
                               Rp {totalPaymentAmount.toLocaleString('id-ID')}
                             </span>
                           </div>
@@ -1138,10 +1143,10 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
 
                       <button
                         onClick={() => setPaymentStep(2)}
-                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center justify-center gap-2"
                       >
                         <span>Lanjut Pilih Metode Transfer</span>
-                        <ChevronRight className="w-4 h-4" />
+                        <span className="font-bold">→</span>
                       </button>
                     </div>
                   )}
@@ -1263,21 +1268,21 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                         </div>
                       )}
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2.5 pt-2">
                         <button
                           type="button"
                           onClick={() => setPaymentStep(1)}
-                          className="w-1/3 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl"
+                          className="w-1/3 py-3 border border-[#E4E4E7] text-slate-700 font-bold rounded-full hover:bg-slate-50 transition-colors"
                         >
                           Kembali
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentStep(3)}
-                          className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+                          className="flex-1 py-3 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center justify-center gap-2"
                         >
-                          <span>{paymentMethod === 'KING_DIGITAL_PG' ? 'Lanjut Konfirmasi Gateway' : 'Lanjut Unggah Bukti Transfer'}</span>
-                          <ChevronRight className="w-4 h-4" />
+                          <span>{paymentMethod === 'KING_DIGITAL_PG' ? 'Lanjut Konfirmasi Gateway' : 'Lanjut Unggah Bukti'}</span>
+                          <span className="font-bold">→</span>
                         </button>
                       </div>
                     </div>
@@ -1288,11 +1293,11 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                     <form onSubmit={handleSubmitProof} className="space-y-4">
                       
                       {paymentMethod === 'KING_DIGITAL_PG' ? (
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-center">
-                          <div className="w-12 h-12 rounded-2xl bg-[#1E3A8A] text-white flex items-center justify-center mx-auto shadow-sm">
-                            <CreditCard className="w-6 h-6 text-amber-300" />
+                        <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-3 text-center">
+                          <div className="w-12 h-12 rounded-2xl bg-[#0B5FFF] text-white flex items-center justify-center mx-auto shadow-sm">
+                            <CreditCard className="w-6 h-6 text-[#7CFF4F]" />
                           </div>
-                          <h4 className="font-bold text-slate-900 text-sm">Pembayaran Instan King Digital Payment</h4>
+                          <h4 className="font-extrabold text-slate-900 text-sm">Pembayaran Instan King Digital Payment</h4>
                           <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
                             Klik tombol di bawah untuk menyelesaikan pembayaran. Sistem akan memverifikasi lunas secara real-time dan menerbitkan kwitansi resmi.
                           </p>
@@ -1301,10 +1306,10 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                         <>
                           <div>
                             <label className="block font-bold text-slate-700 mb-1">Unggah Foto / Screenshot Bukti Transfer *</label>
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:bg-slate-50 transition-colors">
+                            <div className="border-2 border-dashed border-[#E4E4E7] rounded-2xl p-5 text-center hover:bg-slate-50 transition-colors">
                               {proofPreview ? (
                                 <div className="space-y-2">
-                                  <img src={proofPreview} alt="Bukti" className="max-h-36 mx-auto rounded-lg shadow-sm border border-slate-200" />
+                                  <img src={proofPreview} alt="Bukti" className="max-h-36 mx-auto rounded-xl shadow-xs border border-[#E4E4E7]" />
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1319,7 +1324,7 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                               ) : (
                                 <label className="cursor-pointer block space-y-1">
                                   <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                                  <span className="font-bold text-blue-600 block">Klik untuk memilih file bukti transfer</span>
+                                  <span className="font-bold text-[#0B5FFF] block">Klik untuk memilih file bukti transfer</span>
                                   <span className="text-[10px] text-slate-400 block">Format JPG, PNG, atau Screenshot M-Banking</span>
                                   <input type="file" accept="image/*" required onChange={handleFileChange} className="hidden" />
                                 </label>
@@ -1334,26 +1339,27 @@ export default function PortalWaliPublic({ initialQuery = '', onBackToHome, onNa
                               placeholder="Contoh: Transfer via rekening BSI a.n Hendra Gunawan"
                               value={notes}
                               onChange={(e) => setNotes(e.target.value)}
-                              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 text-xs"
+                              className="w-full px-3.5 py-2 border border-[#E4E4E7] rounded-xl focus:ring-1 focus:ring-[#0B5FFF] text-xs"
                             />
                           </div>
                         </>
                       )}
 
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-2.5 pt-2">
                         <button
                           type="button"
                           onClick={() => setPaymentStep(2)}
-                          className="w-1/3 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl"
+                          className="w-1/3 py-3 border border-[#E4E4E7] text-slate-700 font-bold rounded-full hover:bg-slate-50 transition-colors"
                         >
                           Kembali
                         </button>
                         <button
                           type="submit"
                           disabled={submittingPayment || (paymentMethod !== 'KING_DIGITAL_PG' && !proofPreview)}
-                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          className="flex-1 py-3 bg-[#7CFF4F] hover:bg-[#6be83e] text-[#09090B] font-extrabold rounded-full shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                           {submittingPayment ? 'Memproses Pembayaran...' : (paymentMethod === 'KING_DIGITAL_PG' ? 'Bayar & Terbitkan Kwitansi Instan' : 'Kirim Bukti Pembayaran')}
+                          <span>→</span>
                         </button>
                       </div>
                     </form>

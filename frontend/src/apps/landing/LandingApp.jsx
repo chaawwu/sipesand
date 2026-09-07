@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import LandingPageEnterprise from './LandingPageEnterprise';
+import PricingPage from '../../pages/PricingPage';
 import FaqPage from '../../pages/FaqPage';
 import RefundPolicyPage from '../../pages/RefundPolicyPage';
 import TermsConditionsPage from '../../pages/TermsConditionsPage';
@@ -14,6 +15,7 @@ function LandingContent() {
     const path = window.location.pathname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     const view = searchParams.get('view') || searchParams.get('page');
+    if (path.includes('/pricing') || path.includes('/paket') || path.includes('/berlangganan') || view === 'pricing' || view === 'paket') return 'pricing';
     if (path.includes('/faq') || view === 'faq') return 'faq';
     if (path.includes('/refund') || view === 'refund-policy') return 'refund-policy';
     if (path.includes('/terms') || path.includes('/condition') || view === 'terms-and-conditions') return 'terms-and-conditions';
@@ -41,7 +43,15 @@ function LandingContent() {
     }
   };
 
-  // Sub-halaman legalitas / kebijakan
+  // Sub-halaman legalitas / kebijakan / pricing
+  if (subView === 'pricing') {
+    return (
+      <PricingPage
+        onBackToHome={() => setSubView('main')}
+        onNavigateApp={handleNavigateApp}
+      />
+    );
+  }
   if (subView === 'faq') return <FaqPage onBackToHome={() => setSubView('main')} />;
   if (subView === 'refund-policy') return <RefundPolicyPage onBackToHome={() => setSubView('main')} />;
   if (subView === 'terms-and-conditions') return <TermsConditionsPage onBackToHome={() => setSubView('main')} />;
@@ -52,7 +62,8 @@ function LandingContent() {
       <LandingPageEnterprise
         onNavigateApp={handleNavigateApp}
         onNavigateMitra={handleNavigateMitra}
-        onOpenRegisterModal={handleNavigateApp}
+        onNavigatePricing={() => setSubView('pricing')}
+        onOpenRegisterModal={() => setSubView('pricing')}
       />
 
       {/* Modal Login Petugas */}

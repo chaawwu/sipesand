@@ -128,60 +128,60 @@ export default function Ledger() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 3 Kartu Ringkasan Buku Kas */}
+    <div className="space-y-6 text-xs font-sans">
+      {/* 3 Kartu Ringkasan Buku Kas Woot Style */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Pemasukan */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-3xl p-6 border border-[#E4E4E7] shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Kas Masuk</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <ArrowDownLeft className="w-5 h-5" />
+            <span className="text-[11px] font-black text-zinc-500 uppercase tracking-wider">Total Kas Masuk</span>
+            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-emerald-600">
+          <div className="mt-4 text-2xl sm:text-3xl font-black text-[#18181B]">
             Rp {(summary?.totalIncome || 0).toLocaleString('id-ID')}
           </div>
-          <div className="text-xs text-slate-400 mt-1">{summary?.countIncome || 0} transaksi masuk</div>
+          <div className="text-[11px] text-zinc-400 font-medium mt-1">{summary?.countIncome || 0} transaksi masuk terdata</div>
         </div>
 
         {/* Pengeluaran */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-3xl p-6 border border-[#E4E4E7] shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Kas Keluar</span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-              <ArrowUpRight className="w-5 h-5" />
+            <span className="text-[11px] font-black text-zinc-500 uppercase tracking-wider">Total Kas Keluar</span>
+            <div className="w-9 h-9 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+              <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-rose-600">
+          <div className="mt-4 text-2xl sm:text-3xl font-black text-[#FF7A00]">
             Rp {(summary?.totalExpense || 0).toLocaleString('id-ID')}
           </div>
-          <div className="text-xs text-slate-400 mt-1">{summary?.countExpense || 0} transaksi keluar</div>
+          <div className="text-[11px] text-zinc-400 font-medium mt-1">{summary?.countExpense || 0} pengeluaran operasional</div>
         </div>
 
-        {/* Saldo Kas Pesantren */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        {/* Saldo Kas Pesantren: SOLID BLUE (#0B5FFF) */}
+        <div className="bg-[#0B5FFF] text-white rounded-3xl p-6 shadow-md flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Kas Saat Ini</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-              <BookOpen className="w-5 h-5" />
+            <span className="text-[11px] font-black text-[#7CFF4F] uppercase tracking-wider">Saldo Kas Bersih</span>
+            <div className="w-9 h-9 rounded-2xl bg-white/10 text-white flex items-center justify-center border border-white/20">
+              <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-slate-800">
+          <div className="mt-4 text-2xl sm:text-3xl font-black text-white">
             Rp {(summary?.currentBalance || 0).toLocaleString('id-ID')}
           </div>
-          <div className="text-xs text-slate-400 mt-1">Status Keuangan Terpadu</div>
+          <div className="text-[11px] text-white/80 font-medium mt-1">Status Keuangan Terpadu Pesantren</div>
         </div>
       </div>
 
-      {/* Action Bar & Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Action Bar & Filter Woot Style */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm">
         <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-zinc-400 ml-2" />
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:ring-2 focus:ring-emerald-500 text-slate-700 font-medium"
+            className="px-4 py-2 border border-zinc-200 rounded-full text-xs bg-white text-zinc-700 font-bold focus:outline-none focus:ring-2 focus:ring-[#0B5FFF]"
           >
             <option value="">Semua Arus Kas</option>
             <option value="INCOME">Kas Masuk Saja (INCOME)</option>
@@ -193,28 +193,28 @@ export default function Ledger() {
           {/* Tombol Buka Generator Kwitansi */}
           <button
             onClick={() => handleOpenReceiptForEntry(null)}
-            className="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7CFF4F] hover:bg-[#6be83f] text-[#18181B] text-xs font-black rounded-2xl shadow-sm transition-all uppercase tracking-wider"
           >
-            <Receipt className="w-4 h-4" />
-            <span>Cetak Kwitansi Resmi</span>
+            <Receipt className="w-4 h-4 stroke-[2.5]" />
+            <span>Cetak Kwitansi</span>
           </button>
 
           <button
             onClick={handleOpenModal}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white text-xs font-black rounded-2xl shadow-sm transition-all uppercase tracking-wider"
           >
-            <Plus className="w-4 h-4" />
-            <span>Catat Transaksi Kas Baru</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Catat Kas Baru</span>
           </button>
         </div>
       </div>
 
-      {/* Tabel Buku Kas */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Tabel Buku Kas Bento */}
+      <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-black text-zinc-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4">No. Bukti / Kode</th>
                 <th className="py-3.5 px-4">Tanggal</th>
                 <th className="py-3.5 px-4">Kategori & Keterangan</th>

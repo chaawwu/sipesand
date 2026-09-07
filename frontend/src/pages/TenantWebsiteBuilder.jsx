@@ -13,7 +13,6 @@ import {
   ShieldCheck, 
   Calendar, 
   UserCheck, 
-  Sparkles, 
   Layers, 
   Sliders, 
   MapPin, 

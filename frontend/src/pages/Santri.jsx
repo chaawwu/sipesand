@@ -238,24 +238,24 @@ export default function Santri({ onOpenNfcModal }) {
   return (
     <div className="space-y-6 text-xs">
       
-      {/* Top Filter & Actions Header */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Top Filter & Actions Header Woot Style */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-[#E4E4E7] shadow-sm">
         <div className="flex flex-1 items-center gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari nama, NIS, NFC UID, kamar, alamat..."
+              placeholder="Cari nama, NIS, kamar, alamat..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+              className="w-full pl-10 pr-3.5 py-2.5 border border-zinc-200 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#0B5FFF] bg-zinc-50/70 text-zinc-900 placeholder-zinc-400"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+            className="px-4 py-2.5 border border-zinc-200 rounded-full text-xs font-bold bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#0B5FFF]"
           >
             <option value="">Semua Status</option>
             <option value="AKTIF">Status: Aktif</option>
@@ -268,46 +268,46 @@ export default function Santri({ onOpenNfcModal }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsFirebaseModalOpen(true)}
-            className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold transition-colors flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2.5 bg-[#FF7A00] hover:bg-orange-600 text-white rounded-2xl font-bold transition-all flex items-center gap-1.5 shadow-sm text-xs"
           >
             <Database className="w-4 h-4" />
-            <span>Import Firebase</span>
+            <span>Import Data</span>
           </button>
 
           <button
             onClick={handleExportData}
-            className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors flex items-center gap-1.5 border border-slate-300"
+            className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-2xl font-bold transition-all flex items-center gap-1.5 border border-zinc-200 text-xs"
           >
             <Download className="w-4 h-4" />
-            <span>Export ID Data</span>
+            <span>Export Data</span>
           </button>
 
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5"
+            className="px-5 py-2.5 bg-[#0B5FFF] hover:bg-blue-700 text-white rounded-2xl font-black shadow-sm transition-all flex items-center gap-1.5 text-xs uppercase tracking-wide"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
             <span>Tambah Santri</span>
           </button>
         </div>
       </div>
 
-      {/* Santri Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Santri Table Bento */}
+      <div className="bg-white rounded-3xl border border-[#E4E4E7] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4">Santri</th>
-                <th className="py-3.5 px-4">Kelas & Kamar</th>
-                <th className="py-3.5 px-4">Alamat Domisili</th>
-                <th className="py-3.5 px-4">Kartu Smart NFC</th>
-                <th className="py-3.5 px-4">Saldo Saku</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-center">Aksi & ID Card</th>
+              <tr className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-black text-zinc-500 uppercase tracking-wider">
+                <th className="py-4 px-5">Santri</th>
+                <th className="py-4 px-4">Kelas & Kamar</th>
+                <th className="py-4 px-4">Alamat Domisili</th>
+                <th className="py-4 px-4">Smart NFC</th>
+                <th className="py-4 px-4">Saldo Saku</th>
+                <th className="py-4 px-4">Status</th>
+                <th className="py-4 px-5 text-center">Aksi & KTS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-zinc-100">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-slate-400">
@@ -395,33 +395,33 @@ export default function Santri({ onOpenNfcModal }) {
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {/* Tombol Cetak KTSD / ID Card ATM */}
+                        {/* Tombol Cetak KTS / ID Card ATM */}
                         <button
                           onClick={() => handleOpenIdCard(santri)}
-                          className="px-2 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-[11px] font-bold shadow-sm transition-all flex items-center gap-1"
-                          title="Cetak Kartu Tanda Santri (ID Card ATM)"
+                          className="px-2.5 py-1.5 bg-[#7CFF4F] hover:bg-[#6be83f] text-[#18181B] rounded-xl text-[11px] font-black shadow-sm transition-all flex items-center gap-1"
+                          title="Cetak Kartu Tanda Santri (KTS Digital)"
                         >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>Cetak KTSD</span>
+                          <CreditCard className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Cetak KTS</span>
                         </button>
 
                         <button
                           onClick={() => handleOpenDetail(santri.id)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-500 hover:text-[#0B5FFF] hover:bg-blue-50 rounded-xl transition-colors"
                           title="Lihat Detail & Mutasi"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEdit(santri)}
-                          className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
                           title="Edit Data"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(santri.id, santri.nama)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1.5 text-zinc-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                           title="Hapus"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -438,17 +438,22 @@ export default function Santri({ onOpenNfcModal }) {
 
       {/* Modal Form Create/Edit */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200">
-            <div className="bg-blue-700 text-white px-6 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-sm">
-                {isEditing ? 'Edit Data Santri' : 'Tambah Santri Baru'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-zinc-200">
+            <div className="bg-[#0B5FFF] text-white px-6 py-5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#7CFF4F] block">
+                  MANAJEMEN DATA INDUK SANTRI
+                </span>
+                <h3 className="font-black text-base text-white mt-0.5">
+                  {isEditing ? 'Edit Data Santri' : 'Tambah Santri Baru'}
+                </h3>
+              </div>
               <button
                 onClick={() => setIsFormOpen(false)}
-                className="text-white hover:opacity-80"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-xs"
               >
-                <X className="w-4 h-4" />
+                ✕
               </button>
             </div>
 
