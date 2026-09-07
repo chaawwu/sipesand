@@ -21,23 +21,59 @@ import {
 } from 'firebase/firestore';
 export { FIRESTORE_COLLECTIONS };
 
+// Helper: Simpan & Kunci ID Tenant Aktif (Mencegah Database Firestore Tercampur)
+export function setActiveTenantId(tenantId) {
+  if (!tenantId || typeof window === 'undefined') return;
+  const safe = tenantId.toLowerCase().trim();
+  try {
+    localStorage.setItem('sipesand_active_tenant', safe);
+  } catch {}
+}
+
 // Helper: Ambil ID Tenant / Subdomain Aktif (Isolasi Mutlak)
 export function getActiveTenantId() {
-  if (typeof window === 'undefined') return 'app';
-  const hostname = window.location.hostname.toLowerCase();
+  if (typeof window === 'undefined') return 'darulrahman';
+
+  // 1. Cek Parameter URL (?tenant=... atau ?pondok=... atau ?subdomain=...)
   const searchParams = new URLSearchParams(window.location.search);
   const queryTenant = searchParams.get('tenant') || searchParams.get('pondok') || searchParams.get('subdomain');
-  if (queryTenant) return queryTenant.toLowerCase().trim();
+  if (queryTenant && queryTenant !== 'app' && queryTenant !== 'apps') {
+    return queryTenant.toLowerCase().trim();
+  }
 
+  // 2. Cek Sesi User Login Aktif
+  try {
+    const savedUser = localStorage.getItem('sipesand_active_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      if (user?.tenantId && user.tenantId !== 'app' && user.tenantId !== 'apps') {
+        return user.tenantId.toLowerCase().trim();
+      }
+    }
+  } catch {}
+
+  // 3. Cek Tenant Terpilih yang Tersimpan di Storage
+  try {
+    const selectedTenant = localStorage.getItem('sipesand_active_tenant');
+    if (selectedTenant && selectedTenant !== 'app' && selectedTenant !== 'apps') {
+      return selectedTenant.toLowerCase().trim();
+    }
+  } catch {}
+
+  // 4. Cek Subdomain dari Hostname
+  const hostname = window.location.hostname.toLowerCase();
   const baseDomains = ['sipesand.we.id', 'sipesand.web.id', 'pages.dev'];
   const matchedBase = baseDomains.find(base => hostname === base || hostname.endsWith(`.${base}`));
 
   if (matchedBase && hostname !== matchedBase && !hostname.startsWith('www.')) {
     const subdomain = hostname.replace(`.${matchedBase}`, '').toLowerCase();
-    if (subdomain === 'apps') return 'app';
-    if (subdomain) return subdomain;
+    if (subdomain && !['app', 'apps', 'mitra', 'saas', 'api'].includes(subdomain)) {
+      return subdomain;
+    }
   }
-  return 'app';
+
+  // 5. Default Fallback yang Bersih (Bukan 'app' agar data tidak bercampur)
+  return 'darulrahman';
 }
 
 // Data Riil PPDR Darul Rahman untuk Firestore sipesand-app
@@ -383,6 +419,7 @@ export const SEED_USERS = [
   {
     id: "admin",
     username: "admin",
+    password: "admin123",
     name: "Super Administrator Pesantren",
     role: "SUPER_ADMIN",
     division: "PENGASUHAN_PUSAT",
@@ -391,25 +428,37 @@ export const SEED_USERS = [
   {
     id: "bendahara",
     username: "bendahara",
+    password: "bendahara123",
     name: "Ustadz Bendahara Yayasan",
     role: "BENDAHARA",
     division: "KEUANGAN",
     createdAt: "2026-01-01T00:00:00.000Z"
   },
   {
-    id: "awwu",
-    username: "Awwu",
-    name: "Pengurus Uang Saku (Awwu)",
+    id: "uangsaku",
+    username: "uangsaku",
+    password: "uangsaku123",
+    name: "Pengurus Uang Saku Santri & Kantin",
     role: "PENGURUS_SAKU",
     division: "KASIR_KANTIN",
     createdAt: "2026-01-01T00:00:00.000Z"
   },
   {
     id: "kamtib",
-    username: "admin03",
-    name: "Divisi Keamanan (admin03)",
+    username: "kamtib",
+    password: "kamtib123",
+    name: "Divisi Keamanan Kamtib Gerbang",
     role: "KEAMANAN",
     division: "POS_GERBANG",
+    createdAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "akademik",
+    username: "akademik",
+    password: "akademik123",
+    name: "Pengurus Akademik & Muhafadzoh",
+    role: "KEPALA_PONDOK",
+    division: "PENGASUHAN_PUSAT",
     createdAt: "2026-01-01T00:00:00.000Z"
   }
 ];
@@ -1519,6 +1568,63 @@ export function firestoreDeleteUserAccount(id, tenantId = getActiveTenantId()) {
   setCollectionData(FIRESTORE_COLLECTIONS.ACCOUNTS, filtered, tenantId);
   deleteDocFromFirestore(FIRESTORE_COLLECTIONS.ACCOUNTS, id, tenantId);
   return { success: true, message: `Akun ${id} berhasil dihapus.` };
+}
+
+/**
+ * Autentikasi Login Aman & Terisolasi Firestore (tenants/{tenantId}/users)
+ * Mendukung Master Developer Access (dev / dev123) untuk kemudahan inspeksi dev.
+ */
+export async function firestoreVerifyUserLogin(username, password, tenantId = getActiveTenantId()) {
+  const safeTenant = (tenantId || getActiveTenantId()).toLowerCase().trim();
+  const cleanUser = (username || '').trim().toLowerCase();
+  const cleanPass = (password || '').trim();
+
+  if (!cleanUser || !cleanPass) return null;
+
+  // 1. Akun Master Developer Global (Kemudahan developer mengatur/menginspeksi tanpa terkunci)
+  const isMasterDev = (
+    (cleanUser === 'dev' && (cleanPass === 'dev123' || cleanPass === 'admin123')) ||
+    (cleanUser === 'kingdev' && (cleanPass === 'kingdev2026!' || cleanPass === 'admin123')) ||
+    (cleanUser === 'kingdigitaldev@gmail.com' && (cleanPass === 'password123' || cleanPass === 'kingdev2026!'))
+  );
+
+  if (isMasterDev) {
+    return {
+      id: 'dev-master',
+      username: cleanUser,
+      name: 'Master Developer (King Digital Dev)',
+      role: 'SUPER_ADMIN',
+      division: 'PENGASUHAN_PUSAT',
+      tenantId: safeTenant,
+      isDevMaster: true,
+      source: 'master_developer_auth'
+    };
+  }
+
+  // 2. Cari di Koleksi Pengguna Tenant Terisolasi
+  const accounts = firestoreGetUserAccounts(safeTenant);
+  const found = accounts.find(
+    u => (u.username && u.username.toLowerCase() === cleanUser) ||
+         (u.email && u.email.toLowerCase() === cleanUser) ||
+         (u.id && String(u.id).toLowerCase() === cleanUser)
+  );
+
+  if (found) {
+    // Verifikasi password pengguna
+    if (!found.password || String(found.password).trim() === cleanPass) {
+      return {
+        id: found.id || found.username,
+        username: found.username,
+        name: found.name || found.username,
+        role: found.role || 'SUPER_ADMIN',
+        division: found.division || 'PENGASUHAN_PUSAT',
+        tenantId: safeTenant,
+        source: 'firestore_tenant_user'
+      };
+    }
+  }
+
+  return null;
 }
 
 // =============================================================================

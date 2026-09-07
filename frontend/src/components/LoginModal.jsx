@@ -15,7 +15,7 @@ import {
 import { loginUser } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 import { firebaseLoginUser } from '../services/firebaseConfig';
-import { getActiveTenantId } from '../services/firestoreService';
+import { getActiveTenantId, setActiveTenantId, firestoreVerifyUserLogin } from '../services/firestoreService';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
   if (!isOpen) return null;
@@ -62,27 +62,39 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       setLoading(true);
       setErrorMsg('');
 
-      // 1. Coba Autentikasi Menggunakan Firebase (Firebase Auth / Sub-Koleksi Firestore: tenants/{tenantId}/users)
-      try {
-        const tenantId = getActiveTenantId();
-        const fbUser = await firebaseLoginUser(cleanEmail, cleanPass, tenantId);
-        if (fbUser) {
-          onLoginSuccess({
-            ...fbUser,
-            pesantren: namaPesantren,
-            isActive: true
-          });
-          onClose();
-          return;
-        }
-      } catch (fbErr) {
-        console.warn('[LoginModal] Firebase login attempt:', fbErr?.message);
+      const tenantId = getActiveTenantId();
+
+      // 1. Coba Autentikasi Firebase (Master Dev, Firebase Auth, Firestore tenant users)
+      const fbUser = await firebaseLoginUser(cleanEmail, cleanPass, tenantId);
+      if (fbUser) {
+        setActiveTenantId(fbUser.tenantId || tenantId);
+        onLoginSuccess({
+          ...fbUser,
+          pesantren: namaPesantren,
+          isActive: true
+        });
+        onClose();
+        return;
       }
 
-      // 2. Coba login ke API Backend Server
+      // 2. Coba Autentikasi Firestore User (tenants/{tenantId}/users)
+      const fsUser = await firestoreVerifyUserLogin(cleanEmail, cleanPass, tenantId);
+      if (fsUser) {
+        setActiveTenantId(fsUser.tenantId || tenantId);
+        onLoginSuccess({
+          ...fsUser,
+          pesantren: namaPesantren,
+          isActive: true
+        });
+        onClose();
+        return;
+      }
+
+      // 3. Coba login ke API Backend Server
       try {
         const res = await loginUser({ username: cleanEmail, password: cleanPass });
         if (res?.data?.success && res?.data?.user) {
+          setActiveTenantId(res.data.user.tenantId || tenantId);
           onLoginSuccess(res.data.user);
           onClose();
           return;
@@ -91,43 +103,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         console.warn('[LoginModal] API Backend response:', apiErr?.message);
       }
 
-      // 2. Client Authentication Per-Role & Superadmin
-      let determinedRole = 'SUPER_ADMIN';
-      let determinedDivision = 'PENGASUHAN_PUSAT';
-      let determinedName = `Superadmin (${namaPesantren})`;
-
-      if (cleanEmail.includes('bendahara')) {
-        determinedRole = 'BENDAHARA';
-        determinedDivision = 'KEUANGAN';
-        determinedName = 'Ustadz Bendahara Yayasan';
-      } else if (cleanEmail.includes('pengasuh') || cleanEmail.includes('kepala')) {
-        determinedRole = 'KEPALA_PONDOK';
-        determinedDivision = 'PENGASUHAN_PUSAT';
-        determinedName = settings?.NAMA_KEPALA_PONDOK || 'K.H. Syarif Hidayatullah, M.A.';
-      } else if (cleanEmail.includes('saku') || cleanEmail.includes('kantin')) {
-        determinedRole = 'PENGURUS_SAKU';
-        determinedDivision = 'KASIR_KANTIN';
-        determinedName = 'Pengurus Uang Saku & Kantin Smart';
-      } else if (cleanEmail.includes('kamtib') || cleanEmail.includes('keamanan')) {
-        determinedRole = 'KEAMANAN';
-        determinedDivision = 'POS_GERBANG';
-        determinedName = 'Divisi Keamanan Kamtib Gerbang';
-      }
-
-      const activeUser = {
-        id: Date.now(),
-        username: cleanEmail,
-        email: cleanEmail,
-        name: determinedName,
-        role: determinedRole,
-        division: determinedDivision,
-        pesantren: namaPesantren,
-        isActive: true
-      };
-
-      onLoginSuccess(activeUser);
-      onClose();
-
+      setErrorMsg(`Username atau password salah untuk ${namaPesantren}. (Tips Dev: Gunakan dev / dev123).`);
     } catch (err) {
       setErrorMsg('Terjadi kesalahan saat memproses login.');
     } finally {
@@ -250,52 +226,45 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             <div className="grid grid-cols-2 gap-1.5 text-[10px]">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin', 'admin')}
-                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
+                onClick={() => handleQuickFill('dev', 'dev123')}
+                className="p-1.5 rounded-lg border border-indigo-200 hover:border-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-left font-bold text-indigo-900 truncate"
               >
-                🔑 Admin Utama (PPDR)
+                ⚡ Master Dev (dev/dev123)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('Awwu', '12345')}
+                onClick={() => handleQuickFill('admin', 'admin123')}
                 className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
               >
-                💰 Pengurus Saku (Awwu)
+                🔑 Admin (admin123)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin03', '12345')}
+                onClick={() => handleQuickFill('bendahara', 'bendahara123')}
                 className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
               >
-                🛡️ Keamanan (admin03)
+                💰 Bendahara (bendahara123)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@darulrahman.sch.id', 'admin123')}
+                onClick={() => handleQuickFill('uangsaku', 'uangsaku123')}
                 className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
               >
-                🔑 Superadmin
+                💳 Pengurus Saku (uangsaku123)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('bendahara@darulrahman.sch.id', 'admin123')}
+                onClick={() => handleQuickFill('kamtib', 'kamtib123')}
                 className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
               >
-                💰 Bendahara
+                🛡️ Kamtib Gerbang (kamtib123)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('pengasuh@darulrahman.sch.id', 'admin123')}
+                onClick={() => handleQuickFill('akademik', 'akademik123')}
                 className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
               >
-                📖 Kepala Pondok
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('kamtib@darulrahman.sch.id', 'admin123')}
-                className="p-1.5 rounded-lg border border-slate-200 hover:border-emerald-600 bg-slate-50 hover:bg-emerald-50/50 text-left font-semibold text-slate-700 truncate"
-              >
-                🛡️ Pos Keamanan
+                📖 Akademik (akademik123)
               </button>
             </div>
           </div>

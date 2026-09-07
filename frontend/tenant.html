@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <!-- ========================================================================== -->
+    <!-- FRONTEND TENANT PESANTREN ([namapondok].sipesand.web.id)                   -->
+    <!-- Halaman website publik resmi untuk masing-masing pondok pesantren.         -->
+    <!-- Anda dapat mengedit judul, meta tag, icon, dan elemen HTML website santri/  -->
+    <!-- tenant ini secara mandiri di sini.                                         -->
+    <!-- ========================================================================== -->
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#1D4ED8" />
+
+    <title>Portal Resmi Pesantren - SiPesand Tenant</title>
+
+    <!-- Google Fonts: Righteous (Logo), Poppins (Headings), Inter (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800;900&family=Righteous&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#F8FAFC] text-[#111827] antialiased font-['Inter',sans-serif]">
+    <!-- Kontainer Root React Website Tenant ([namapondok].sipesand.web.id) -->
+    <div id="root"></div>
+
+    <!-- Script Entry Point Mandiri Website Tenant Pesantren -->
+    <script type="module" src="/src/apps/tenant/main.jsx"></script>
+
+    <!-- Service Worker PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

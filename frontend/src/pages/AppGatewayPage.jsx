@@ -17,6 +17,8 @@ import {
   UserCheck
 } from 'lucide-react';
 import { loginUser } from '../services/api';
+import { firebaseLoginUser } from '../services/firebaseConfig';
+import { setActiveTenantId, firestoreVerifyUserLogin } from '../services/firestoreService';
 
 export default function AppGatewayPage({ 
   onLoginSuccess, 
@@ -79,75 +81,53 @@ export default function AppGatewayPage({
       setLoading(true);
       setErrorMsg('');
 
-      // Coba autentikasi ke backend API
+      const matchedPesantren = registeredPesantrens.find(p => p.subdomain === selectedSubdomain);
+      const tenantId = selectedSubdomain || 'darulrahman';
+
+      // 1. Kunci tenant terpilih di storage agar database Firestore terisolasi
+      setActiveTenantId(tenantId);
+
+      // 2. Verifikasi Autentikasi Firebase (Master Dev, Firebase Auth, Firestore tenant users)
+      const fbUser = await firebaseLoginUser(cleanUser, cleanPass, tenantId);
+      if (fbUser) {
+        onLoginSuccess({
+          ...fbUser,
+          tenantId,
+          pesantren: matchedPesantren?.name || tenantId,
+          isActive: true
+        });
+        return;
+      }
+
+      // 3. Verifikasi Autentikasi Firestore User (tenants/{tenantId}/users)
+      const fsUser = await firestoreVerifyUserLogin(cleanUser, cleanPass, tenantId);
+      if (fsUser) {
+        onLoginSuccess({
+          ...fsUser,
+          tenantId,
+          pesantren: matchedPesantren?.name || tenantId,
+          isActive: true
+        });
+        return;
+      }
+
+      // 4. Coba autentikasi ke backend API
       try {
         const res = await loginUser({ username: cleanUser, password: cleanPass });
         if (res?.data?.success && res?.data?.user) {
-          onLoginSuccess(res.data.user);
+          onLoginSuccess({
+            ...res.data.user,
+            tenantId,
+            pesantren: matchedPesantren?.name || tenantId,
+            isActive: true
+          });
           return;
         }
       } catch (apiErr) {
         console.warn('[AppGateway] API Backend response:', apiErr.message);
       }
 
-      // Fail-Safe Client Authentication untuk akun pengurus
-      const credentialMap = {
-        'admin': {
-          id: 1,
-          username: 'admin',
-          name: 'Pengasuh Pondok Pesantren Darul Rahman Sumbersari',
-          role: 'SUPER_ADMIN',
-          division: 'PENGASUHAN_PUSAT',
-          passwords: ['admin123', 'admin', 'password123']
-        },
-        'pengasuh': {
-          id: 2,
-          username: 'pengasuh',
-          name: 'K.H. Syarif Hidayatullah, M.A.',
-          role: 'KEPALA_PONDOK',
-          division: 'PENGASUHAN_PUSAT',
-          passwords: ['admin123', 'password123']
-        },
-        'bendahara': {
-          id: 3,
-          username: 'bendahara',
-          name: 'Ustadz Ridwan, S.E.',
-          role: 'BENDAHARA',
-          division: 'KEUANGAN',
-          passwords: ['admin123', 'password123']
-        },
-        'uangsaku': {
-          id: 4,
-          username: 'uangsaku',
-          name: 'Petugas Kasir Kantin & Saku Smart',
-          role: 'PENGURUS_SAKU',
-          division: 'ASRAMA_POS',
-          passwords: ['admin123', 'password123']
-        },
-        'kamtib': {
-          id: 5,
-          username: 'kamtib',
-          name: 'Ustadz Danang (Keamanan Gerbang)',
-          role: 'KEAMANAN',
-          division: 'KAMTIB',
-          passwords: ['admin123', 'password123']
-        }
-      };
-
-      const matchedUser = credentialMap[cleanUser];
-      if (matchedUser && matchedUser.passwords.includes(cleanPass)) {
-        onLoginSuccess({
-          id: matchedUser.id,
-          username: matchedUser.username,
-          name: matchedUser.name,
-          role: matchedUser.role,
-          division: matchedUser.division,
-          isActive: true
-        });
-        return;
-      }
-
-      setErrorMsg('Username atau password yang Anda masukkan salah.');
+      setErrorMsg(`Username atau password salah untuk ${matchedPesantren?.name || tenantId}. (Tips Dev: dev / dev123)`);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
     } finally {

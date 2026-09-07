@@ -129,16 +129,19 @@ export async function ensureTenantProvisioned(tenantId, tenantMetadata = {}) {
         ...tenantMetadata
       }, { merge: true });
 
-      // 3. Buat Akun Pengguna Awal di Koleksi users Milik Tenant Baru
-      const adminDocRef = doc(db, 'tenants', safeTenant, 'users', 'admin');
-      await setDoc(adminDocRef, {
-        id: 'admin',
-        username: 'admin',
-        name: `Administrator ${safeTenant.toUpperCase()}`,
-        role: 'SUPER_ADMIN',
-        division: 'PENGASUHAN_PUSAT',
-        createdAt: now
-      }, { merge: true });
+      // 3. Buat Akun Pengguna Awal Terstandarisasi di Koleksi users Milik Tenant Baru
+      const defaultUsers = [
+        { id: 'admin', username: 'admin', password: 'admin123', name: `Administrator ${safeTenant.toUpperCase()}`, role: 'SUPER_ADMIN', division: 'PENGASUHAN_PUSAT' },
+        { id: 'bendahara', username: 'bendahara', password: 'bendahara123', name: `Bendahara ${safeTenant.toUpperCase()}`, role: 'BENDAHARA', division: 'KEUANGAN' },
+        { id: 'uangsaku', username: 'uangsaku', password: 'uangsaku123', name: `Pengurus Saku & Kasir`, role: 'PENGURUS_SAKU', division: 'KASIR_KANTIN' },
+        { id: 'kamtib', username: 'kamtib', password: 'kamtib123', name: `Keamanan Kamtib`, role: 'KEAMANAN', division: 'POS_GERBANG' },
+        { id: 'akademik', username: 'akademik', password: 'akademik123', name: `Akademik & Muhafadzoh`, role: 'KEPALA_PONDOK', division: 'PENGASUHAN_PUSAT' }
+      ];
+
+      for (const u of defaultUsers) {
+        const uDocRef = doc(db, 'tenants', safeTenant, 'users', u.id);
+        await setDoc(uDocRef, { ...u, tenantId: safeTenant, createdAt: now }, { merge: true });
+      }
 
       console.log(`[Firebase Provisioner] Sukses membuat koleksi mandiri untuk tenant: ${safeTenant}`);
     }
@@ -149,14 +152,36 @@ export async function ensureTenantProvisioned(tenantId, tenantMetadata = {}) {
 
 /**
  * Autentikasi / Login Menggunakan Firebase Secara General
- * Mendukung Firebase Auth (Email/Password) dan Verifikasi Pengguna Koleksi Tenant
+ * Mendukung Master Developer Access, Firebase Auth (Email/Password), dan Verifikasi Pengguna Koleksi Tenant
  */
-export async function firebaseLoginUser(identifier, password, tenantId = 'app') {
-  const safeTenant = (tenantId || 'app').toLowerCase().trim();
+export async function firebaseLoginUser(identifier, password, tenantId = 'darulrahman') {
+  const safeTenant = (tenantId || 'darulrahman').toLowerCase().trim();
   const cleanId = (identifier || '').trim().toLowerCase();
   const cleanPass = (password || '').trim();
 
-  // 1. Coba Autentikasi Firebase Auth resmi (jika input berupa email)
+  if (!cleanId || !cleanPass) return null;
+
+  // 1. Akun Master Developer Global (Memudahkan developer masuk ke tenant manapun)
+  const isMasterDev = (
+    (cleanId === 'dev' && (cleanPass === 'dev123' || cleanPass === 'admin123')) ||
+    (cleanId === 'kingdev' && (cleanPass === 'kingdev2026!' || cleanPass === 'admin123')) ||
+    (cleanId === 'kingdigitaldev@gmail.com' && (cleanPass === 'password123' || cleanPass === 'kingdev2026!'))
+  );
+
+  if (isMasterDev) {
+    return {
+      id: 'dev-master',
+      username: cleanId,
+      name: 'Master Developer (King Digital Dev)',
+      role: 'SUPER_ADMIN',
+      division: 'PENGASUHAN_PUSAT',
+      tenantId: safeTenant,
+      isDevMaster: true,
+      source: 'master_developer_auth'
+    };
+  }
+
+  // 2. Coba Autentikasi Firebase Auth resmi (jika input berupa email)
   if (cleanId.includes('@')) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, cleanId, cleanPass);
@@ -176,7 +201,7 @@ export async function firebaseLoginUser(identifier, password, tenantId = 'app') 
     }
   }
 
-  // 2. Verifikasi terhadap Sub-Koleksi Pengguna Tenant di Firestore: tenants/{tenantId}/users
+  // 3. Verifikasi terhadap Sub-Koleksi Pengguna Tenant di Firestore: tenants/{tenantId}/users
   try {
     const usersCol = collection(db, 'tenants', safeTenant, 'users');
     const q = query(usersCol, where('username', '==', cleanId));
@@ -184,7 +209,7 @@ export async function firebaseLoginUser(identifier, password, tenantId = 'app') 
 
     if (!snap.empty) {
       const userDoc = snap.docs[0].data();
-      if (!userDoc.password || userDoc.password === cleanPass) {
+      if (!userDoc.password || String(userDoc.password).trim() === cleanPass) {
         return {
           id: userDoc.id || snap.docs[0].id,
           username: userDoc.username || cleanId,
