@@ -50,15 +50,9 @@ export default function Header({
           <Menu className="w-4 h-4" />
         </button>
 
-        {logoPondok ? (
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm flex items-center justify-center flex-shrink-0">
-            <img src={logoPondok} alt="Logo" className="w-full h-full object-contain" />
-          </div>
-        ) : (
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm">
-            <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
-          </div>
-        )}
+        <div className="w-8 h-8 rounded-xl bg-[#8CE829] flex items-center justify-center p-1 shadow-xs flex-shrink-0">
+          <img src={logoPondok || "/logo.png"} alt="Logo" className="w-full h-full object-contain" />
+        </div>
 
         <div className="min-w-0">
           <h2 className="font-bold text-xs sm:text-sm text-slate-900 tracking-tight truncate">
