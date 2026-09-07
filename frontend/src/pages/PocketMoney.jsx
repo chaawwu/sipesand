@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   RefreshCw,
-  Sparkles,
   Store
 } from 'lucide-react';
 import { getPocketTransactions, createPocketTransaction, getSantriList, getSantriByNfc } from '../services/api';

@@ -5,9 +5,9 @@ import NfcScannerModal from './components/NfcScannerModal';
 import LoginModal from './components/LoginModal';
 import DeveloperFooter from './components/DeveloperFooter';
 
-// Pages
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
+import AppGatewayPage from './pages/AppGatewayPage';
 import PortalWaliPublic from './pages/PortalWaliPublic';
 import Dashboard from './pages/Dashboard';
 import Santri from './pages/Santri';
@@ -65,10 +65,7 @@ function MainAppContent() {
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
     } else if (viewParam === 'app' || hostname.startsWith('app.')) {
-      setCurrentView('landing');
-      if (searchParams.get('login') === 'true') {
-        setIsLoginModalOpen(true);
-      }
+      setCurrentView('app-gateway');
     }
   }, []);
 
@@ -111,7 +108,13 @@ function MainAppContent() {
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setCurrentView('landing');
+    const hostname = window.location.hostname.toLowerCase();
+    const searchParams = new URLSearchParams(window.location.search);
+    if (hostname.startsWith('app.') || searchParams.get('view') === 'app') {
+      setCurrentView('app-gateway');
+    } else {
+      setCurrentView('landing');
+    }
     setIsMobileSidebarOpen(false);
   };
 
@@ -123,9 +126,9 @@ function MainAppContent() {
   // 1. Tampilan Halaman Utama / Landing Page Portal Pesantren
   if (currentView === 'landing') {
     return (
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen bg-[#FAF8F4]">
         <LandingPage
-          onLoginPetugas={() => setIsLoginModalOpen(true)}
+          onLoginPetugas={() => setCurrentView('app-gateway')}
           onOpenPortalWali={handleOpenPortalWali}
           onOpenNfcScanner={() => setIsNfcModalOpen(true)}
           onOpenSaasLanding={() => setCurrentView('landing-saas')}
@@ -137,6 +140,30 @@ function MainAppContent() {
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={handleLoginSuccess}
+        />
+
+        {/* Global NFC Simulator Modal */}
+        {isNfcEnabled && (
+          <NfcScannerModal
+            isOpen={isNfcModalOpen}
+            onClose={() => setIsNfcModalOpen(false)}
+            onSuccess={handleNfcSuccess}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // 1b. Tampilan Khusus Centralized Multi-Tenant Gateway Login (app.sipesand.web.id)
+  if (currentView === 'app-gateway' || (currentView === 'app' && !currentUser)) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F4]">
+        <AppGatewayPage
+          onLoginSuccess={handleLoginSuccess}
+          onBackToLanding={() => setCurrentView('landing')}
+          onOpenPortalWali={handleOpenPortalWali}
+          onOpenSaasLanding={() => setCurrentView('landing-saas')}
+          onNavigateLegal={(path) => setCurrentView(path)}
         />
 
         {/* Global NFC Simulator Modal */}

@@ -9,8 +9,7 @@ import {
   ShieldCheck, 
   AlertCircle, 
   CheckCircle2, 
-  ShoppingBag,
-  Sparkles
+  ShoppingBag
 } from 'lucide-react';
 import { getSantriByNfc, createPocketTransaction, checkInByNfc, getSantriList } from '../services/api';
 

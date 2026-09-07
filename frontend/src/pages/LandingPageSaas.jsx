@@ -34,8 +34,7 @@ import {
   ChevronUp,
   RefreshCw,
   Search,
-  Sliders,
-  Sparkle
+  Sliders
 } from 'lucide-react';
 import { registerMitraTenant, checkSubdomainAvailability } from '../services/api';
 import PaymentCheckout from '../components/PaymentCheckout';

@@ -7,7 +7,6 @@ import {
   X, 
   FileText, 
   RefreshCw, 
-  Sparkles,
   ArrowRight,
   Code
 } from 'lucide-react';
@@ -184,7 +183,7 @@ export default function FirebaseMigratorModal({ isOpen, onClose, onSuccess }) {
           {/* Info Card */}
           <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl text-blue-950 space-y-1">
             <div className="font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <Database className="w-3.5 h-3.5 text-blue-600" />
               <span>Smart Field Mapping:</span>
             </div>
             <p className="text-[11px] text-blue-900/80 leading-relaxed">

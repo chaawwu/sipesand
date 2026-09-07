@@ -20,7 +20,6 @@ import {
   ArrowDown,
   ChevronRight,
   ChevronLeft,
-  Sparkles,
   Wallet,
   BookOpen,
   Calendar,
@@ -123,43 +122,6 @@ export default function LandingPage({
     <div className="min-h-screen bg-[#FAF8F4] text-[#111827] flex flex-col font-sans selection:bg-[#8CE829] selection:text-[#0A1128]">
       
       {/* ========================================================================= */}
-      {/* 0. TOP GLOBAL MULTI-TENANT NETWORK BAR                                    */}
-      {/* ========================================================================= */}
-      <div className="bg-[#0A1128] text-slate-300 py-1.5 px-4 text-[11px] border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 font-medium">
-            <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
-            <span className="font-bold text-white tracking-wide">SIPESAND ECOSYSTEM</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-slate-400">Sistem Terpadu Pesantren Digital</span>
-          </div>
-
-          <div className="flex items-center gap-3 font-mono text-[10px]">
-            <button 
-              onClick={onLoginPetugas} 
-              className="hover:text-[#8CE829] transition-colors"
-            >
-              app.sipesand.web.id
-            </button>
-            <span className="text-slate-600">|</span>
-            <button 
-              onClick={onOpenSaasLanding} 
-              className="hover:text-amber-300 transition-colors text-amber-400 font-bold"
-            >
-              mitra.sipesand.web.id
-            </button>
-            <span className="text-slate-600">|</span>
-            <button 
-              onClick={() => onOpenPortalWali('')} 
-              className="hover:text-[#8CE829] transition-colors"
-            >
-              pay.sipesand.web.id
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
       {/* 1. TOP NAVBAR (WOOT EDITORIAL STYLE)                                      */}
       {/* ========================================================================= */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
@@ -259,14 +221,11 @@ export default function LandingPage({
           {/* LEFT HERO: ROYAL BLUE CONTAINER (60% WIDTH ON DESKTOP) */}
           <div className="lg:col-span-7 bg-[#0B52E2] p-8 sm:p-12 lg:p-14 relative text-white flex flex-col justify-between min-h-[460px] sm:min-h-[520px]">
             
-            {/* Top Floating Badge & Sparkle */}
+            {/* Top Floating Badge */}
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-white">
                 <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
                 <span>Ekosistem Pesantren Digital Generasi Baru</span>
-              </div>
-              <div className="hidden sm:block text-[#8CE829]">
-                <Sparkles className="w-6 h-6 animate-pulse" />
               </div>
             </div>
 

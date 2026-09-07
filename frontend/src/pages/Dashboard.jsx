@@ -12,7 +12,6 @@ import {
   CheckCircle2, 
   Radio, 
   CreditCard, 
-  Sparkles, 
   ShieldCheck,
   TrendingDown,
   DollarSign,
@@ -99,7 +98,7 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-bold text-amber-300 border border-white/20">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[#8CE829]" />
             <span>SIPESAND SUPER ADMIN DASHBOARD</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">

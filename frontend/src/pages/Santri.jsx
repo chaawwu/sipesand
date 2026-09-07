@@ -17,8 +17,7 @@ import {
   Printer,
   Download,
   Database,
-  MapPin,
-  Sparkles
+  MapPin
 } from 'lucide-react';
 import { 
   getSantriList, 

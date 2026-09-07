@@ -16,7 +16,6 @@ import {
   X,
   Calendar,
   ExternalLink,
-  Sparkles,
   Zap
 } from 'lucide-react';
 import { 
