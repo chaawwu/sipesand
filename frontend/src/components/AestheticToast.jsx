@@ -35,18 +35,12 @@ export default function AestheticToast({
   return (
     <div className="fixed top-5 right-5 z-[9999] max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-auto font-sans text-xs">
       <div className={`
-        relative overflow-hidden rounded-2xl p-4 shadow-2xl border backdrop-blur-xl transition-all
-        ${isSuccess ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-950/40' : ''}
-        ${isError ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-950/40' : ''}
-        ${isWarning ? 'bg-slate-900/95 text-white border-amber-500/40 shadow-amber-950/40' : ''}
-        ${isInfo ? 'bg-slate-900/95 text-white border-blue-500/40 shadow-blue-950/40' : ''}
+        relative overflow-hidden rounded-2xl p-4 shadow-xl border transition-all
+        ${isSuccess ? 'bg-slate-900 text-white border-emerald-500/40 shadow-emerald-950/20' : ''}
+        ${isError ? 'bg-slate-900 text-white border-rose-500/40 shadow-rose-950/20' : ''}
+        ${isWarning ? 'bg-slate-900 text-white border-amber-500/40 shadow-amber-950/20' : ''}
+        ${isInfo ? 'bg-slate-900 text-white border-blue-500/40 shadow-blue-950/20' : ''}
       `}>
-        {/* Glow Accent */}
-        <div className={`
-          absolute -top-12 -left-12 w-28 h-28 rounded-full blur-2xl pointer-events-none opacity-60
-          ${isSuccess ? 'bg-emerald-500' : isError ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-blue-500'}
-        `}></div>
-
         <div className="flex items-start gap-3 relative z-10">
           <div className={`
             w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md

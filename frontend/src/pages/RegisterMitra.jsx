@@ -343,8 +343,8 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
           {/* Kolom Kanan (5/12): Bento Info & Keunggulan Platform SaaS */}
           <div className="md:col-span-5 space-y-4">
             
-            {/* Bento Card 1: Soft Glassmorphism */}
-            <div className="bg-[#EEF4FF]/90 backdrop-blur-md border border-blue-200/70 rounded-3xl p-6 shadow-bento space-y-4">
+            {/* Bento Card 1 */}
+            <div className="bg-[#EEF4FF] border border-blue-200 rounded-3xl p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
                   <Server className="w-4 h-4" />

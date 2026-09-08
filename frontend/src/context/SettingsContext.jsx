@@ -54,9 +54,9 @@ export function getActiveTenantSubdomain() {
 }
 
 const defaultSettings = {
-  NAMA_LEMBAGA: 'Pondok Pesantren Terpadu SiPesand',
-  TAGLINE_LEMBAGA: 'Lembaga Pendidikan Islam Modern & Tahfidzul Qur\'an',
-  ALAMAT_LEMBAGA: 'Jl. Pesantren Digital No. 01, Kompleks Terpadu, Sleman, D.I. Yogyakarta 55581',
+  NAMA_LEMBAGA: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
+  TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Administrasi, Keuangan & Akademik Pesantren',
+  ALAMAT_LEMBAGA: 'Jl. Pesantren No. 01, Kompleks Pesantren, Indonesia',
   NO_TELP: '(0274) 8899-7711',
   WHATSAPP_CENTER: '0812-3456-7890',
   EMAIL_LEMBAGA: 'sekretariat@sipesand.id',

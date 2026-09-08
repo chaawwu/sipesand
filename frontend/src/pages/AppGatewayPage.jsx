@@ -30,7 +30,7 @@ export default function AppGatewayPage({
   onNavigateLegal 
 }) {
   const { settings } = useSettings();
-  const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Terpadu';
+  const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)';
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -181,7 +181,7 @@ export default function AppGatewayPage({
           {/* Quick Subdomain Links & Status */}
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#8CE829]/15 border border-[#8CE829]/30 text-[11px] font-bold text-slate-900">
-              <span className="w-2 h-2 rounded-full bg-[#8CE829] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
               <span>Multi-Tenant Gateway Aktif</span>
             </div>
 
@@ -206,14 +206,10 @@ export default function AppGatewayPage({
           
           {/* LEFT SIDE: ROYAL BLUE EDITORIAL SHOWCASE (7 COLUMNS) */}
           <div className="lg:col-span-7 bg-[#0B52E2] p-8 sm:p-12 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden">
-            
-            {/* Background geometric accents */}
-            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -left-10 -top-10 w-60 h-60 bg-[#8CE829]/10 rounded-full blur-2xl pointer-events-none" />
 
             {/* Top Tag */}
             <div className="relative z-10 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-white">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/20 border border-white/30 text-xs font-bold text-white">
                 <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
                 <span>Gerbang Autentikasi Pengurus & Asatidz</span>
               </div>
@@ -232,7 +228,7 @@ export default function AppGatewayPage({
             {/* Middle: Feature Highlights List */}
             <div className="relative z-10 my-8 space-y-3 sm:space-y-4">
               
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/15 border border-white/20">
                 <div className="w-9 h-9 rounded-xl bg-[#8CE829] text-slate-950 flex items-center justify-center font-bold flex-shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
@@ -244,7 +240,7 @@ export default function AppGatewayPage({
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/15 border border-white/20">
                 <div className="w-9 h-9 rounded-xl bg-white text-[#0B52E2] flex items-center justify-center font-bold flex-shrink-0">
                   <Radio className="w-5 h-5" />
                 </div>
@@ -256,7 +252,7 @@ export default function AppGatewayPage({
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/15 border border-white/20">
                 <div className="w-9 h-9 rounded-xl bg-white/20 text-[#8CE829] flex items-center justify-center font-bold flex-shrink-0">
                   <Receipt className="w-5 h-5" />
                 </div>

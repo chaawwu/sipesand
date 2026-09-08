@@ -689,7 +689,7 @@ export default function SettingsAndAccounts() {
             </div>
 
             {/* Form Rekening Auto-Disbursement */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-4">
+            <div className="bg-slate-900/60 rounded-2xl p-5 border border-slate-700/60 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs text-blue-300 uppercase tracking-wider">Rekening Tujuan Pencairan Otomatis (Auto-Disbursement)</span>
                 <span className="text-[10px] text-slate-400 font-mono">Settlement: Instan Real-Time</span>

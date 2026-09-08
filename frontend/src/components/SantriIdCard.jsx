@@ -107,8 +107,8 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
   if (!isOpen || !santri) return null;
 
   const currentTheme = CARD_THEMES.find(t => t.id === activeTheme) || CARD_THEMES[0];
-  const namaLembaga = settings.NAMA_LEMBAGA || 'PONDOK PESANTREN TERPADU';
-  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Lembaga Pendidikan & Kaderisasi Ulama';
+  const namaLembaga = settings.NAMA_LEMBAGA || 'SIPESAND (SISTEM INFORMASI TERPADU PESANTREN DAN DIGITAL)';
+  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'SISTEM INFORMASI MANAJEMEN ADMINISTRASI, KEUANGAN & AKADEMIK PESANTREN';
   const kepalaPondok = settings.NAMA_KEPALA_PONDOK || 'K.H. Syarif Hidayatullah, M.A.';
   const logoPondok = settings.LOGO_PONDOK_URL;
   const ttdKepala = settings.TTD_KEPALA_URL;

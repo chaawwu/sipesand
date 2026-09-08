@@ -32,8 +32,8 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
   const [paymentMethod, setPaymentMethod] = useState(defaultData?.paymentMethod || 'Transfer Bank Syariah (BSI)');
   
   const bendaharaName = defaultData?.bendaharaName || settings.NAMA_BENDAHARA || 'Ustadz Ridwan, S.E.';
-  const namaLembaga = settings.NAMA_LEMBAGA || 'PONDOK PESANTREN TERPADU SIPESAND';
-  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'LEMBAGA PENDIDIKAN ISLAM MODERN & TAHFIDZUL QUR\'AN';
+  const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)';
+  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Sistem Informasi Manajemen Administrasi, Keuangan & Akademik Pesantren';
   const alamatLembaga = settings.ALAMAT_LEMBAGA || 'Jl. Pesantren Digital No. 01, Kompleks Terpadu';
   const noTelp = settings.NO_TELP || '(0274) 8899-7711';
   const logoPondok = settings.LOGO_PONDOK_URL;
@@ -43,7 +43,7 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
   // Itemized Billing Items
   const [items, setItems] = useState(
     defaultData?.items || [
-      { id: 1, name: 'SPP Syahriyah Pesantren Terpadu', amount: 1200000 },
+      { id: 1, name: 'SPP Syahriyah Pesantren', amount: 1200000 },
     ]
   );
 

@@ -63,7 +63,7 @@ export default function DashboardDeveloper({
   const [tenants, setTenants] = useState([
     {
       id: 't-1',
-      name: 'Pondok Pesantren Terpadu SiPesand',
+      name: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
       subdomain: 'pesantren-terpadu',
       status: 'ACTIVE',
       plan: 'LIFETIME',
@@ -253,7 +253,7 @@ export default function DashboardDeveloper({
     heroHeadline: 'Kelola Pesantren Tumbuh Tanpa Batas',
     heroSubheadline: 'Satu platform terintegrasi untuk verifikasi kartu santri digital RFID/NFC, kasir uang saku cashless, perizinan Kamtib, dan transparansi wali santri.',
     ctaText: 'Cari Santri',
-    badgeText: 'Ekosistem Pesantren Digital Generasi Baru',
+    badgeText: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
     tahunanPrice: '1.500.000',
     lifetimePrice: '4.500.000',
     supportWhatsapp: '0812-3456-7890',
@@ -309,7 +309,7 @@ export default function DashboardDeveloper({
     { id: 'INV-2026-081', tenant: 'PP Al-Falah Modern Tahfidz', package: 'Perpanjangan Lisensi Tahunan', amount: 1500000, date: '08 Sep 2026', gateway: 'BSI Virtual Account', status: 'PAID' },
     { id: 'INV-2026-080', tenant: 'Ma\'had Darussalam Boarding', package: 'Paket Lisensi Tahunan + 500 KTSD Card', amount: 2850000, date: '06 Sep 2026', gateway: 'QRIS Pesantren', status: 'PAID' },
     { id: 'INV-2026-079', tenant: 'Pesantren Nurul Huda Mandiri', package: 'Paket Tahunan 2026/2027', amount: 1500000, date: '01 Sep 2026', gateway: 'Bank Transfer (BSI)', status: 'OVERDUE' },
-    { id: 'INV-2026-078', tenant: 'Pondok Pesantren Terpadu', package: 'Lisensi Lifetime Multi-Tenant', amount: 4500000, date: '28 Agu 2026', gateway: 'King Digital PG', status: 'PAID' },
+    { id: 'INV-2026-078', tenant: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)', package: 'Lisensi Lifetime Multi-Tenant', amount: 4500000, date: '28 Agu 2026', gateway: 'King Digital PG', status: 'PAID' },
   ]);
 
   // Filtering Tenants Data
@@ -999,7 +999,7 @@ export default function DashboardDeveloper({
                   <p className="text-xs text-slate-500">Pantau performa Hybrid Firestore Cloud, isolated SQLite per-tenant, serta latency server.</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>Real-time polling active (every 10s)</span>
                 </div>
               </div>

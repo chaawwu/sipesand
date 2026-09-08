@@ -104,15 +104,13 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
       
       {/* Top Welcome Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-        
         <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-bold text-amber-300 border border-white/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-[11px] font-bold text-white border border-white/30">
             <ShieldCheck className="w-3.5 h-3.5 text-[#8CE829]" />
             <span>SIPESAND SUPER ADMIN DASHBOARD</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            Pondok Pesantren Terpadu SiPesand
+            SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)
           </h2>
           <p className="text-xs text-blue-100/90 max-w-xl leading-relaxed">
             Sistem Informasi Manajemen Terpadu: Pantau Kas Global, Tabungan Uang Saku, Tunggakan Santri, Perizinan, dan Muhafadzoh secara real-time.
@@ -265,7 +263,7 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                   <h3 className="font-extrabold text-sm text-blue-950">
                     Verifikasi Pembayaran Online Wali ({pendingBillsList.length} Menunggu ACC)
                   </h3>
@@ -402,10 +400,9 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
           </div>
 
           {/* Quick Widget Pendaftaran Kartu RFID Super Admin */}
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 rounded-3xl border border-slate-700/80 p-5 text-white shadow-md relative overflow-hidden flex flex-col justify-between gap-4">
-            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="bg-slate-900 rounded-3xl border border-slate-700/80 p-5 text-white shadow-md relative overflow-hidden flex flex-col justify-between gap-4">
             <div className="space-y-1.5 relative z-10">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-extrabold text-amber-300 border border-white/20">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-800 text-[10px] font-bold text-amber-300 border border-slate-700">
                 <CreditCard className="w-3 h-3 text-[#8CE829]" />
                 <span>MODUL HARDWARE RFID / NFC</span>
               </div>

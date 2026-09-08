@@ -223,7 +223,7 @@ export default function BillsAndInvoices() {
       phone = '62' + phone.slice(1);
     }
 
-    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nKami dari Bendahara Pondok Pesantren Terpadu SiPesand menginformasikan tagihan pembayaran:\n- Pos Tagihan: *${bill.title}*\n- Periode: *${bill.hijriMonth || '-'} ${bill.hijriYear || ''}*\n- Total Nominal: *Rp ${bill.amount.toLocaleString('id-ID')}*\n- Status: *BELUM LUNAS*\n\nBapak/Ibu dapat melakukan pembayaran transfer via BSI atau QRIS resmi dan mengunggah bukti langsung melalui Portal Wali di website SiPesand.\n\nTerima kasih atas kerja samanya. Jazakumullah Khairan Katsiran.\n_Bendahara Pesantren SiPesand_`;
+    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nKami dari Bendahara SiPesand (Sistem Informasi Terpadu Pesantren dan Digital) menginformasikan tagihan pembayaran:\n- Pos Tagihan: *${bill.title}*\n- Periode: *${bill.hijriMonth || '-'} ${bill.hijriYear || ''}*\n- Total Nominal: *Rp ${bill.amount.toLocaleString('id-ID')}*\n- Status: *BELUM LUNAS*\n\nBapak/Ibu dapat melakukan pembayaran transfer via BSI atau QRIS resmi dan mengunggah bukti langsung melalui Portal Wali di website SiPesand.\n\nTerima kasih atas kerja samanya. Jazakumullah Khairan Katsiran.\n_Bendahara Pesantren SiPesand_`;
 
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');

@@ -453,7 +453,7 @@ function MainAppContent() {
       {impersonatingTenant && (
         <aside aria-label="Notifikasi Mode Impersonasi" className="bg-slate-900 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between border-b border-blue-500/40 z-50 sticky top-0 shadow-md">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
             <span className="text-slate-300">
               Mode Impersonasi Superadmin Aktif: Mengontrol tenant <strong className="text-white font-mono bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-400/30">{impersonatingTenant}.sipesand.web.id</strong>
             </span>

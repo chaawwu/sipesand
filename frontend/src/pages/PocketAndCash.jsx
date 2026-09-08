@@ -170,7 +170,7 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
 
     let message = '';
     if (type === 'SALDO_MINUS') {
-      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nKami dari Bagian Pengurus Uang Saku Pesantren Terpadu SiPesand menginformasikan bahwa saat ini saldo tabungan uang saku santri berada pada posisi *Rp ${santri.saldo_saku?.toLocaleString('id-ID')}* ${santri.saldo_saku < 0 ? '(MINUS/TALANGAN DARURAT)' : '(MENIPIS)'}.\n\nMohon perkenan Bapak/Ibu untuk melakukan isi ulang (Top-Up) melalui Portal Wali atau transfer ke rekening resmi BSI Pesantren agar kebutuhan harian ananda tetap terpenuhi dengan baik.\n\nTerima kasih atas perhatian dan kerja samanya. Jazakumullah Khairan Katsiran.\n_Pengurus Uang Saku SiPesand_`;
+      message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nKami dari Bagian Pengurus Uang Saku SiPesand (Sistem Informasi Terpadu Pesantren dan Digital) menginformasikan bahwa saat ini saldo tabungan uang saku santri berada pada posisi *Rp ${santri.saldo_saku?.toLocaleString('id-ID')}* ${santri.saldo_saku < 0 ? '(MINUS/TALANGAN DARURAT)' : '(MENIPIS)'}.\n\nMohon perkenan Bapak/Ibu untuk melakukan isi ulang (Top-Up) melalui Portal Wali atau transfer ke rekening resmi BSI Pesantren agar kebutuhan harian ananda tetap terpenuhi dengan baik.\n\nTerima kasih atas perhatian dan kerja samanya. Jazakumullah Khairan Katsiran.\n_Pengurus Uang Saku SiPesand_`;
     } else {
       const unpaidBills = santriBillsList.filter(b => b.status === 'UNPAID');
       const totalUnpaid = unpaidBills.reduce((sum, b) => sum + (b.amount || 0), 0);

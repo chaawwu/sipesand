@@ -109,7 +109,7 @@ export default function FirebaseMigratorModal({ isOpen, onClose, onSuccess }) {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-amber-300">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-amber-300">
               <Database className="w-5 h-5" />
             </div>
             <div>

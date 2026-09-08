@@ -450,7 +450,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
 
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#8CE829]/15 border border-[#8CE829]/30 text-[11px] font-bold text-slate-900">
-              <span className="w-2 h-2 rounded-full bg-[#8CE829] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
               <span>Layanan Mandiri Aktif</span>
             </div>
           </div>
@@ -464,7 +464,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
         {/* Editorial Pill Search Card (Woot Style) */}
         <div className="bg-[#0B52E2] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-white relative overflow-hidden shadow-xl border border-blue-600">
           <div className="max-w-3xl mx-auto text-center space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-white">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/20 border border-white/30 text-xs font-bold text-white">
               <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
               <span>Transparansi Santri Real-Time</span>
             </div>
@@ -494,25 +494,6 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
                 >
                   <span>Cari Santri</span>
                 </button>
-              </div>
-
-              {/* Quick Demo Chips */}
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-[11px] text-white/80">
-                <span className="font-medium">Cari cepat:</span>
-                {['Farhan', 'Ahmad', 'Zaid', 'Fatimah'].map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery(name);
-                      setSelectedBillIds([]);
-                      loadSantriData(name);
-                    }}
-                    className="px-3 py-1 rounded-full bg-white/15 hover:bg-white/30 text-white font-semibold transition-all border border-white/20 hover:border-white/40 cursor-pointer"
-                  >
-                    {name}
-                  </button>
-                ))}
               </div>
             </form>
           </div>
