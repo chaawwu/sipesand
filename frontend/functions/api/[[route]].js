@@ -93,6 +93,93 @@ function jsonResponse(data, status = 200) {
 }
 
 // -----------------------------------------------------------------------------
+// CLOUDFLARE R2 OBJECT STORAGE ENGINE & 10 GB QUOTA SAFEGUARD
+// -----------------------------------------------------------------------------
+// Cloudflare R2 Free Tier:
+// - 10 GB Storage per month (10,737,418,240 bytes)
+// - 1,000,000 Class A operations (put, list, delete)
+// - 10,000,000 Class B operations (get)
+// - 0 USD Egress Fee (Free data transfer out)
+const MAX_R2_QUOTA_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB = 10,737,418,240 bytes
+const WARN_R2_QUOTA_BYTES = 9 * 1024 * 1024 * 1024;  // 9 GB warning threshold (90%)
+
+function getR2Bucket(context) {
+  return context.env?.SIPESAND_R2 || context.env?.BUCKET || context.env?.R2_STORAGE || context.env?.R2_BUCKET || null;
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+async function getR2QuotaStats(r2) {
+  if (!r2) {
+    return {
+      connected: false,
+      message: 'Cloudflare R2 belum dihubungkan. Tambahkan binding SIPESAND_R2 di Pengaturan Pages Functions.',
+      usedBytes: 0,
+      usedFormatted: '0 B',
+      quotaLimitBytes: MAX_R2_QUOTA_BYTES,
+      quotaLimitFormatted: '10.00 GB',
+      remainingBytes: MAX_R2_QUOTA_BYTES,
+      remainingFormatted: '10.00 GB',
+      percentUsed: 0,
+      fileCount: 0,
+      isWarning: false,
+      isExceeded: false,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  let totalBytes = 0;
+  let fileCount = 0;
+  let cursor = undefined;
+  let truncated = true;
+  let loops = 0;
+
+  try {
+    while (truncated && loops < 10) {
+      loops++;
+      const res = await r2.list({ cursor, limit: 1000 });
+      for (const obj of res.objects) {
+        totalBytes += obj.size;
+        fileCount++;
+      }
+      truncated = res.truncated;
+      cursor = res.cursor;
+    }
+  } catch (e) {
+    console.error('Error listing R2 objects:', e);
+  }
+
+  const remainingBytes = Math.max(0, MAX_R2_QUOTA_BYTES - totalBytes);
+  const percentUsed = Number(((totalBytes / MAX_R2_QUOTA_BYTES) * 100).toFixed(2));
+  const isWarning = totalBytes >= WARN_R2_QUOTA_BYTES;
+  const isExceeded = totalBytes >= MAX_R2_QUOTA_BYTES;
+
+  return {
+    connected: true,
+    message: isExceeded
+      ? 'PERINGATAN: Kuota 10 GB Cloudflare R2 telah tercapai! Penyimpanan berkas baru dihentikan untuk mencegah timbulnya biaya.'
+      : (isWarning ? 'PERINGATAN: Kapasitas R2 telah mencapai > 90% (9 GB).' : 'Kapasitas R2 aman dalam kuota gratis 10 GB Cloudflare.'),
+    usedBytes: totalBytes,
+    usedFormatted: formatBytes(totalBytes),
+    quotaLimitBytes: MAX_R2_QUOTA_BYTES,
+    quotaLimitFormatted: '10.00 GB',
+    remainingBytes,
+    remainingFormatted: formatBytes(remainingBytes),
+    percentUsed,
+    fileCount,
+    isWarning,
+    isExceeded,
+    timestamp: new Date().toISOString()
+  };
+}
+
+// -----------------------------------------------------------------------------
 // CLOUDFLARE PAGES FUNCTIONS MAIN ROUTER
 // -----------------------------------------------------------------------------
 export async function onRequest(context) {
@@ -114,6 +201,7 @@ export async function onRequest(context) {
 
   const tenant = getTenant(request);
   const route = (params.route || []).join('/');
+  const r2 = getR2Bucket(context);
 
   try {
     // 1. Root /api
@@ -287,6 +375,220 @@ export async function onRequest(context) {
         });
         return jsonResponse({ success: true, message: 'Transaksi kas berhasil dicatat', data: { id: docId, ...body } });
       }
+    }
+
+    // 7. /api/storage/quota - Cek kuota R2 real-time & proteksi 10 GB
+    if (route === 'storage/quota') {
+      const stats = await getR2QuotaStats(r2);
+      return jsonResponse({
+        success: true,
+        tenant,
+        data: stats
+      });
+    }
+
+    // 8. /api/upload - Upload file ke Cloudflare R2 dengan proteksi kuota 10 GB
+    if (route === 'upload' && method === 'POST') {
+      if (!r2) {
+        return jsonResponse({
+          success: false,
+          message: 'Cloudflare R2 belum diaktifkan. Silakan tambahkan R2 binding SIPESAND_R2 di pengaturan Cloudflare Pages Functions.'
+        }, 503);
+      }
+
+      const contentType = request.headers.get('content-type') || '';
+      let fileName = '';
+      let mimeType = 'application/octet-stream';
+      let folder = 'uploads';
+      let fileBuffer = null;
+
+      if (contentType.includes('application/json')) {
+        const json = await request.json();
+        fileName = json.fileName || `file_${Date.now()}`;
+        mimeType = json.mimeType || 'image/jpeg';
+        folder = json.folder || 'uploads';
+        
+        const b64 = json.fileBase64 || json.base64 || '';
+        const base64Clean = b64.replace(/^data:[^;]+;base64,/, '');
+        const binaryStr = atob(base64Clean);
+        const len = binaryStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        fileBuffer = bytes.buffer;
+      } else if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData();
+        const file = formData.get('file');
+        if (!file) {
+          return jsonResponse({ success: false, message: 'Berkas file tidak ditemukan dalam form data' }, 400);
+        }
+        fileName = formData.get('fileName') || file.name || `file_${Date.now()}`;
+        mimeType = file.type || 'application/octet-stream';
+        folder = formData.get('folder') || 'uploads';
+        fileBuffer = await file.arrayBuffer();
+      } else {
+        fileBuffer = await request.arrayBuffer();
+        fileName = `file_${Date.now()}`;
+      }
+
+      const uploadSize = fileBuffer ? fileBuffer.byteLength : 0;
+      if (uploadSize <= 0) {
+        return jsonResponse({ success: false, message: 'Ukuran berkas kosong (0 bytes)' }, 400);
+      }
+
+      // STRICT QUOTA GUARD: Tolak jika melebihi batas 10 GB
+      const stats = await getR2QuotaStats(r2);
+      if (stats.usedBytes + uploadSize > MAX_R2_QUOTA_BYTES) {
+        return jsonResponse({
+          success: false,
+          message: `Upload ditolak! Kapasitas Cloudflare R2 akan melampaui kuota 10 GB/bulan (${stats.usedFormatted} dari 10.00 GB). Sistem memblokir upload untuk mencegah tagihan biaya.`,
+          currentUsage: stats.usedFormatted,
+          limit: stats.quotaLimitFormatted
+        }, 413);
+      }
+
+      const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const objectKey = `tenants/${tenant}/${folder}/${Date.now()}_${sanitizedName}`;
+
+      await r2.put(objectKey, fileBuffer, {
+        httpMetadata: {
+          contentType: mimeType,
+        },
+        customMetadata: {
+          tenant,
+          folder,
+          originalName: fileName,
+          uploadedAt: new Date().toISOString()
+        }
+      });
+
+      const fileUrl = `${url.origin}/api/storage/${objectKey}`;
+
+      return jsonResponse({
+        success: true,
+        message: 'Berkas berhasil disimpan ke Cloudflare R2 Object Storage',
+        data: {
+          key: objectKey,
+          url: fileUrl,
+          size: uploadSize,
+          sizeFormatted: formatBytes(uploadSize),
+          mimeType,
+          tenant
+        }
+      });
+    }
+
+    // 9. /api/storage/backup - Simpan database snapshot ke Cloudflare R2
+    if (route === 'storage/backup' && method === 'POST') {
+      if (!r2) {
+        return jsonResponse({
+          success: false,
+          message: 'Cloudflare R2 belum dihubungkan. Tambahkan binding SIPESAND_R2 di Cloudflare Pages.'
+        }, 503);
+      }
+
+      const body = await request.json();
+      const backupJson = JSON.stringify(body, null, 2);
+      const encoder = new TextEncoder();
+      const backupBuffer = encoder.encode(backupJson);
+      const backupSize = backupBuffer.byteLength;
+
+      // Quota Guard
+      const stats = await getR2QuotaStats(r2);
+      if (stats.usedBytes + backupSize > MAX_R2_QUOTA_BYTES) {
+        return jsonResponse({
+          success: false,
+          message: 'Kapasitas Cloudflare R2 10 GB penuh. Hapus cadangan lama terlebih dahulu.'
+        }, 413);
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const objectKey = `tenants/${tenant}/backups/backup_${tenant}_${timestamp}.json`;
+
+      await r2.put(objectKey, backupBuffer, {
+        httpMetadata: {
+          contentType: 'application/json',
+        },
+        customMetadata: {
+          tenant,
+          type: 'DATABASE_BACKUP_JSON',
+          uploadedAt: new Date().toISOString()
+        }
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Cadangan database berhasil diarsipkan ke Cloudflare R2',
+        data: {
+          key: objectKey,
+          url: `${url.origin}/api/storage/${objectKey}`,
+          size: backupSize,
+          sizeFormatted: formatBytes(backupSize)
+        }
+      });
+    }
+
+    // 10. /api/storage/cleanup - Auto-pruning file sementara & backup usang (>30 hari)
+    if (route === 'storage/cleanup' && method === 'POST') {
+      if (!r2) {
+        return jsonResponse({ success: false, message: 'Cloudflare R2 belum diaktifkan' }, 503);
+      }
+
+      const prefix = `tenants/${tenant}/`;
+      const listed = await r2.list({ prefix });
+      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      const keysToDelete = [];
+      let freedBytes = 0;
+
+      for (const obj of listed.objects) {
+        const isTemp = obj.key.includes('/temp/') || obj.key.includes('/cache/');
+        const isOldBackup = obj.key.includes('/backups/') && new Date(obj.uploaded).getTime() < thirtyDaysAgo;
+        if (isTemp || isOldBackup) {
+          keysToDelete.push(obj.key);
+          freedBytes += obj.size;
+        }
+      }
+
+      if (keysToDelete.length > 0) {
+        await r2.delete(keysToDelete);
+      }
+
+      return jsonResponse({
+        success: true,
+        message: keysToDelete.length > 0
+          ? `Berhasil membersihkan ${keysToDelete.length} berkas usang dan membebaskan ${formatBytes(freedBytes)} ruang penyimpanan.`
+          : 'Tidak ada berkas sementara atau cadangan usang (>30 hari) yang perlu dibersihkan.',
+        freedBytes,
+        freedFormatted: formatBytes(freedBytes),
+        deletedCount: keysToDelete.length
+      });
+    }
+
+    // 11. /api/storage/* - Stream berkas langsung dari Cloudflare R2 dengan High-Performance Cache
+    if (route.startsWith('storage/')) {
+      const objectKey = route.replace(/^storage\//, '');
+      if (!r2) {
+        return new Response('Cloudflare R2 belum dihubungkan', { status: 503 });
+      }
+
+      if (method === 'DELETE') {
+        await r2.delete(objectKey);
+        return jsonResponse({ success: true, message: 'Berkas berhasil dihapus dari Cloudflare R2', key: objectKey });
+      }
+
+      const object = await r2.get(objectKey);
+      if (!object) {
+        return new Response('Berkas tidak ditemukan di Cloudflare R2', { status: 404 });
+      }
+
+      const headers = new Headers();
+      object.writeHttpMetadata(headers);
+      headers.set('etag', object.httpEtag);
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      headers.set('Access-Control-Allow-Origin', '*');
+
+      return new Response(object.body, { headers });
     }
 
     // Fallback 404

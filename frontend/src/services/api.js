@@ -569,4 +569,81 @@ export const getAllMitraAktif = () =>
     })
   );
 
+// =============================================================================
+// 13. CLOUDFLARE R2 OBJECT STORAGE & 10 GB QUOTA GUARDS
+// =============================================================================
+export const getR2StorageQuota = async (tenant = null) => {
+  try {
+    const res = await api.get('/storage/quota', {
+      params: tenant ? { tenant } : {},
+      headers: tenant ? { 'X-Tenant-Subdomain': tenant } : {}
+    });
+    return res.data;
+  } catch (err) {
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message || 'Gagal memuat status kuota R2',
+      data: {
+        connected: false,
+        usedBytes: 0,
+        usedFormatted: '0 B',
+        quotaLimitBytes: 10 * 1024 * 1024 * 1024,
+        quotaLimitFormatted: '10.00 GB',
+        remainingBytes: 10 * 1024 * 1024 * 1024,
+        remainingFormatted: '10.00 GB',
+        percentUsed: 0,
+        fileCount: 0,
+        isWarning: false,
+        isExceeded: false
+      }
+    };
+  }
+};
+
+export const uploadFileToR2 = async (payload, tenant = null) => {
+  const headers = tenant ? { 'X-Tenant-Subdomain': tenant } : {};
+  if (payload instanceof FormData) {
+    headers['Content-Type'] = 'multipart/form-data';
+    const res = await api.post('/upload', payload, {
+      params: tenant ? { tenant } : {},
+      headers
+    });
+    return res.data;
+  }
+
+  const res = await api.post('/upload', payload, {
+    params: tenant ? { tenant } : {},
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json'
+    }
+  });
+  return res.data;
+};
+
+export const backupDatabaseToR2 = async (backupData, tenant = null) => {
+  const res = await api.post('/storage/backup', backupData, {
+    params: tenant ? { tenant } : {},
+    headers: tenant ? { 'X-Tenant-Subdomain': tenant } : {}
+  });
+  return res.data;
+};
+
+export const cleanupR2Storage = async (tenant = null) => {
+  const res = await api.post('/storage/cleanup', {}, {
+    params: tenant ? { tenant } : {},
+    headers: tenant ? { 'X-Tenant-Subdomain': tenant } : {}
+  });
+  return res.data;
+};
+
+export const deleteFileFromR2 = async (objectKey, tenant = null) => {
+  const res = await api.delete(`/storage/${objectKey}`, {
+    params: tenant ? { tenant } : {},
+    headers: tenant ? { 'X-Tenant-Subdomain': tenant } : {}
+  });
+  return res.data;
+};
+
 export default api;
+

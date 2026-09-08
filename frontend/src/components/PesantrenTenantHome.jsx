@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
 import { compressImage, normalizeImageUrl } from '../utils/imageCompressor';
+import { uploadFileToR2 } from '../services/api';
 
 export default function PesantrenTenantHome({
   onLoginPetugas,
@@ -97,7 +98,22 @@ export default function PesantrenTenantHome({
         quality: 0.82,
       });
 
-      await updateSettings({ FOTO_PENGASUH_URL: compressedDataUrl });
+      let finalPhotoUrl = compressedDataUrl;
+      try {
+        const uploadRes = await uploadFileToR2({
+          fileName: 'foto_pengasuh.jpg',
+          fileBase64: compressedDataUrl,
+          mimeType: 'image/jpeg',
+          folder: 'pengasuh'
+        });
+        if (uploadRes && uploadRes.success && uploadRes.data?.url) {
+          finalPhotoUrl = uploadRes.data.url;
+        }
+      } catch (r2Err) {
+        console.info('R2 upload standby, fallback ke local photo:', r2Err);
+      }
+
+      await updateSettings({ FOTO_PENGASUH_URL: finalPhotoUrl });
       setPengasuhToast('Foto Pengasuh berhasil diubah!');
       setTimeout(() => setPengasuhToast(''), 3000);
     } catch (err) {
