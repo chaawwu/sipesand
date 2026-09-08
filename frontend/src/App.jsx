@@ -27,6 +27,7 @@ import TermsConditionsPage from './pages/TermsConditionsPage';
 import ContactPage from './pages/ContactPage';
 import SeoPillarPage from './pages/SeoPillarPage';
 import BlogPage from './pages/BlogPage';
+import SantriDigitalCardPage from './pages/SantriDigitalCardPage';
 import { SEO_PILLAR_PAGES } from './data/seoData';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
@@ -36,6 +37,11 @@ function resolveInitialView() {
   const pathname = window.location.pathname.toLowerCase();
   const searchParams = new URLSearchParams(window.location.search);
   const viewParam = searchParams.get('view') || searchParams.get('page');
+
+  // 0. Public Santri Digital Card (KTSD QR Scan View)
+  if (pathname.startsWith('/santri') || viewParam === 'santri-card' || viewParam === 'ktsd' || viewParam === 'digital-card') {
+    return 'santri-digital-card';
+  }
 
   // 1. Legal verification pages
   if (pathname.includes('/faq') || viewParam === 'faq') return 'faq';
@@ -152,7 +158,9 @@ function MainAppContent() {
     const searchParams = new URLSearchParams(window.location.search);
     const viewParam = searchParams.get('view') || searchParams.get('page');
 
-    if (pathname.includes('/faq') || viewParam === 'faq') {
+    if (pathname.startsWith('/santri') || viewParam === 'santri-card' || viewParam === 'ktsd' || viewParam === 'digital-card') {
+      setCurrentView('santri-digital-card');
+    } else if (pathname.includes('/faq') || viewParam === 'faq') {
       setCurrentView('faq');
     } else if (pathname.includes('/refund') || viewParam === 'refund-policy') {
       setCurrentView('refund-policy');
@@ -364,6 +372,19 @@ function MainAppContent() {
           />
         )}
       </div>
+    );
+  }
+ 
+  // 0. Tampilan Publik Kartu Tanda Santri Digital (Hasil Scan QR Code KTSD)
+  if (currentView === 'santri-digital-card') {
+    return (
+      <SantriDigitalCardPage
+        onBackToHome={() => setCurrentView('landing-saas')}
+        onOpenPortalWali={(targetNis) => {
+          setPortalWaliQuery(targetNis);
+          setCurrentView('portal-wali');
+        }}
+      />
     );
   }
 
