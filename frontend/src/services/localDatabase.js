@@ -8,29 +8,50 @@
  */
 
 export function getCurrentTenant() {
-  if (typeof window === 'undefined') return 'default';
-  const hostname = window.location.hostname.toLowerCase();
+  if (typeof window === 'undefined') return 'master';
   const searchParams = new URLSearchParams(window.location.search);
   const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
-  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root'];
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'];
 
   if (tenantQuery && !ignoredSubdomains.includes(tenantQuery.toLowerCase().trim())) {
     return tenantQuery.toLowerCase().trim();
   }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  // Root domain sipesand.web.id and www.sipesand.web.id are pure SaaS landing
+  if (hostname === 'sipesand.web.id' || hostname === 'www.sipesand.web.id') {
+    return 'master';
+  }
+
+  // Gateway, developer, and system subdomains are non-tenant
+  if (
+    hostname.startsWith('app.') || 
+    hostname.startsWith('mitra.') || 
+    hostname.startsWith('pay.') || 
+    hostname.startsWith('api.')
+  ) {
+    return 'master';
+  }
+
+  // Tenant subdomain: [subdomain].sipesand.web.id
   if (hostname.includes('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
-    if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
-      return parts[0];
+    if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
+      return parts[0].trim();
     }
   }
+
+  // Tenant subdomain on localhost: [subdomain].localhost
   if (hostname.endsWith('.localhost')) {
     const parts = hostname.replace('.localhost', '').split('.');
-    if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
-      return parts[0];
+    if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
+      return parts[0].trim();
     }
   }
-  // Default tenant adalah 'darulrahman' agar konsisten multi-device di semua hostname (termasuk pages.dev, IP, dan localhost)
-  return 'darulrahman';
+
+  // Default tenant for preview / master is 'master'
+  return 'master';
 }
 
 const STORAGE_PREFIX = 'sipesand_db_v2_';

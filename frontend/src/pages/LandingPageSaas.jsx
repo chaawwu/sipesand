@@ -41,7 +41,7 @@ import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
 
-export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, onNavigateLegal, onOpenDeveloperPortal }) {
+export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGateway, onGoToTenant, onNavigateLegal, onOpenDeveloperPortal }) {
   // Form State
   const [formData, setFormData] = useState({
     namaPondok: '',
@@ -254,35 +254,46 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, o
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Tombol Masuk Portal Tenant (app.sipesand.web.id) */}
+            <button
+              onClick={onGoToAppGateway}
+              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
+              title="Gateway Masuk Tenant Pesantren (app.sipesand.web.id)"
+            >
+              <User className="w-3.5 h-3.5 text-blue-700" />
+              <span className="hidden sm:inline">Masuk Tenant (app)</span>
+              <span className="sm:hidden">Login</span>
+            </button>
+
             {/* Tombol Balik ke Demo Pesantren */}
             <button
               onClick={onBackToPesantrenDemo}
-              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold border border-slate-300 transition-colors flex items-center gap-1.5 shadow-sm"
-              title="Lihat Tampilan Demo Aplikasi Pesantren"
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold border border-slate-300 transition-colors flex items-center gap-1.5 shadow-sm"
+              title="Lihat Tampilan Demo Aplikasi Pesantren (darulrahman.sipesand.web.id)"
             >
               <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline">Buka Demo Portal Pesantren</span>
+              <span className="hidden sm:inline">Demo Santri</span>
               <span className="sm:hidden">Demo</span>
             </button>
 
             {/* Tombol Developer / Superadmin Portal */}
             <button
               onClick={onOpenDeveloperPortal}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition-all flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition-all flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
               title="Akses Superadmin & Developer Control Panel (mitra.sipesand.web.id)"
             >
               <Server className="w-3.5 h-3.5 text-[#8CE829]" />
-              <span className="hidden sm:inline">Developer Portal</span>
+              <span className="hidden sm:inline">Mitra Dev</span>
               <span className="sm:hidden">Dev</span>
             </button>
 
             {/* Tombol CTA Pembelian */}
             <button
               onClick={handleScrollToForm}
-              className="px-4 py-1.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <CreditCard className="w-3.5 h-3.5 text-amber-300" />
-              <span>Beli Lisensi Web</span>
+              <span>Beli Lisensi</span>
             </button>
           </div>
 
@@ -369,6 +380,19 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, o
                     )}
                   </div>
                 )}
+
+                {/* Gateway Login Link */}
+                <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100">
+                  <span>Sudah berlangganan & punya akun?</span>
+                  <button
+                    type="button"
+                    onClick={onGoToAppGateway}
+                    className="font-bold text-[#1E3A8A] hover:text-blue-900 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Masuk ke Gateway (app)</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
               {/* 3 Key Trust Highlights */}

@@ -27,9 +27,66 @@ import TermsConditionsPage from './pages/TermsConditionsPage';
 import ContactPage from './pages/ContactPage';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
+function resolveInitialView() {
+  if (typeof window === 'undefined') return 'landing-saas';
+  const hostname = window.location.hostname.toLowerCase();
+  const pathname = window.location.pathname.toLowerCase();
+  const searchParams = new URLSearchParams(window.location.search);
+  const viewParam = searchParams.get('view') || searchParams.get('page');
+
+  // 1. Legal verification pages
+  if (pathname.includes('/faq') || viewParam === 'faq') return 'faq';
+  if (pathname.includes('/refund') || viewParam === 'refund-policy') return 'refund-policy';
+  if (pathname.includes('/terms') || pathname.includes('/condition') || viewParam === 'terms-and-conditions') return 'terms-and-conditions';
+  if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') return 'kontak';
+
+  // 2. Super Dashboard Developer (mitra.sipesand.web.id)
+  if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev' || hostname.startsWith('mitra.')) {
+    return 'developer-dashboard';
+  }
+
+  // 3. Centralized Multi-Tenant Gateway (app.sipesand.web.id)
+  if (viewParam === 'app' || hostname.startsWith('app.')) {
+    return 'app-gateway';
+  }
+
+  // 4. Public Wali Portal (pay.sipesand.web.id)
+  if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
+    return 'portal-wali';
+  }
+
+  // 5. Root domain sipesand.web.id or view=saas
+  if (viewParam === 'saas' || hostname === 'sipesand.web.id' || hostname === 'www.sipesand.web.id') {
+    return 'landing-saas';
+  }
+
+  // 6. Check if it is a specific tenant domain (e.g. darulrahman.sipesand.web.id)
+  const tenant = searchParams.get('tenant') || searchParams.get('subdomain');
+  if (tenant && !['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'].includes(tenant.toLowerCase().trim())) {
+    return 'landing';
+  }
+
+  if (hostname.endsWith('.sipesand.web.id')) {
+    const parts = hostname.replace('.sipesand.web.id', '').split('.');
+    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin'].includes(parts[0])) {
+      return 'landing';
+    }
+  }
+
+  if (hostname.endsWith('.localhost')) {
+    const parts = hostname.replace('.localhost', '').split('.');
+    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin'].includes(parts[0])) {
+      return 'landing';
+    }
+  }
+
+  // Default preview / pages.dev / plain localhost is the SaaS platform landing
+  return 'landing-saas';
+}
+
 function MainAppContent() {
-  // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
-  const [currentView, setCurrentView] = useState('landing');
+  // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app-gateway' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
+  const [currentView, setCurrentView] = useState(resolveInitialView);
   const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
   
   // Developer Portal Auth State (mitra.sipesand.web.id)
@@ -63,7 +120,6 @@ function MainAppContent() {
     const searchParams = new URLSearchParams(window.location.search);
     const viewParam = searchParams.get('view') || searchParams.get('page');
 
-    // 1. Cek Path Legal iPaymu
     if (pathname.includes('/faq') || viewParam === 'faq') {
       setCurrentView('faq');
     } else if (pathname.includes('/refund') || viewParam === 'refund-policy') {
@@ -72,9 +128,7 @@ function MainAppContent() {
       setCurrentView('terms-and-conditions');
     } else if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') {
       setCurrentView('kontak');
-    } 
-    // 2. Cek Subdomain Developer / Mitra Control Panel
-    else if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev') {
+    } else if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev') {
       setIsDeveloperLoggedIn(true);
       try { sessionStorage.setItem('sipesand_dev_auth', 'true'); } catch (e) {}
       setCurrentView('developer-dashboard');
@@ -83,13 +137,12 @@ function MainAppContent() {
         if (sessionStorage.getItem('sipesand_dev_auth') === 'true') {
           setCurrentView('developer-dashboard');
         } else {
-          setCurrentView('landing-saas');
-          if (hostname.startsWith('mitra.')) {
-            setIsDevLoginModalOpen(true);
-          }
+          setCurrentView('developer-dashboard');
+          setIsDevLoginModalOpen(true);
         }
       } catch (e) {
-        setCurrentView('landing-saas');
+        setCurrentView('developer-dashboard');
+        setIsDevLoginModalOpen(true);
       }
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
@@ -313,10 +366,33 @@ function MainAppContent() {
     return (
       <div className="min-h-screen bg-[#FAF8F4]">
         <AppGatewayPage
-          onLoginSuccess={handleLoginSuccess}
-          onBackToLanding={() => setCurrentView('landing')}
+          onLoginSuccess={(user, targetTenant) => {
+            if (targetTenant && window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = `https://${targetTenant}.sipesand.web.id?fromGateway=true`;
+            } else if (targetTenant) {
+              const url = new URL(window.location.href);
+              url.searchParams.set('tenant', targetTenant);
+              url.searchParams.set('view', 'app');
+              window.location.href = url.toString();
+            } else {
+              handleLoginSuccess(user);
+            }
+          }}
+          onBackToLanding={() => {
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = 'https://sipesand.web.id';
+            } else {
+              setCurrentView('landing-saas');
+            }
+          }}
           onOpenPortalWali={handleOpenPortalWali}
-          onOpenSaasLanding={() => setCurrentView('landing-saas')}
+          onOpenSaasLanding={() => {
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = 'https://sipesand.web.id';
+            } else {
+              setCurrentView('landing-saas');
+            }
+          }}
           onNavigateLegal={(path) => setCurrentView(path)}
         />
 
@@ -337,17 +413,43 @@ function MainAppContent() {
     return (
       <div className="min-h-screen bg-[#F8FAFC]">
         <LandingPageSaas
-          onBackToPesantrenDemo={() => setCurrentView('landing')}
+          onBackToPesantrenDemo={() => {
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = 'https://darulrahman.sipesand.web.id';
+            } else {
+              const url = new URL(window.location.href);
+              url.searchParams.set('tenant', 'darulrahman');
+              url.searchParams.delete('view');
+              window.location.href = url.toString();
+            }
+          }}
+          onGoToAppGateway={() => {
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = 'https://app.sipesand.web.id';
+            } else {
+              setCurrentView('app-gateway');
+            }
+          }}
           onGoToTenant={(subdomain) => {
-            setCurrentView('landing');
-            setIsLoginModalOpen(true);
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = `https://${subdomain}.sipesand.web.id`;
+            } else {
+              const url = new URL(window.location.href);
+              url.searchParams.set('tenant', subdomain);
+              url.searchParams.delete('view');
+              window.location.href = url.toString();
+            }
           }}
           onNavigateLegal={(path) => setCurrentView(path)}
           onOpenDeveloperPortal={() => {
-            if (isDeveloperLoggedIn) {
-              setCurrentView('developer-dashboard');
+            if (window.location.hostname.includes('sipesand.web.id')) {
+              window.location.href = 'https://mitra.sipesand.web.id';
             } else {
-              setIsDevLoginModalOpen(true);
+              if (isDeveloperLoggedIn) {
+                setCurrentView('developer-dashboard');
+              } else {
+                setIsDevLoginModalOpen(true);
+              }
             }
           }}
         />

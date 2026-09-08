@@ -46,13 +46,14 @@ import {
   HelpCircle,
   X
 } from 'lucide-react';
+import { TENANT_PROFILES } from '../context/SettingsContext';
 
 export default function DashboardDeveloper({ 
   onLogout, 
   onImpersonateTenant,
   onBackToSaasLanding 
 }) {
-  // Navigation active tab: 'overview' | 'tenants' | 'infrastructure' | 'cms' | 'security' | 'billing'
+  // Navigation active tab: 'overview' | 'tenants' | 'infrastructure' | 'security' | 'monitoring' | 'cms' | 'billing' | 'modules' | 'settings'
   const [activeTab, setActiveTab] = useState('overview');
   const [environment, setEnvironment] = useState('production'); // 'production' | 'staging'
   const [globalSearch, setGlobalSearch] = useState('');
@@ -61,6 +62,21 @@ export default function DashboardDeveloper({
   // 1. STATE: TENANT MANAGEMENT (CRM)
   // ---------------------------------------------------------------------------
   const [tenants, setTenants] = useState([
+    {
+      id: 't-0',
+      name: 'Pondok Pesantren Darul Rahman Sumbersari',
+      subdomain: 'darulrahman',
+      status: 'ACTIVE',
+      plan: 'LIFETIME',
+      santriCount: 500,
+      dbSizeMb: 18.5,
+      dbEngine: 'SQLite (WAL) + Firestore Cloud',
+      adminEmail: 'darulrahmansumbersari@gmail.com',
+      adminPhone: '+62 851-2373-4342',
+      joinedDate: '01 Jan 2026',
+      lastActive: 'Baru saja',
+      nfcActive: true
+    },
     {
       id: 't-1',
       name: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
@@ -203,6 +219,128 @@ export default function DashboardDeveloper({
       setTenants(prev => prev.filter(t => t.id !== id));
     }
   };
+
+  // State: Edit Tenant Config (Profile, Kalam Pengasuh, Stats, Bank)
+  const [tenantConfigForm, setTenantConfigForm] = useState({
+    subdomain: '',
+    namaLembaga: '',
+    tagline: '',
+    namaPengasuh: '',
+    jabatanPengasuh: '',
+    lokasiPengasuh: '',
+    kalamPengasuh: '',
+    stat1Number: '500+',
+    stat1Label: 'Santri Mukim',
+    stat2Number: '1.000 Bait',
+    stat2Label: 'Nadzom Alfiyah & Imrithi',
+    stat3Number: '18+',
+    stat3Label: 'Asatidz Pengampu Salaf',
+    stat4Number: '100%',
+    stat4Label: 'Cashless KTSD RFID',
+    bankAccountNo: '7192837465',
+    bankAccountHolder: 'YAYASAN PESANTREN',
+    whatsappCenter: '+6285123734342',
+  });
+  const [isSavingTenantConfig, setIsSavingTenantConfig] = useState(false);
+
+  const handleOpenEditTenantConfig = (t) => {
+    setSelectedTenant(t);
+    const profile = (TENANT_PROFILES && TENANT_PROFILES[t.subdomain]) ? TENANT_PROFILES[t.subdomain] : {};
+    setTenantConfigForm({
+      subdomain: t.subdomain,
+      namaLembaga: profile.NAMA_LEMBAGA || t.name,
+      tagline: profile.TAGLINE_LEMBAGA || 'Pondok Pesantren Salafiyah Terpadu • Kajian Kitab Kuning & Muhafadzoh Nadzoman',
+      namaPengasuh: profile.NAMA_KEPALA_PONDOK || (t.subdomain === 'darulrahman' ? 'K.H. Pengasuh Darul Rahman' : 'K.H. Pengasuh Pesantren'),
+      jabatanPengasuh: profile.JABATAN_PENGASUH || (t.subdomain === 'darulrahman' ? 'Pengasuh Pondok Pesantren Darul Rahman' : 'Pengasuh Pondok Pesantren'),
+      lokasiPengasuh: profile.LOKASI_PENGASUH || (t.subdomain === 'darulrahman' ? 'Kencong, Kepung, Kediri' : 'Indonesia'),
+      kalamPengasuh: profile.KALAM_PENGASUH || 'Pondok Pesantren istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam.',
+      stat1Number: profile.STAT_1_NUMBER || '500+',
+      stat1Label: profile.STAT_1_LABEL || 'Santri Mukim',
+      stat2Number: profile.STAT_2_NUMBER || '1.000 Bait',
+      stat2Label: profile.STAT_2_LABEL || 'Nadzom Alfiyah & Imrithi',
+      stat3Number: profile.STAT_3_NUMBER || '18+',
+      stat3Label: profile.STAT_3_LABEL || 'Asatidz Pengampu Salaf',
+      stat4Number: profile.STAT_4_NUMBER || '100%',
+      stat4Label: profile.STAT_4_LABEL || 'Cashless KTSD RFID',
+      bankAccountNo: profile.BANK_ACCOUNT_NO || '7192837465',
+      bankAccountHolder: profile.BANK_ACCOUNT_HOLDER || (t.subdomain === 'darulrahman' ? 'YAYASAN DARUL RAHMAN SUMBERSARI' : 'YAYASAN PESANTREN'),
+      whatsappCenter: profile.WHATSAPP_CENTER || '+6285123734342',
+    });
+    setIsEditTenantModalOpen(true);
+  };
+
+  const handleSaveTenantConfig = async (e) => {
+    e.preventDefault();
+    try {
+      setIsSavingTenantConfig(true);
+      const { saveCloudSettings } = await import('../services/cloudDatabase');
+      await saveCloudSettings({
+        NAMA_LEMBAGA: tenantConfigForm.namaLembaga,
+        TAGLINE_LEMBAGA: tenantConfigForm.tagline,
+        NAMA_KEPALA_PONDOK: tenantConfigForm.namaPengasuh,
+        JABATAN_PENGASUH: tenantConfigForm.jabatanPengasuh,
+        LOKASI_PENGASUH: tenantConfigForm.lokasiPengasuh,
+        KALAM_PENGASUH: tenantConfigForm.kalamPengasuh,
+        STAT_1_NUMBER: tenantConfigForm.stat1Number,
+        STAT_1_LABEL: tenantConfigForm.stat1Label,
+        STAT_2_NUMBER: tenantConfigForm.stat2Number,
+        STAT_2_LABEL: tenantConfigForm.stat2Label,
+        STAT_3_NUMBER: tenantConfigForm.stat3Number,
+        STAT_3_LABEL: tenantConfigForm.stat3Label,
+        STAT_4_NUMBER: tenantConfigForm.stat4Number,
+        STAT_4_LABEL: tenantConfigForm.stat4Label,
+        BANK_ACCOUNT_NO: tenantConfigForm.bankAccountNo,
+        BANK_ACCOUNT_HOLDER: tenantConfigForm.bankAccountHolder,
+        WHATSAPP_CENTER: tenantConfigForm.whatsappCenter,
+      }, tenantConfigForm.subdomain);
+
+      setTenants(prev => prev.map(t => {
+        if (t.subdomain === tenantConfigForm.subdomain) {
+          return { ...t, name: tenantConfigForm.namaLembaga };
+        }
+        return t;
+      }));
+      setIsEditTenantModalOpen(false);
+    } catch (err) {
+      console.error('Save tenant config error:', err);
+      setIsEditTenantModalOpen(false);
+    } finally {
+      setIsSavingTenantConfig(false);
+    }
+  };
+
+  // State: Modul SIPESAND Feature Flags
+  const [featureFlags, setFeatureFlags] = useState({
+    ktsdRfid: true,
+    waGateway: true,
+    firestoreSync: true,
+    autoBackupR2: true,
+    googleSheetSync: true,
+    faceRecognition: false,
+  });
+
+  const toggleFeatureFlag = (key) => {
+    setFeatureFlags(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // State: Real-Time Monitoring Streams
+  const [livePosTransactions] = useState([
+    { id: 'pos-1', tenant: 'darulrahman', santri: 'Muhammad Azzam Al-Fatih', item: 'Nasi Kuning Santri + Susu Kedelai', amount: 12000, time: '20 detik lalu', status: 'SUCCESS' },
+    { id: 'pos-2', tenant: 'al-falah', santri: 'Aisyah Nur Ramadhani', item: 'Kitab Jurumiyyah + Buku Tulis', amount: 45000, time: '1 menit lalu', status: 'SUCCESS' },
+    { id: 'pos-3', tenant: 'darul-ulum', santri: 'Muhammad Farhan Al-Fatih', item: 'Top-up Saku via QRIS Pesantren', amount: 100000, time: '3 menit lalu', status: 'SUCCESS' },
+    { id: 'pos-4', tenant: 'darulrahman', santri: 'Fathimah Az-Zahra', item: 'Air Mineral + Roti Madinah', amount: 8000, time: '5 menit lalu', status: 'SUCCESS' },
+  ]);
+
+  const [liveRfidScans] = useState([
+    { id: 'rfid-1', tenant: 'darulrahman', santri: 'Muhammad Azzam Al-Fatih', reader: 'Gate Utama Pos Kamtib', uid: 'NFC-8A3F129B', time: '15 detik lalu', status: 'VERIFIED' },
+    { id: 'rfid-2', tenant: 'al-falah', santri: 'Aisyah Nur Ramadhani', reader: 'Madrasah Diniyah Kelas 10', uid: 'NFC-4B7C91D3', time: '45 detik lalu', status: 'VERIFIED' },
+    { id: 'rfid-3', tenant: 'darulrahman', santri: 'Zaki Yamani', reader: 'Kantin Salaf POS Terminal 1', uid: 'NFC-5C8E192A', time: '2 menit lalu', status: 'VERIFIED' },
+  ]);
+
+  const [activePermits] = useState([
+    { id: 'prm-1', tenant: 'darulrahman', santri: 'Aisyah Nur Ramadhani', reason: 'Izin Sambangan Keluarga & Kepulangan Bulanan', returnDate: '09-09-2026 17:00', remainingTime: '6 jam lagi', status: 'ACTIVE' },
+    { id: 'prm-2', tenant: 'al-falah', santri: 'Muhammad Farhan', reason: 'Pemeriksaan Kesehatan Poskestren', returnDate: '09-09-2026 20:00', remainingTime: '9 jam lagi', status: 'ACTIVE' },
+  ]);
 
   // ---------------------------------------------------------------------------
   // 2. STATE: SECURITY & AUTH LOGS (Security Center)
@@ -369,8 +507,8 @@ export default function DashboardDeveloper({
           </div>
         </div>
 
-        {/* Navigation Modules */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto text-xs">
+        {/* Navigation Modules (9 Modules Enterprise Bento Grid) */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto text-xs font-sans">
           
           <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Control Center
@@ -380,7 +518,7 @@ export default function DashboardDeveloper({
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
               activeTab === 'overview' 
-                ? 'bg-blue-600 text-white font-bold' 
+                ? 'bg-[#0057FF] text-white font-bold' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
@@ -392,69 +530,115 @@ export default function DashboardDeveloper({
             onClick={() => setActiveTab('tenants')}
             className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors text-left ${
               activeTab === 'tenants' 
-                ? 'bg-blue-600 text-white font-bold' 
+                ? 'bg-[#0057FF] text-white font-bold' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <Building2 className="w-4 h-4" />
-              <span>Tenants CRM</span>
+              <span>Tenants Management</span>
             </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-[#00FF99] border border-slate-700 font-bold">
               {tenants.length}
             </span>
           </button>
 
           <button
-            onClick={() => setActiveTab('infrastructure')}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
-              activeTab === 'infrastructure' 
-                ? 'bg-blue-600 text-white font-bold' 
+            onClick={() => setActiveTab('monitoring')}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors text-left ${
+              activeTab === 'monitoring' 
+                ? 'bg-[#0057FF] text-white font-bold' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <Cpu className="w-4 h-4" />
-            <span>Server & DB Monitor</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cms')}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
-              activeTab === 'cms' 
-                ? 'bg-blue-600 text-white font-bold' 
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Web Dev Builder (CMS)</span>
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-4 h-4" />
+              <span>Monitoring Real-Time</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-[#00FF99] animate-pulse" />
           </button>
 
           <div className="pt-4 px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Enterprise Governance
+            Cloud & Security
           </div>
+
+          <button
+            onClick={() => setActiveTab('infrastructure')}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors text-left ${
+              activeTab === 'infrastructure' 
+                ? 'bg-[#0057FF] text-white font-bold' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Cpu className="w-4 h-4" />
+              <span>Infrastruktur & Server</span>
+            </div>
+            <span className="text-[10px] font-mono text-[#00FF99]">14ms</span>
+          </button>
 
           <button
             onClick={() => setActiveTab('security')}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
               activeTab === 'security' 
-                ? 'bg-blue-600 text-white font-bold' 
+                ? 'bg-[#0057FF] text-white font-bold' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Security & Auth Logs</span>
+            <span>Security Center & WAF</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('modules')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
+              activeTab === 'modules' 
+                ? 'bg-[#0057FF] text-white font-bold' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            <span>Modul SIPESAND Toggle</span>
+          </button>
+
+          <div className="pt-4 px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Growth & Configuration
+          </div>
+
+          <button
+            onClick={() => setActiveTab('cms')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
+              activeTab === 'cms' 
+                ? 'bg-[#0057FF] text-white font-bold' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>CMS & Landing Builder</span>
           </button>
 
           <button
             onClick={() => setActiveTab('billing')}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
               activeTab === 'billing' 
-                ? 'bg-blue-600 text-white font-bold' 
+                ? 'bg-[#0057FF] text-white font-bold' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>SaaS Financials & MRR</span>
+            <span>Payment & Billing SaaS</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium transition-colors text-left ${
+              activeTab === 'settings' 
+                ? 'bg-[#0057FF] text-white font-bold' 
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>Developer Settings & API</span>
           </button>
 
         </nav>
@@ -948,8 +1132,17 @@ export default function DashboardDeveloper({
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
+                                  onClick={() => handleOpenEditTenantConfig(t)}
+                                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 rounded border border-slate-300 font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                  title="Edit Profil, Pengasuh, dan Konfigurasi Tenant ini dari Pusat"
+                                >
+                                  <Edit3 className="w-3 h-3 text-[#0057FF]" />
+                                  <span>Edit Config</span>
+                                </button>
+
+                                <button
                                   onClick={() => onImpersonateTenant && onImpersonateTenant(t.subdomain)}
-                                  className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-bold text-[11px] transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#0057FF] rounded border border-blue-200 font-bold text-[11px] transition-colors cursor-pointer"
                                   title="Login ke dashboard tenant ini"
                                 >
                                   Impersonate
@@ -1686,12 +1879,684 @@ export default function DashboardDeveloper({
             </div>
           )}
 
+          {/* ================================================================= */}
+          {/* TAB 7: MONITORING REAL-TIME (LIVE FEEDS & STREAMS)                */}
+          {/* ================================================================= */}
+          {activeTab === 'monitoring' && (
+            <div className="space-y-6 animate-in fade-in">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-blue-50 text-[#0057FF] font-bold text-[10px] uppercase font-mono tracking-wider mb-1">
+                    <Activity className="w-3 h-3 text-[#00FF99]" />
+                    <span>Real-Time Stream Engine</span>
+                  </div>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Monitoring Real-Time Ekosistem</h2>
+                  <p className="text-xs text-slate-500">Pemantauan langsung transaksi POS kantin, pemindaian RFID presensi, dan perizinan aktif di seluruh tenant.</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-bold">
+                    <span className="w-2 h-2 rounded-full bg-[#00FF99] animate-ping" />
+                    <span>Live Socket Connected</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Real-time KPI Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transaksi POS / Jam</span>
+                  <div className="font-mono font-bold text-xl text-slate-900">142 Trx</div>
+                  <span className="text-[11px] text-[#00FF99] font-semibold">● Rata-rata Rp18.400 / trx</span>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tap Presensi RFID (24h)</span>
+                  <div className="font-mono font-bold text-xl text-slate-900">3.840 Scans</div>
+                  <span className="text-[11px] text-[#0057FF] font-semibold">● 99.8% Sukses verifikasi</span>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Santri Izin Keluar Aktif</span>
+                  <div className="font-mono font-bold text-xl text-[#FF8A00]">28 Santri</div>
+                  <span className="text-[11px] text-slate-500">● 0 Santri overstay</span>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Edge Ping Latency</span>
+                  <div className="font-mono font-bold text-xl text-emerald-600">14 ms</div>
+                  <span className="text-[11px] text-slate-400 font-mono">Cloudflare Pages ID-SBY</span>
+                </div>
+              </div>
+
+              {/* Bento Grid: Live POS Stream & Live RFID Stream */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Left (7 cols): POS Cashless Stream */}
+                <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-[#0057FF]" />
+                      <h3 className="font-bold text-sm text-slate-900">Live Transaksi POS Kantin Cashless</h3>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">Pembaruan otomatis</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 text-xs font-sans">
+                    {livePosTransactions.map(pos => (
+                      <div key={pos.id} className="py-3 first:pt-0 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 truncate">{pos.santri}</span>
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-[#0057FF] border border-blue-200">
+                              @{pos.tenant}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{pos.item}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-mono font-bold text-slate-900">
+                            Rp {pos.amount.toLocaleString('id-ID')}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{pos.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right (5 cols): RFID Scans Stream */}
+                <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-[#00FF99]" />
+                      <h3 className="font-bold text-sm text-slate-900">Live RFID Gate Scanner</h3>
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  </div>
+
+                  <div className="divide-y divide-slate-100 text-xs">
+                    {liveRfidScans.map(rf => (
+                      <div key={rf.id} className="py-3 first:pt-0 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 truncate">{rf.santri}</span>
+                          <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">
+                            {rf.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                          <span>{rf.reader}</span>
+                          <span>{rf.time}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">UID: {rf.uid} • @{rf.tenant}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Santri Sedang Izin Keluar (Active Permits Table) */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#FF8A00]" />
+                    <h3 className="font-bold text-sm text-slate-900">Santri Sedang Izin Keluar (Gate Tracker)</h3>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-2.5 px-4">Nama Santri</th>
+                        <th className="py-2.5 px-4">Instansi Tenant</th>
+                        <th className="py-2.5 px-4">Keperluan Izin</th>
+                        <th className="py-2.5 px-4">Batas Waktu Kembali</th>
+                        <th className="py-2.5 px-4 text-right">Sisa Waktu</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {activePermits.map(p => (
+                        <tr key={p.id} className="hover:bg-slate-50/70">
+                          <td className="py-3 px-4 font-bold text-slate-900">{p.santri}</td>
+                          <td className="py-3 px-4 text-[#0057FF] font-mono font-bold">{p.tenant}.sipesand.web.id</td>
+                          <td className="py-3 px-4 text-slate-700">{p.reason}</td>
+                          <td className="py-3 px-4 text-slate-600 font-mono">{p.returnDate}</td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              {p.remainingTime}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* TAB 8: MODUL SIPESAND TOGGLE & FEATURE FLAGS                      */}
+          {/* ================================================================= */}
+          {activeTab === 'modules' && (
+            <div className="space-y-6 animate-in fade-in">
+              
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-blue-50 text-[#0057FF] font-bold text-[10px] uppercase font-mono tracking-wider mb-1">
+                  <Sliders className="w-3 h-3" />
+                  <span>Feature Flags Engine</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">Modul SIPESAND Toggle & Feature Flags</h2>
+                <p className="text-xs text-slate-500">Sakelar aktif/nonaktif fitur untuk seluruh subdomain pesantren atau pengujian modul baru.</p>
+              </div>
+
+              {/* Bento Grid Feature Toggles */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                {/* Modul 1: RFID KTSD */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#0057FF] text-white flex items-center justify-center font-bold">
+                        <Radio className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">KTSD Smart RFID / NFC</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Driver Mifare 13.56MHz</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('ktsdRfid')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.ktsdRfid ? 'bg-[#0057FF]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.ktsdRfid ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Mengaktifkan simulator NFC Web API dan scanner fisik untuk presensi kamar, kelas, dan kasir kantin.
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Status: {featureFlags.ktsdRfid ? 'AKTIF (Global)' : 'NONAKTIF'}</span>
+                    <span className="text-[#00FF99] font-bold">Prod Ready</span>
+                  </div>
+                </div>
+
+                {/* Modul 2: WhatsApp Gateway */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">WhatsApp Gateway</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Fonnte / Baileys Engine</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('waGateway')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.waGateway ? 'bg-emerald-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.waGateway ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Otomatis mengirimkan pesan WhatsApp ke wali santri saat uang saku berkurang, berobat, atau santri izin pulang.
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Status: {featureFlags.waGateway ? 'AKTIF (Global)' : 'NONAKTIF'}</span>
+                    <span className="text-[#00FF99] font-bold">High Delivery</span>
+                  </div>
+                </div>
+
+                {/* Modul 3: Firestore Real-Time Sync */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">Firestore Cloud Sync</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Real-Time WebSockets</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('firestoreSync')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.firestoreSync ? 'bg-[#0057FF]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.firestoreSync ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Menyinkronkan data multi-perangkat detik itu juga ke Google Cloud Firestore (Laptop Bendahara, HP Kamtib, Portal Wali).
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Status: {featureFlags.firestoreSync ? 'AKTIF (Multi-Device)' : 'LOCAL ONLY'}</span>
+                    <span className="text-[#00FF99] font-bold">Zero Conflict</span>
+                  </div>
+                </div>
+
+                {/* Modul 4: Auto Backup R2 */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">
+                        <Database className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">Auto Backup ke R2</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Cloudflare Object Storage</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('autoBackupR2')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.autoBackupR2 ? 'bg-[#0057FF]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.autoBackupR2 ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Pencadangan snapshot berkala seluruh basis data SQLite ke bucket terenkripsi setiap pukul 02:00 WIB.
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Retensi: 30 Hari Snapshot</span>
+                    <span className="text-slate-500 font-mono">02:00 WIB</span>
+                  </div>
+                </div>
+
+                {/* Modul 5: Google Sheets Sync */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">Google Sheets Sync</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Two-Way App Script</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('googleSheetSync')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.googleSheetSync ? 'bg-[#0057FF]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.googleSheetSync ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Opsi ekspor dan sinkronisasi otomatis daftar santri dan jurnal kas ke spreadsheet pengurus yayasan.
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Status: {featureFlags.googleSheetSync ? 'TERSEDIA' : 'NONAKTIF'}</span>
+                    <span className="text-teal-600 font-bold">OAuth 2.0</span>
+                  </div>
+                </div>
+
+                {/* Modul 6: AI Face Recognition */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
+                        <Eye className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">AI Face Recognition</h3>
+                        <span className="text-[10px] font-mono text-slate-400">Edge Biometrics (Beta)</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleFeatureFlag('faceRecognition')}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        featureFlags.faceRecognition ? 'bg-purple-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        featureFlags.faceRecognition ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Fitur presensi alternatif berbasis pemindaian wajah di kamera gerbang asrama tanpa kartu fisik.
+                  </p>
+                  <div className="text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Status: {featureFlags.faceRecognition ? 'AKTIF (Beta)' : 'NONAKTIF'}</span>
+                    <span className="text-purple-600 font-bold">On-Demand</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ================================================================= */}
+          {/* TAB 9: DEVELOPER SETTINGS, API KEYS & CLOUD SYNC                  */}
+          {/* ================================================================= */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6 animate-in fade-in">
+              
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-blue-50 text-[#0057FF] font-bold text-[10px] uppercase font-mono tracking-wider mb-1">
+                  <Database className="w-3 h-3" />
+                  <span>Developer Console & Sync</span>
+                </div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">Developer Settings & API Keys</h2>
+                <p className="text-xs text-slate-500">Konfigurasi endpoint cloud, kunci API payment gateway, dan alat pemeliharaan database.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Firebase Cloud Firestore Node */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      <h3 className="font-bold text-sm text-slate-900">Google Cloud Firestore Connection</h3>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      CONNECTED
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-500">Project ID:</span>
+                      <strong className="text-slate-900">sipesand-app</strong>
+                    </div>
+                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-500">Database Engine:</span>
+                      <span className="text-slate-700 font-semibold">(default) Firestore Native Mode</span>
+                    </div>
+                    <div className="p-2.5 rounded bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-500">Multi-Device Real-Time:</span>
+                      <span className="text-emerald-600 font-bold">ACTIVE (onSnapshot Listening)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cloudflare Pages Custom Domains */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#0057FF]" />
+                      <h3 className="font-bold text-sm text-slate-900">Cloudflare Pages Routing Node</h3>
+                    </div>
+                    <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
+                      SSL TLS 1.3
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="flex items-center justify-between p-2 rounded bg-slate-50">
+                      <span className="text-slate-600">sipesand.web.id</span>
+                      <span className="text-emerald-600 font-bold">SaaS Landing</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded bg-slate-50">
+                      <span className="text-slate-600">app.sipesand.web.id</span>
+                      <span className="text-[#0057FF] font-bold">Multi-Tenant Gateway</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded bg-slate-50">
+                      <span className="text-slate-600">mitra.sipesand.web.id</span>
+                      <span className="text-purple-600 font-bold">Super Dashboard Dev</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded bg-slate-50">
+                      <span className="text-slate-600">*.sipesand.web.id (darulrahman)</span>
+                      <span className="text-teal-600 font-bold">Isolated Tenant Profile</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Database Maintenance Tools */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+                <h3 className="font-bold text-sm text-slate-900">Alat Pemeliharaan Database Ekosistem</h3>
+                <p className="text-xs text-slate-500">Operasi darurat untuk menyinkronkan data antar instans atau mengekspor basis data cadangan.</p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => alert('Sinkronisasi Cloud Firestore ke cache lokal berhasil dijalankan!')}
+                    className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-black text-white font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-[#00FF99]" />
+                    <span>Sinkronkan Firestore ke SQLite Lokal</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tenants, null, 2));
+                      const downloadAnchor = document.createElement('a');
+                      downloadAnchor.setAttribute("href", dataStr);
+                      downloadAnchor.setAttribute("download", "sipesand_tenants_backup.json");
+                      document.body.appendChild(downloadAnchor);
+                      downloadAnchor.click();
+                      downloadAnchor.remove();
+                    }}
+                    className="px-3.5 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#0057FF]" />
+                    <span>Ekspor Snapshot JSON Seluruh Tenant</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </main>
 
       </div>
 
       {/* ===================================================================== */}
-      {/* 3. MODAL: TAMBAH PESANTREN / PROVISION TENANT BARU                    */}
+      {/* 3. MODAL: EDIT KONFIGURASI PROFIL TENANT (SUPERADMIN PUSAT)           */}
+      {/* ===================================================================== */}
+      {isEditTenantModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in text-xs font-sans">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#0057FF] flex items-center justify-center font-bold text-white shadow-xs">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">Kelola Konfigurasi Profil Tenant Pusat</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">https://{tenantConfigForm.subdomain}.sipesand.web.id</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditTenantModalOpen(false)}
+                className="w-7 h-7 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTenantConfig} className="p-6 space-y-4">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Pondok Pesantren *</label>
+                  <input
+                    type="text"
+                    required
+                    value={tenantConfigForm.namaLembaga}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, namaLembaga: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold focus:bg-white focus:ring-1 focus:ring-[#0057FF] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Subdomain Terikat (Read Only)</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={tenantConfigForm.subdomain + '.sipesand.web.id'}
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Tagline Lembaga</label>
+                <input
+                  type="text"
+                  value={tenantConfigForm.tagline}
+                  onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, tagline: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Pengasuh / Kepala *</label>
+                  <input
+                    type="text"
+                    value={tenantConfigForm.namaPengasuh}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, namaPengasuh: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Jabatan Pengasuh</label>
+                  <input
+                    type="text"
+                    value={tenantConfigForm.jabatanPengasuh}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, jabatanPengasuh: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Lokasi Pengasuh</label>
+                  <input
+                    type="text"
+                    value={tenantConfigForm.lokasiPengasuh}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, lokasiPengasuh: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Kalam & Nasihat Pengasuh</label>
+                <textarea
+                  rows={3}
+                  value={tenantConfigForm.kalamPengasuh}
+                  onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, kalamPengasuh: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <span className="block font-bold text-slate-800 text-xs mb-2">4 Angka Statistik Hero Profil:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold">Stat 1 (Santri)</label>
+                    <input
+                      type="text"
+                      value={tenantConfigForm.stat1Number}
+                      onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, stat1Number: e.target.value })}
+                      className="w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold">Stat 2 (Nadzom)</label>
+                    <input
+                      type="text"
+                      value={tenantConfigForm.stat2Number}
+                      onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, stat2Number: e.target.value })}
+                      className="w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold">Stat 3 (Asatidz)</label>
+                    <input
+                      type="text"
+                      value={tenantConfigForm.stat3Number}
+                      onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, stat3Number: e.target.value })}
+                      className="w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-semibold">Stat 4 (Cashless)</label>
+                    <input
+                      type="text"
+                      value={tenantConfigForm.stat4Number}
+                      onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, stat4Number: e.target.value })}
+                      className="w-full px-2 py-1.5 bg-slate-50 border border-slate-300 rounded text-xs font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nomor Rekening Bank Syariah</label>
+                  <input
+                    type="text"
+                    value={tenantConfigForm.bankAccountNo}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, bankAccountNo: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Pemilik Rekening</label>
+                  <input
+                    type="text"
+                    value={tenantConfigForm.bankAccountHolder}
+                    onChange={(e) => setTenantConfigForm({ ...tenantConfigForm, bankAccountHolder: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditTenantModalOpen(false)}
+                  className="w-1/3 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingTenantConfig}
+                  className="flex-1 py-2.5 bg-[#0057FF] hover:bg-blue-700 text-white font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingTenantConfig ? 'Menyimpan ke Cloud...' : 'Simpan Perubahan ke Cloud'}</span>
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* 4. MODAL: TAMBAH PESANTREN / PROVISION TENANT BARU                    */}
       {/* ===================================================================== */}
       {isAddTenantModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in text-xs font-sans">
