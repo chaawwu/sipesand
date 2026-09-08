@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSystemSettings, saveSystemSettings } from '../services/api';
+import { subscribeCloudSettings } from '../services/cloudDatabase';
 
 export const TENANT_PROFILES = {
   darulrahman: {
@@ -149,7 +150,21 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+
+    // Subscribe to Real-Time Cloud Firestore updates across all devices!
+    const unsubscribe = subscribeCloudSettings(activeTenant, (cloudData) => {
+      if (cloudData && Object.keys(cloudData).length > 0) {
+        setSettings(prev => ({
+          ...prev,
+          ...cloudData,
+        }));
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [activeTenant]);
 
   const updateSettings = async (newSettings) => {
     try {

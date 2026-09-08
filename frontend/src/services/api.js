@@ -1,5 +1,32 @@
 import axios from 'axios';
 import { localDb, getCurrentTenant } from './localDatabase';
+import { 
+  getCloudSettings, 
+  saveCloudSettings,
+  getCloudSantriList,
+  createCloudSantri,
+  updateCloudSantri,
+  deleteCloudSantri,
+  registerCloudRfid,
+  getCloudLedgerEntries,
+  createCloudLedgerEntry,
+  getCloudPocketTransactions,
+  topupCloudPocket,
+  withdrawCloudPocket,
+  recordCloudPurchase,
+  getCloudBills,
+  generateCloudBulkBills,
+  payCloudBill,
+  getCloudPermits,
+  createCloudPermit,
+  updateCloudPermitStatus,
+  getCloudAcademicRecords,
+  saveCloudAcademicRecord,
+  getCloudUserAccounts,
+  createCloudUserAccount,
+  updateCloudUserAccount,
+  deleteCloudUserAccount
+} from './cloudDatabase';
 
 // Backend Base URL: jika diisi di env atau custom server, gunakan.
 // Default fallback ke relative '/api' dengan timeout pendek agar tidak memblokir UI jika offline.
@@ -125,31 +152,31 @@ export const getDashboardCharts = (period = 'month') =>
 // 2. SANTRI MANAGEMENT (CRUD & RFID)
 // =============================================================================
 export const getSantriList = (params) => 
-  runHybrid(() => api.get('/santri', { params }), () => localDb.getSantriList(params));
+  runHybrid(() => api.get('/santri', { params }), () => getCloudSantriList());
 
 export const getSantriById = (id) => 
   runHybrid(() => api.get(`/santri/${id}`), () => localDb.getSantriById(id));
 
 export const createSantri = (data) => 
-  runHybrid(() => api.post('/santri', data), () => localDb.createSantri(data));
+  runHybrid(() => api.post('/santri', data), () => createCloudSantri(data));
 
 export const updateSantri = (id, data) => 
-  runHybrid(() => api.put(`/santri/${id}`, data), () => localDb.updateSantri(id, data));
+  runHybrid(() => api.put(`/santri/${id}`, data), () => updateCloudSantri(id, data));
 
 export const deleteSantri = (id) => 
-  runHybrid(() => api.delete(`/santri/${id}`), () => localDb.deleteSantri(id));
+  runHybrid(() => api.delete(`/santri/${id}`), () => deleteCloudSantri(id));
 
 export const getSantriByNfc = (uid) => 
   runHybrid(() => api.get(`/santri/nfc/${uid}`), () => localDb.getSantriByNfc(uid));
 
 export const registerRfidCard = (data) => 
-  runHybrid(() => api.post('/santri/register-rfid', data), () => localDb.registerRfidCard(data));
+  runHybrid(() => api.post('/santri/register-rfid', data), () => registerCloudRfid(data.santriId || data.id, data.nfcUid));
 
 export const unregisterRfidCard = (data) => 
-  runHybrid(() => api.post('/santri/unregister-rfid', data), () => localDb.unregisterRfidCard(data));
+  runHybrid(() => api.post('/santri/unregister-rfid', data), () => registerCloudRfid(data.santriId || data.id, null));
 
 export const exportSantriData = () => 
-  runHybrid(() => api.get('/santri/export/all'), () => localDb.getSantriList());
+  runHybrid(() => api.get('/santri/export/all'), () => getCloudSantriList());
 
 export const importSantriBulk = (data) => 
   runHybrid(
@@ -158,7 +185,7 @@ export const importSantriBulk = (data) =>
       const items = Array.isArray(data) ? data : (data.santri || []);
       let count = 0;
       items.forEach(item => {
-        localDb.createSantri(item);
+        createCloudSantri(item);
         count++;
       });
       return { success: true, message: `Berhasil mengimpor ${count} data santri`, count };
@@ -172,7 +199,7 @@ export const importFromFirebase = (data) =>
       const items = Array.isArray(data) ? data : (data.santri || []);
       let count = 0;
       items.forEach(item => {
-        localDb.createSantri(item);
+        createCloudSantri(item);
         count++;
       });
       return { success: true, message: `Berhasil transmigrasi ${count} data santri dari Firebase`, count };
@@ -183,31 +210,38 @@ export const importFromFirebase = (data) =>
 // 3. POCKET TRANSACTIONS (UANG SAKU & POS)
 // =============================================================================
 export const getPocketTxs = (params) => 
-  runHybrid(() => api.get('/pocket-tx', { params }), () => localDb.getPocketTransactions(params));
+  runHybrid(() => api.get('/pocket-tx', { params }), () => getCloudPocketTransactions());
 
 export const getPocketTransactions = (params) => 
-  runHybrid(() => api.get('/pocket-tx', { params }), () => localDb.getPocketTransactions(params));
+  runHybrid(() => api.get('/pocket-tx', { params }), () => getCloudPocketTransactions());
 
 export const createPocketTx = (data) => 
-  runHybrid(() => api.post('/pocket-tx', data), () => localDb.createPocketTransaction(data));
+  runHybrid(() => api.post('/pocket-tx', data), () => {
+    if (data.type === 'TOPUP') {
+      return topupCloudPocket(data.santriId, data.amount, data.description, data.merchant);
+    } else if (data.type === 'WITHDRAW') {
+      return withdrawCloudPocket(data.santriId, data.amount, data.description, data.merchant);
+    } else {
+      return recordCloudPurchase(data.santriId, data.amount, data.description, data.merchant);
+    }
+  });
 
-export const createPocketTransaction = (data) => 
-  runHybrid(() => api.post('/pocket-tx', data), () => localDb.createPocketTransaction(data));
+export const createPocketTransaction = (data) => createPocketTx(data);
 
 export const deductPocketBalance = (data) => 
-  runHybrid(() => api.post('/pocket-tx/deduct', data), () => localDb.deductPocketBalance(data));
+  runHybrid(() => api.post('/pocket-tx/deduct', data), () => recordCloudPurchase(data.nfcUid || data.santriId, data.amount, data.description, data.merchant));
 
 // =============================================================================
 // 4. GENERAL LEDGER (BUKU KAS UMUM)
 // =============================================================================
 export const getLedgerEntries = (params) => 
-  runHybrid(() => api.get('/ledger', { params }), () => localDb.getLedgerEntries(params));
+  runHybrid(() => api.get('/ledger', { params }), () => getCloudLedgerEntries());
 
 export const getLedgerSummary = () => 
   runHybrid(() => api.get('/ledger/summary'), () => localDb.getLedgerSummary());
 
 export const createLedgerEntry = (data) => 
-  runHybrid(() => api.post('/ledger', data), () => localDb.createLedgerEntry(data));
+  runHybrid(() => api.post('/ledger', data), () => createCloudLedgerEntry(data));
 
 export const deleteLedgerEntry = (id) => 
   runHybrid(() => api.delete(`/ledger/${id}`), () => localDb.deleteLedgerEntry(id));
@@ -216,13 +250,13 @@ export const deleteLedgerEntry = (id) =>
 // 5. SECURITY & PERMITS (PERIZINAN KAMTIB)
 // =============================================================================
 export const getPermits = (params) => 
-  runHybrid(() => api.get('/permits', { params }), () => localDb.getPermits(params));
+  runHybrid(() => api.get('/permits', { params }), () => getCloudPermits());
 
 export const createPermit = (data) => 
-  runHybrid(() => api.post('/permits', data), () => localDb.createPermit(data));
+  runHybrid(() => api.post('/permits', data), () => createCloudPermit(data));
 
 export const updatePermitStatus = (id, data) => 
-  runHybrid(() => api.put(`/permits/${id}/status`, data), () => localDb.updatePermitStatus(id, data));
+  runHybrid(() => api.put(`/permits/${id}/status`, data), () => updateCloudPermitStatus(id, data.status, data.actualReturnTime));
 
 export const checkSantriOverdue = () => 
   runHybrid(
@@ -274,13 +308,13 @@ export const deleteMasterBill = (id) =>
   );
 
 export const getSantriBills = (params) => 
-  runHybrid(() => api.get('/bills', { params }), () => localDb.getSantriBills(params));
+  runHybrid(() => api.get('/bills', { params }), () => getCloudBills());
 
 export const generateMassBills = (data) => 
-  runHybrid(() => api.post('/bills/generate-mass', data), () => localDb.autoGenerateHijriBills(data));
+  runHybrid(() => api.post('/bills/generate-mass', data), () => generateCloudBulkBills(data.masterBillId, data.period, data.dueDate));
 
 export const autoGenerateHijriBills = (data) => 
-  runHybrid(() => api.post('/bills/auto-generate-hijri', data), () => localDb.autoGenerateHijriBills(data));
+  runHybrid(() => api.post('/bills/auto-generate-hijri', data), () => generateCloudBulkBills(data.masterBillId, data.period, data.dueDate));
 
 export const updateSantriBill = (id, data) => 
   runHybrid(() => api.put(`/bills/${id}`, data), () => localDb.updateSantriBill(id, data));
@@ -312,33 +346,24 @@ export const updateApprovalStatus = (id, data) =>
   runHybrid(() => api.put(`/approvals/division-funds/${id}`, data), () => localDb.updateDivisionFundStatus(id, data));
 
 export const getPendingOnlinePayments = (params) => 
-  runHybrid(() => api.get('/approvals/online-payments', { params }), () => localDb.getSantriBills({ status: 'PENDING_VERIFICATION' }));
+  runHybrid(() => api.get('/approvals/online-payments', { params }), () => getCloudBills());
 
 export const verifyBillPayment = (id, data) => 
-  runHybrid(() => api.post(`/bills/verify-payment/${id}`, data), () => localDb.updateSantriBill(id, { status: 'PAID' }));
+  runHybrid(() => api.post(`/bills/verify-payment/${id}`, data), () => payCloudBill(id, data.paymentMethod || 'MANUAL_TRANSFER', data.reference));
 
 // =============================================================================
 // 8. PENDIDIKAN & MUHAFADZOH
 // =============================================================================
 export const getAcademicRecords = (params) => 
-  runHybrid(() => api.get('/academics', { params }), () => localDb.getAcademicRecords(params));
+  runHybrid(() => api.get('/academics', { params }), () => getCloudAcademicRecords());
 
 export const createAcademicRecord = (data) => 
-  runHybrid(() => api.post('/academics', data), () => localDb.createAcademicRecord(data));
+  runHybrid(() => api.post('/academics', data), () => saveCloudAcademicRecord(data));
 
 export const updateAcademicRecord = (id, data) => 
   runHybrid(
     () => api.put(`/academics/${id}`, data),
-    () => {
-      const db = localDb.getData();
-      const index = (db.academics || []).findIndex(a => a.id === parseInt(id));
-      if (index !== -1) {
-        db.academics[index] = { ...db.academics[index], ...data };
-        localDb.saveData(db);
-        return { success: true, data: db.academics[index] };
-      }
-      return { success: false, message: 'Catatan akademik tidak ditemukan' };
-    }
+    () => saveCloudAcademicRecord({ id, ...data })
   );
 
 export const deleteAcademicRecord = (id) => 
@@ -414,59 +439,37 @@ export const loginUser = (data) =>
 export const getSystemSettings = () => 
   runHybrid(
     () => api.get('/settings'),
-    () => {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('sipesand_settings');
-        if (saved) return { success: true, data: JSON.parse(saved) };
-      }
-      return { success: true, data: {} };
-    }
+    () => getCloudSettings()
   );
 
 export const saveSystemSettings = (data) => 
   runHybrid(
     () => api.post('/settings', data),
-    () => {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('sipesand_settings');
-        const prev = saved ? JSON.parse(saved) : {};
-        const merged = { ...prev, ...data };
-        localStorage.setItem('sipesand_settings', JSON.stringify(merged));
-      }
-      return { success: true, message: 'Pengaturan berhasil disimpan' };
-    }
+    () => saveCloudSettings(data)
   );
 
 export const getUserAccounts = () => 
   runHybrid(
     () => api.get('/settings/accounts'),
-    () => {
-      const accounts = [
-        { id: 1, username: 'admin', name: 'Pengasuh & Superadmin', role: 'SUPER_ADMIN', division: 'PENGASUHAN_PUSAT', isActive: true },
-        { id: 2, username: 'bendahara', name: 'Ustadz Bendahara, S.E.', role: 'BENDAHARA', division: 'KEUANGAN', isActive: true },
-        { id: 3, username: 'kamtib', name: 'Ustadz Keamanan', role: 'KAMTIB', division: 'KEAMANAN', isActive: true },
-        { id: 4, username: 'asatidz', name: 'Dewan Asatidz', role: 'ASATIDZ', division: 'PENDIDIKAN', isActive: true },
-      ];
-      return { success: true, data: accounts };
-    }
+    () => getCloudUserAccounts()
   );
 
 export const createUserAccount = (data) => 
   runHybrid(
     () => api.post('/settings/accounts', data),
-    () => ({ success: true, message: 'Akun baru berhasil ditambahkan', data: { id: Date.now(), ...data } })
+    () => createCloudUserAccount(data)
   );
 
 export const updateUserAccount = (id, data) => 
   runHybrid(
     () => api.put(`/settings/accounts/${id}`, data),
-    () => ({ success: true, message: 'Akun berhasil diperbarui', data: { id, ...data } })
+    () => updateCloudUserAccount(id, data)
   );
 
 export const deleteUserAccount = (id) => 
   runHybrid(
     () => api.delete(`/settings/accounts/${id}`),
-    () => ({ success: true, message: 'Akun berhasil dihapus' })
+    () => deleteCloudUserAccount(id)
   );
 
 export const getBackupData = () => 
