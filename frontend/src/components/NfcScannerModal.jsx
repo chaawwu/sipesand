@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Radio, 
   X, 
@@ -9,7 +9,8 @@ import {
   ShieldCheck, 
   AlertCircle, 
   CheckCircle2, 
-  ShoppingBag
+  ShoppingBag,
+  Smartphone
 } from 'lucide-react';
 import { getSantriByNfc, createPocketTransaction, checkInByNfc, getSantriList } from '../services/api';
 
@@ -23,6 +24,12 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null); // { type: 'success'|'error', text: '' }
+
+  // Smartphone Web NFC
+  const isWebNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window;
+  const [isNfcScanning, setIsNfcScanning] = useState(false);
+  const [nfcError, setNfcError] = useState(null);
+  const ndefControllerRef = useRef(null);
 
   // Ambil daftar santri untuk tombol quick simulator
   useEffect(() => {
@@ -50,6 +57,59 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
     setAmount('');
     setDescription('');
     setStatusMsg(null);
+    setNfcError(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopNfcScan();
+    }
+    return () => {
+      stopNfcScan();
+    };
+  }, [isOpen]);
+
+  const startNfcScan = async () => {
+    if (!isWebNfcSupported) return;
+    try {
+      setNfcError(null);
+      const abortController = new AbortController();
+      ndefControllerRef.current = abortController;
+      const ndef = new window.NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
+      setIsNfcScanning(true);
+
+      ndef.onreading = (event) => {
+        let rawUid = event.serialNumber;
+        if (!rawUid && event.message && event.message.records) {
+          for (const record of event.message.records) {
+            if (record.id) rawUid = record.id;
+          }
+        }
+        if (rawUid) {
+          const cleanUid = rawUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+          }
+          handleScan(cleanUid);
+        }
+      };
+
+      ndef.onreadingerror = () => {
+        setNfcError('Gagal membaca kartu NFC. Pastikan kartu ditempelkan stabil di bodi HP.');
+      };
+    } catch (err) {
+      setIsNfcScanning(false);
+      setNfcError('Tidak dapat mengaktifkan NFC ponsel. Pastikan NFC aktif di pengaturan HP.');
+    }
+  };
+
+  const stopNfcScan = () => {
+    if (ndefControllerRef.current) {
+      ndefControllerRef.current.abort();
+      ndefControllerRef.current = null;
+    }
+    setIsNfcScanning(false);
   };
 
   const handleScan = async (uidToScan) => {
@@ -162,7 +222,55 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
           </button>
         </div>
 
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+          {/* Smartphone Web NFC Tap Section */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Smartphone className="w-5 h-5 animate-pulse text-[#8CE829]" />
+              </div>
+              <div>
+                <div className="font-extrabold text-xs text-slate-800 flex items-center gap-2">
+                  <span>Tap Kartu NFC Langsung di Ponsel</span>
+                  {isWebNfcSupported && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      Web NFC Aktif
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {isWebNfcSupported
+                    ? (isNfcScanning ? '🟢 Scanner aktif: Tempelkan kartu ke bodi belakang ponsel.' : 'Aktifkan scanner untuk membaca kartu saat ditempelkan ke HP.')
+                    : 'Buka di Google Chrome Android ber-NFC untuk tap kartu langsung tanpa mesin reader.'}
+                </p>
+                {nfcError && <p className="text-[11px] text-rose-600 font-semibold mt-0.5">{nfcError}</p>}
+              </div>
+            </div>
+
+            {isWebNfcSupported && (
+              <div>
+                {!isNfcScanning ? (
+                  <button
+                    type="button"
+                    onClick={startNfcScan}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    <Radio className="w-3.5 h-3.5 animate-pulse" />
+                    <span>Mulai Tap di HP</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={stopNfcScan}
+                    className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                  >
+                    <span>Hentikan Tap</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Quick Select Preset NFC Cards */}
           <div>
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 block">

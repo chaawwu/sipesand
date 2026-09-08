@@ -48,6 +48,12 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
 
   useEffect(() => {
     loadDashboard();
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'register-rfid' || params.get('rfid') === '1' || params.get('santriId')) {
+        setIsRfidRegOpen(true);
+      }
+    }
   }, []);
 
   const loadDashboard = async () => {
@@ -529,6 +535,7 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         isOpen={isRfidRegOpen}
         onClose={() => setIsRfidRegOpen(false)}
         onSuccess={() => loadDashboard()}
+        initialSantriId={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('santriId') : null}
       />
 
     </div>
