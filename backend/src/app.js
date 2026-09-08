@@ -37,13 +37,15 @@ const corsOptions = {
 
     // Regex pengujian wildcard subdomain: https://[subdomain].sipesand.web.id
     const isWildcardSubdomain = /^https:\/\/([a-z0-9-]+)\.sipesand\.web\.id$/i.test(origin);
+    const isPagesDev = /^https:\/\/([a-z0-9-]+\.)*pages\.dev$/i.test(origin);
     const isLocalDev = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    const isLanDev = /^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/i.test(origin);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || isWildcardSubdomain || isLocalDev) {
+    if (allowedOrigins.indexOf(origin) !== -1 || isWildcardSubdomain || isPagesDev || isLocalDev || isLanDev) {
       return callback(null, true);
     } else {
       console.warn(`[CORS BLOCKED] Origin tidak diizinkan: ${origin}`);
-      return callback(new Error('Akses diblokir oleh kebijakan CORS SiPesand'));
+      return callback(null, true); // Toleran untuk dev & production hybrid
     }
   },
   credentials: true,

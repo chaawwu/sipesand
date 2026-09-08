@@ -4,11 +4,15 @@
   "description": "SiPesand - Sistem Terpadu Pesantren Digital (Fullstack Project)",
   "scripts": {
     "start": "node start.js",
+    "start:fullstack": "node server.js",
     "dev": "node start.js",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "backend": "node backend/src/server.js",
     "seed": "npm --prefix backend run seed",
-    "build": "npm --prefix frontend run build"
+    "prisma:push": "npm --prefix backend run prisma:push",
+    "build": "npm --prefix frontend run build",
+    "build:all": "npm --prefix frontend run build && npm --prefix backend run prisma:generate"
   },
   "keywords": ["pesantren", "fullstack", "react", "express", "prisma", "nfc", "sqlite"],
   "author": "SiPesand Team",
