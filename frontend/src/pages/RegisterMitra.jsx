@@ -17,7 +17,7 @@ import {
   Layers,
   HelpCircle
 } from 'lucide-react';
-import { registerMitraTenant } from '../services/api';
+import { registerMitraTenant, getMitraConfig } from '../services/api';
 import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 
@@ -31,6 +31,26 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
     noWhatsapp: '',
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
   });
+
+  const [prices, setPrices] = useState({
+    tahunanPrice: 1500000,
+    lifetimePrice: 3500000
+  });
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await getMitraConfig();
+        if (res.data?.success && res.data?.data) {
+          setPrices({
+            tahunanPrice: Number(res.data.data.tahunanPrice) || 1500000,
+            lifetimePrice: Number(res.data.data.lifetimePrice) || 3500000
+          });
+        }
+      } catch (e) {}
+    };
+    fetchConfig();
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -224,13 +244,13 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                     />
                   </div>
                   <span className="px-3.5 py-2.5 bg-slate-100 border border-slate-300 rounded-r-xl font-mono text-slate-600 font-bold text-xs">
-                    .sipesand.com
+                    .sipesand.web.id
                   </span>
                 </div>
                 {formData.subdomain && (
                   <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Tautan Login Anda: <strong>https://{formData.subdomain}.sipesand.com</strong></span>
+                    <span>Tautan Login Anda: <strong>https://{formData.subdomain}.sipesand.web.id</strong></span>
                   </div>
                 )}
               </div>
@@ -303,7 +323,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                       <span className="font-extrabold text-slate-900 text-xs">Paket Lisensi Tahunan</span>
                       <span className="px-2 py-0.5 bg-blue-600 text-white rounded font-bold text-[9px]">Populer</span>
                     </div>
-                    <div className="font-black text-base text-blue-700 font-mono">Rp 1.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span></div>
+                    <div className="font-black text-base text-blue-700 font-mono">Rp {prices.tahunanPrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span></div>
                     <p className="text-[10px] text-slate-500 mt-1">Database instans terisolasi, KTSD Smart NFC, Portal Wali, & Update fitur 1 tahun.</p>
                   </div>
 
@@ -320,7 +340,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                       <span className="font-extrabold text-slate-900 text-xs">Paket Lifetime Selamanya</span>
                       <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded font-bold text-[9px]">Hemat</span>
                     </div>
-                    <div className="font-black text-base text-slate-900 font-mono">Rp 3.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span></div>
+                    <div className="font-black text-base text-slate-900 font-mono">Rp {prices.lifetimePrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span></div>
                     <p className="text-[10px] text-slate-500 mt-1">Lisensi permanen seumur hidup tanpa biaya tahunan + support prioritas.</p>
                   </div>
 

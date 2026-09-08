@@ -591,6 +591,361 @@ export async function onRequest(context) {
       return new Response(object.body, { headers });
     }
 
+    // -------------------------------------------------------------------------
+    // 12. MITRA / SAAS PLATFORM APIS (mitra.sipesand.web.id)
+    // -------------------------------------------------------------------------
+
+    // A. /api/mitra/config - Ambil & Simpan Pengaturan Akun Bank / QRIS / Harga Lisensi
+    if (route === 'mitra/config') {
+      if (method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
+        if (res.ok) {
+          const doc = await res.json();
+          return jsonResponse({ success: true, data: decodeFields(doc.fields) });
+        }
+        // Default master payment config
+        return jsonResponse({
+          success: true,
+          data: {
+            bankName: 'Bank Syariah Indonesia (BSI)',
+            bankAccountNo: '7192837465',
+            bankAccountHolder: 'YAYASAN DARUL RAHMAN SUMBERSARI / KING DIGITAL DEV',
+            qrisImageUrl: 'https://i.ibb.co/vzkmT9r/qris-sample.png',
+            qrisString: '00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A0163041029',
+            waConfirmationNumber: '+62 851-2373-4342',
+            tahunanPrice: 1500000,
+            lifetimePrice: 3500000,
+            instructions: 'Silakan transfer tepat sesuai nominal hingga 3 digit terakhir. Setelah transfer, unggah bukti pembayaran atau hubungi WhatsApp resmi pusat.'
+          }
+        });
+      }
+
+      if (method === 'POST') {
+        const body = await request.json();
+        const firestorePayload = encodeDoc({
+          ...body,
+          updatedAt: new Date().toISOString()
+        });
+        await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(firestorePayload)
+        });
+        return jsonResponse({
+          success: true,
+          message: 'Pengaturan Rekening Bank, QRIS, & Harga Lisensi berhasil diperbarui!',
+          data: body
+        });
+      }
+    }
+
+    // B. /api/mitra/check-subdomain/:subdomain
+    if (route.startsWith('mitra/check-subdomain/')) {
+      const sub = decodeURIComponent(route.replace('mitra/check-subdomain/', '')).toLowerCase().trim();
+      const reserved = ['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin', 'root', 'mail', 'test'];
+      if (reserved.includes(sub)) {
+        return jsonResponse({ success: true, available: false, reason: 'RESERVED', message: `Subdomain "${sub}" adalah domain internal sistem.` });
+      }
+
+      const checkRes = await fetch(`${FIRESTORE_BASE}/tenants/${sub}/settings/config`);
+      if (checkRes.ok) {
+        return jsonResponse({ success: true, available: false, reason: 'TAKEN', message: `Subdomain "${sub}" sudah terdaftar oleh pesantren lain.` });
+      }
+
+      return jsonResponse({ success: true, available: true, subdomain: sub, message: `Subdomain "${sub}.sipesand.web.id" tersedia!` });
+    }
+
+    // C. /api/mitra/register - Pendaftaran Pesantren Baru & Penerbitan Invoice
+    if (route === 'mitra/register' && method === 'POST') {
+      const body = await request.json();
+      const { namaPondok, subdomain, namaPengelola, email, noWhatsapp, packageType = 'TAHUNAN' } = body;
+
+      if (!namaPondok || !subdomain || !namaPengelola || !email || !noWhatsapp) {
+        return jsonResponse({ success: false, message: 'Semua kolom pendaftaran wajib diisi.' }, 400);
+      }
+
+      const cleanSub = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '').trim();
+
+      // Ambil konfigurasi rekening & harga terbaru dari Firestore
+      let cfg = {
+        bankName: 'Bank Syariah Indonesia (BSI)',
+        bankAccountNo: '7192837465',
+        bankAccountHolder: 'YAYASAN DARUL RAHMAN SUMBERSARI / KING DIGITAL DEV',
+        qrisImageUrl: 'https://i.ibb.co/vzkmT9r/qris-sample.png',
+        qrisString: '00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A0163041029',
+        waConfirmationNumber: '+62 851-2373-4342',
+        tahunanPrice: 1500000,
+        lifetimePrice: 3500000
+      };
+
+      try {
+        const cfgRes = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
+        if (cfgRes.ok) {
+          const doc = await cfgRes.json();
+          cfg = { ...cfg, ...decodeFields(doc.fields) };
+        }
+      } catch (e) {}
+
+      const basePrice = packageType === 'LIFETIME' ? Number(cfg.lifetimePrice) : Number(cfg.tahunanPrice);
+      const uniqueCode = Math.floor(100 + Math.random() * 899);
+      const totalAmount = basePrice + uniqueCode;
+      const orderId = `KGD-ORD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const orderData = {
+        orderId,
+        namaPondok,
+        subdomain: cleanSub,
+        namaPengelola,
+        email,
+        noWhatsapp,
+        packageType,
+        basePrice,
+        uniqueCode,
+        amount: totalAmount,
+        status: 'PENDING_PAYMENT',
+        vaNumber: cfg.bankAccountNo,
+        vaBank: cfg.bankName,
+        accountHolder: cfg.bankAccountHolder,
+        qrisImageUrl: cfg.qrisImageUrl,
+        qrisString: cfg.qrisString,
+        waConfirmationNumber: cfg.waConfirmationNumber,
+        expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString(),
+        redirectUrl: `https://${cleanSub}.sipesand.web.id`
+      };
+
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(orderData))
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Invoice pendaftaran berhasil diterbitkan',
+        data: orderData
+      });
+    }
+
+    // D. /api/mitra/orders - Daftar seluruh pendaftaran mitra (untuk mitra.sipesand.web.id)
+    if (route === 'mitra/orders' && method === 'GET') {
+      const res = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders`);
+      if (res.ok) {
+        const json = await res.json();
+        const orders = (json.documents || []).map(d => ({
+          id: d.name.split('/').pop(),
+          ...decodeFields(d.fields)
+        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return jsonResponse({ success: true, data: orders });
+      }
+      return jsonResponse({ success: true, data: [] });
+    }
+
+    if (route.startsWith('mitra/orders/') && method === 'DELETE') {
+      const ordId = route.replace('mitra/orders/', '').trim();
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}`, { method: 'DELETE' });
+      return jsonResponse({ success: true, message: 'Pesanan pendaftaran berhasil dihapus' });
+    }
+
+    // E. /api/mitra/status/:orderId - Cek status pesanan
+    if (route.startsWith('mitra/status/')) {
+      const ordId = route.replace('mitra/status/', '').trim();
+      const res = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}`);
+      if (res.ok) {
+        const doc = await res.json();
+        const data = decodeFields(doc.fields);
+        return jsonResponse({
+          success: true,
+          data: {
+            ...data,
+            isProvisioned: data.status === 'PAID' || data.status === 'ACTIVE'
+          }
+        });
+      }
+      return jsonResponse({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
+    }
+
+    // F. /api/mitra/upload-proof - Unggah bukti transfer calon mitra
+    if (route === 'mitra/upload-proof' && method === 'POST') {
+      const body = await request.json();
+      const { orderId, proofBase64, proofNote, senderName } = body;
+
+      if (!orderId || !proofBase64) {
+        return jsonResponse({ success: false, message: 'ID Pesanan dan berkas bukti transfer wajib disertakan.' }, 400);
+      }
+
+      let proofUrl = proofBase64;
+      // Simpan ke Cloudflare R2 jika tersedia
+      if (r2) {
+        try {
+          const cleanB64 = proofBase64.replace(/^data:[^;]+;base64,/, '');
+          const binaryStr = atob(cleanB64);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const objectKey = `tenants/master/proofs/${orderId}_${Date.now()}.jpg`;
+          await r2.put(objectKey, bytes.buffer, {
+            httpMetadata: { contentType: 'image/jpeg' },
+            customMetadata: { orderId, uploadedAt: new Date().toISOString() }
+          });
+          proofUrl = `${url.origin}/api/storage/${objectKey}`;
+        } catch (r2Err) {
+          console.warn('Gagal simpan bukti ke R2, fallback data URL:', r2Err);
+        }
+      }
+
+      const updatePayload = encodeDoc({
+        status: 'WAITING_VERIFICATION',
+        proofUrl,
+        proofNote: proofNote || '',
+        senderName: senderName || '',
+        proofUploadedAt: new Date().toISOString()
+      });
+
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}?updateMask.fieldPaths=status&updateMask.fieldPaths=proofUrl&updateMask.fieldPaths=proofNote&updateMask.fieldPaths=senderName&updateMask.fieldPaths=proofUploadedAt`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload)
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi tim admin.',
+        data: { orderId, proofUrl, status: 'WAITING_VERIFICATION' }
+      });
+    }
+
+    // G. /api/mitra/verify-order - Superadmin memverifikasi pembayaran & auto-provisioning tenant
+    if (route === 'mitra/verify-order' && method === 'POST') {
+      const body = await request.json();
+      const { orderId } = body;
+
+      const ordRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`);
+      if (!ordRes.ok) {
+        return jsonResponse({ success: false, message: 'Data pesanan tidak ditemukan' }, 404);
+      }
+      const ordDoc = await ordRes.json();
+      const ord = decodeFields(ordDoc.fields);
+
+      const targetSubdomain = ord.subdomain;
+      const verifiedAt = new Date().toISOString();
+
+      // 1. Update status pesanan di Firestore
+      const updateOrderPayload = encodeDoc({
+        status: 'PAID',
+        verifiedAt,
+        activeData: {
+          subdomain: targetSubdomain,
+          adminUsername: 'admin',
+          tempPassword: 'Pesand-2026!',
+          licenseKey: `KGD-${targetSubdomain.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}-VERIFIED`,
+          activatedAt: verifiedAt
+        }
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateOrderPayload)
+      });
+
+      // 2. Auto-Provisioning: Buat profil tenant di Firestore
+      const tenantConfigPayload = encodeDoc({
+        NAMA_LEMBAGA: ord.namaPondok,
+        NAMA_KEPALA_PONDOK: ord.namaPengelola || 'Pengasuh Pesantren',
+        EMAIL_LEMBAGA: ord.email,
+        WHATSAPP_CENTER: ord.noWhatsapp,
+        PACKAGE_TYPE: ord.packageType,
+        LICENSE_KEY: `KGD-${targetSubdomain.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}-VERIFIED`,
+        SUBDOMAIN: targetSubdomain,
+        IS_ACTIVE: true,
+        CREATED_AT: verifiedAt,
+        TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Pesantren Modern Terpadu'
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/settings/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tenantConfigPayload)
+      });
+
+      // 3. Buat Akun Super Admin di tenant tersebut
+      const adminAccountPayload = encodeDoc({
+        id: 'acc_admin_root',
+        username: 'admin',
+        password: 'Pesand-2026!',
+        name: ord.namaPengelola || 'Super Admin Lembaga',
+        role: 'SUPER_ADMIN',
+        division: 'PUSAT',
+        createdAt: verifiedAt
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/user_accounts/acc_admin_root`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminAccountPayload)
+      });
+
+      return jsonResponse({
+        success: true,
+        message: `Pembayaran terverifikasi! Pesantren ${ord.namaPondok} (https://${targetSubdomain}.sipesand.web.id) telah aktif.`,
+        data: {
+          subdomain: targetSubdomain,
+          redirectUrl: `https://${targetSubdomain}.sipesand.web.id`,
+          adminUsername: 'admin',
+          tempPassword: 'Pesand-2026!'
+        }
+      });
+    }
+
+    // H. /api/mitra/simulate-payment/:orderId
+    if (route.startsWith('mitra/simulate-payment/')) {
+      const ordId = route.replace('mitra/simulate-payment/', '').trim();
+      const ordRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}`);
+      if (!ordRes.ok) {
+        return jsonResponse({
+          success: true,
+          message: 'Simulasi sukses (offline fallback)',
+          data: {
+            subdomain: 'demo',
+            adminUsername: 'admin',
+            tempPassword: 'Pesand-2026!',
+            licenseKey: 'KGD-DEMO-2026-SIMULATED'
+          }
+        });
+      }
+      const ordDoc = await ordRes.json();
+      const ord = decodeFields(ordDoc.fields);
+      const targetSubdomain = ord.subdomain;
+      const verifiedAt = new Date().toISOString();
+
+      const updateOrderPayload = encodeDoc({
+        status: 'PAID',
+        verifiedAt,
+        activeData: {
+          subdomain: targetSubdomain,
+          adminUsername: 'admin',
+          tempPassword: 'Pesand-2026!',
+          licenseKey: `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`,
+          activatedAt: verifiedAt
+        }
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateOrderPayload)
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Simulasi pembayaran sukses',
+        data: {
+          subdomain: targetSubdomain,
+          adminUsername: 'admin',
+          tempPassword: 'Pesand-2026!',
+          licenseKey: `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`
+        }
+      });
+    }
+
     // Fallback 404
     return jsonResponse({
       success: false,

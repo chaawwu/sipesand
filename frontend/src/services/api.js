@@ -526,6 +526,30 @@ export const checkSubdomainAvailability = (subdomain) =>
     () => ({ success: true, available: true, subdomain })
   );
 
+export const getMitraConfig = () => 
+  runHybrid(
+    () => api.get('/mitra/config'),
+    () => ({
+      success: true,
+      data: {
+        bankName: 'Bank Syariah Indonesia (BSI)',
+        bankAccountNo: '7192837465',
+        bankAccountHolder: 'YAYASAN DARUL RAHMAN SUMBERSARI / KING DIGITAL DEV',
+        qrisImageUrl: 'https://i.ibb.co/vzkmT9r/qris-sample.png',
+        qrisString: '00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A0163041029',
+        waConfirmationNumber: '+62 851-2373-4342',
+        tahunanPrice: 1500000,
+        lifetimePrice: 3500000
+      }
+    })
+  );
+
+export const updateMitraConfig = (data) => 
+  runHybrid(
+    () => api.post('/mitra/config', data),
+    () => ({ success: true, message: 'Konfigurasi pembayaran lisensi mitra berhasil disimpan', data })
+  );
+
 export const registerMitraTenant = (data) => 
   runHybrid(
     () => api.post('/mitra/register', data),
@@ -538,10 +562,34 @@ export const registerMitraTenant = (data) =>
     })
   );
 
+export const getMitraOrders = () => 
+  runHybrid(
+    () => api.get('/mitra/orders'),
+    () => ({ success: true, data: [] })
+  );
+
 export const getMitraOrderStatus = (orderId) => 
   runHybrid(
     () => api.get(`/mitra/status/${orderId}`),
     () => ({ success: true, status: 'PAID', orderId })
+  );
+
+export const uploadMitraPaymentProof = (payload) => 
+  runHybrid(
+    () => api.post('/mitra/upload-proof', payload),
+    () => ({ success: true, message: 'Bukti pembayaran berhasil diunggah', data: payload })
+  );
+
+export const verifyMitraOrder = (orderId) => 
+  runHybrid(
+    () => api.post('/mitra/verify-order', { orderId }),
+    () => ({ success: true, message: 'Pesanan berhasil diverifikasi dan lembaga telah aktif' })
+  );
+
+export const deleteMitraOrder = (orderId) => 
+  runHybrid(
+    () => api.delete(`/mitra/orders/${orderId}`),
+    () => ({ success: true, message: 'Pesanan berhasil dihapus' })
   );
 
 export const simulatePaymentSuccess = (orderId) => 

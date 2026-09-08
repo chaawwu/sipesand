@@ -37,7 +37,7 @@ import {
   Sliders,
   Database
 } from 'lucide-react';
-import { registerMitraTenant, checkSubdomainAvailability } from '../services/api';
+import { registerMitraTenant, checkSubdomainAvailability, getMitraConfig } from '../services/api';
 import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
@@ -49,7 +49,8 @@ export default function LandingPageSaas({
   onNavigateLegal, 
   onOpenDeveloperPortal,
   onNavigatePillar,
-  onNavigateBlog 
+  onNavigateBlog,
+  onOpenDeveloperLoginModal 
 }) {
   // Form State
   const [formData, setFormData] = useState({
@@ -60,6 +61,26 @@ export default function LandingPageSaas({
     noWhatsapp: '',
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
   });
+
+  const [prices, setPrices] = useState({
+    tahunanPrice: 1500000,
+    lifetimePrice: 3500000
+  });
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const res = await getMitraConfig();
+        if (res.data?.success && res.data?.data) {
+          setPrices({
+            tahunanPrice: Number(res.data.data.tahunanPrice) || 1500000,
+            lifetimePrice: Number(res.data.data.lifetimePrice) || 3500000
+          });
+        }
+      } catch (e) {}
+    };
+    fetchPrices();
+  }, []);
 
   // Subdomain Validation State
   const [subdomainStatus, setSubdomainStatus] = useState({
@@ -848,7 +869,7 @@ export default function LandingPageSaas({
                       <span className="px-2 py-0.5 bg-[#0052FF] text-white rounded-full font-bold text-[9px]">Pilihan Populer</span>
                     </div>
                     <div className="font-black text-base text-[#0052FF] font-mono">
-                      Rp 1.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span>
+                      Rp {prices.tahunanPrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Database mandiri, hingga 1.000 santri, King Digital PG Ready, & Update 1 tahun.</p>
                   </div>
@@ -867,7 +888,7 @@ export default function LandingPageSaas({
                       <span className="px-2 py-0.5 bg-[#8CE829] text-slate-950 rounded-full font-bold text-[9px]">Hemat Permanen</span>
                     </div>
                     <div className="font-black text-base text-slate-900 font-mono">
-                      Rp 3.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span>
+                      Rp {prices.lifetimePrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Lisensi permanen tanpa biaya tahunan, kapasitas unlimited santri, & support prioritas.</p>
                   </div>
