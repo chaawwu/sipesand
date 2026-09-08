@@ -607,7 +607,9 @@ export default function DashboardDeveloper({
       const compressedB64 = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.88 });
       const res = await uploadFileToR2({
         fileName: `qris_${Date.now()}.jpg`,
+        fileBase64: compressedB64,
         fileData: compressedB64,
+        mimeType: 'image/jpeg',
         folder: 'qris'
       }, 'master');
       if (res.success && res.data?.url) {

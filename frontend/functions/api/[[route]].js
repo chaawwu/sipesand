@@ -408,7 +408,7 @@ export async function onRequest(context) {
         mimeType = json.mimeType || 'image/jpeg';
         folder = json.folder || 'uploads';
         
-        const b64 = json.fileBase64 || json.base64 || '';
+        const b64 = json.fileBase64 || json.base64 || json.fileData || '';
         const base64Clean = b64.replace(/^data:[^;]+;base64,/, '');
         const binaryStr = atob(base64Clean);
         const len = binaryStr.length;
