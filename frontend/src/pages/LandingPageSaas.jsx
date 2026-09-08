@@ -41,7 +41,7 @@ import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
 
-export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, onNavigateLegal }) {
+export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, onNavigateLegal, onOpenDeveloperPortal }) {
   // Form State
   const [formData, setFormData] = useState({
     namaPondok: '',
@@ -265,10 +265,21 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToTenant, o
               <span className="sm:hidden">Demo</span>
             </button>
 
+            {/* Tombol Developer / Superadmin Portal */}
+            <button
+              onClick={onOpenDeveloperPortal}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition-all flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
+              title="Akses Superadmin & Developer Control Panel (mitra.sipesand.web.id)"
+            >
+              <Server className="w-3.5 h-3.5 text-[#8CE829]" />
+              <span className="hidden sm:inline">Developer Portal</span>
+              <span className="sm:hidden">Dev</span>
+            </button>
+
             {/* Tombol CTA Pembelian */}
             <button
               onClick={handleScrollToForm}
-              className="px-4 py-1.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-1.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <CreditCard className="w-3.5 h-3.5 text-amber-300" />
               <span>Beli Lisensi Web</span>

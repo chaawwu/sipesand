@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import NfcScannerModal from './components/NfcScannerModal';
 import LoginModal from './components/LoginModal';
+import DeveloperLoginModal from './components/DeveloperLoginModal';
 import DeveloperFooter from './components/DeveloperFooter';
 
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
 import AppGatewayPage from './pages/AppGatewayPage';
 import PortalWaliPublic from './pages/PortalWaliPublic';
+import DashboardDeveloper from './pages/DashboardDeveloper';
 import Dashboard from './pages/Dashboard';
 import Santri from './pages/Santri';
 import PocketAndCash from './pages/PocketAndCash';
@@ -25,12 +28,23 @@ import ContactPage from './pages/ContactPage';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
 function MainAppContent() {
-  // Current View: 'landing' | 'landing-saas' | 'portal-wali' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
+  // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
   const [currentView, setCurrentView] = useState('landing');
   const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
   
-  // Auth Session State
-  const [currentUser, setCurrentUser] = useState(null); // { id, username, name, role, division }
+  // Developer Portal Auth State (mitra.sipesand.web.id)
+  const [isDeveloperLoggedIn, setIsDeveloperLoggedIn] = useState(() => {
+    try {
+      return sessionStorage.getItem('sipesand_dev_auth') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+  const [isDevLoginModalOpen, setIsDevLoginModalOpen] = useState(false);
+  const [impersonatingTenant, setImpersonatingTenant] = useState(null);
+
+  // Auth Session State (Tenant Officer / Admin)
+  const [currentUser, setCurrentUser] = useState(null); // { id, username, name, role, division, isImpersonated }
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Active Navigation Tab
@@ -59,9 +73,24 @@ function MainAppContent() {
     } else if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') {
       setCurrentView('kontak');
     } 
-    // 2. Cek Subdomain
-    else if (viewParam === 'saas' || viewParam === 'mitra' || hostname.startsWith('mitra.')) {
-      setCurrentView('landing-saas');
+    // 2. Cek Subdomain Developer / Mitra Control Panel
+    else if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev') {
+      setIsDeveloperLoggedIn(true);
+      try { sessionStorage.setItem('sipesand_dev_auth', 'true'); } catch (e) {}
+      setCurrentView('developer-dashboard');
+    } else if (viewParam === 'saas' || viewParam === 'mitra' || hostname.startsWith('mitra.')) {
+      try {
+        if (sessionStorage.getItem('sipesand_dev_auth') === 'true') {
+          setCurrentView('developer-dashboard');
+        } else {
+          setCurrentView('landing-saas');
+          if (hostname.startsWith('mitra.')) {
+            setIsDevLoginModalOpen(true);
+          }
+        }
+      } catch (e) {
+        setCurrentView('landing-saas');
+      }
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
     } else if (viewParam === 'app' || hostname.startsWith('app.')) {
@@ -79,6 +108,53 @@ function MainAppContent() {
 
   const handleNfcSuccess = () => {
     handleRefresh();
+  };
+
+  // Developer Superadmin Auth Handlers
+  const handleDevLoginSuccess = (devUser) => {
+    setIsDeveloperLoggedIn(true);
+    try {
+      sessionStorage.setItem('sipesand_dev_auth', 'true');
+    } catch (e) {}
+    setCurrentView('developer-dashboard');
+    setIsDevLoginModalOpen(false);
+  };
+
+  const handleDevLogout = () => {
+    setIsDeveloperLoggedIn(false);
+    try {
+      sessionStorage.removeItem('sipesand_dev_auth');
+    } catch (e) {}
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.startsWith('mitra.')) {
+      setCurrentView('landing-saas');
+      setIsDevLoginModalOpen(true);
+    } else {
+      setCurrentView('landing-saas');
+    }
+  };
+
+  // Impersonate Tenant
+  const handleImpersonateTenant = (tenant) => {
+    const subdomain = typeof tenant === 'string' ? tenant : (tenant?.subdomain || 'al-ihsan');
+    const namaPesantren = tenant?.name || (subdomain.charAt(0).toUpperCase() + subdomain.slice(1).replace(/-/g, ' '));
+    setImpersonatingTenant(subdomain);
+    setCurrentUser({
+      id: `impersonated-superadmin-${subdomain}`,
+      username: `admin@${subdomain}.sipesand.web.id`,
+      name: `Super Admin (${namaPesantren})`,
+      role: 'SUPER_ADMIN',
+      division: 'Pusat Komando Pesantren',
+      isImpersonated: true
+    });
+    setActiveTab('dashboard');
+    setCurrentView('app');
+  };
+
+  const handleExitImpersonation = () => {
+    setImpersonatingTenant(null);
+    setCurrentUser(null);
+    setCurrentView('developer-dashboard');
   };
 
   const handleLoginSuccess = (user) => {
@@ -107,6 +183,10 @@ function MainAppContent() {
   };
 
   const handleLogout = () => {
+    if (impersonatingTenant) {
+      handleExitImpersonation();
+      return;
+    }
     setCurrentUser(null);
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
@@ -122,6 +202,35 @@ function MainAppContent() {
     setPortalWaliQuery(query);
     setCurrentView('portal-wali');
   };
+
+  // 0. Tampilan Superadmin & Developer Control Panel (mitra.sipesand.web.id)
+  if (currentView === 'developer-dashboard') {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 font-sans">
+        <DashboardDeveloper
+          onLogout={handleDevLogout}
+          onImpersonateTenant={handleImpersonateTenant}
+          onBackToSaasLanding={() => setCurrentView('landing-saas')}
+        />
+
+        {/* Developer Login Modal */}
+        <DeveloperLoginModal
+          isOpen={isDevLoginModalOpen}
+          onClose={() => setIsDevLoginModalOpen(false)}
+          onLoginSuccess={handleDevLoginSuccess}
+        />
+
+        {/* Global NFC Simulator Modal */}
+        {isNfcEnabled && (
+          <NfcScannerModal
+            isOpen={isNfcModalOpen}
+            onClose={() => setIsNfcModalOpen(false)}
+            onSuccess={handleNfcSuccess}
+          />
+        )}
+      </div>
+    );
+  }
 
   // 1. Tampilan Halaman Utama / Landing Page Portal Pesantren
   if (currentView === 'landing') {
@@ -140,6 +249,13 @@ function MainAppContent() {
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={handleLoginSuccess}
+        />
+
+        {/* Developer Login Modal */}
+        <DeveloperLoginModal
+          isOpen={isDevLoginModalOpen}
+          onClose={() => setIsDevLoginModalOpen(false)}
+          onLoginSuccess={handleDevLoginSuccess}
         />
 
         {/* Global NFC Simulator Modal */}
@@ -189,6 +305,20 @@ function MainAppContent() {
             setIsLoginModalOpen(true);
           }}
           onNavigateLegal={(path) => setCurrentView(path)}
+          onOpenDeveloperPortal={() => {
+            if (isDeveloperLoggedIn) {
+              setCurrentView('developer-dashboard');
+            } else {
+              setIsDevLoginModalOpen(true);
+            }
+          }}
+        />
+
+        {/* Developer Login Modal */}
+        <DeveloperLoginModal
+          isOpen={isDevLoginModalOpen}
+          onClose={() => setIsDevLoginModalOpen(false)}
+          onLoginSuccess={handleDevLoginSuccess}
         />
 
         {/* Global NFC Simulator Modal */}
@@ -280,29 +410,49 @@ function MainAppContent() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] text-[#111827]">
-      {/* Sidebar Navigation (Role-based & Mobile Drawer) */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenNfcModal={() => setIsNfcModalOpen(true)}
-        onBackToLanding={() => setCurrentView('landing')}
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        isOpen={isMobileSidebarOpen}
-        onClose={() => setIsMobileSidebarOpen(false)}
-      />
+    <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col">
+      {/* Impersonation Banner for Developer Superadmin Control */}
+      {impersonatingTenant && (
+        <aside aria-label="Notifikasi Mode Impersonasi" className="bg-slate-900 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between border-b border-blue-500/40 z-50 sticky top-0 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
+            <span className="text-slate-300">
+              Mode Impersonasi Superadmin Aktif: Mengontrol tenant <strong className="text-white font-mono bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-400/30">{impersonatingTenant}.sipesand.web.id</strong>
+            </span>
+          </div>
+          <button
+            onClick={handleExitImpersonation}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Keluar & Kembali ke Developer Panel</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </aside>
+      )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar Navigation (Role-based & Mobile Drawer) */}
+        <Sidebar
           activeTab={activeTab}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
+          setActiveTab={setActiveTab}
           onOpenNfcModal={() => setIsNfcModalOpen(true)}
           onBackToLanding={() => setCurrentView('landing')}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          isOpen={isMobileSidebarOpen}
+          onClose={() => setIsMobileSidebarOpen(false)}
         />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header
+            activeTab={activeTab}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            onOpenNfcModal={() => setIsNfcModalOpen(true)}
+            onBackToLanding={() => setCurrentView('landing')}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+          />
 
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-6xl w-full mx-auto animate-in fade-in duration-150">
           {renderDashboardContent()}
@@ -310,6 +460,7 @@ function MainAppContent() {
 
         <DeveloperFooter className="mt-auto" />
       </div>
+    </div>
 
       {/* Global NFC Simulator Modal */}
       {isNfcEnabled && (
