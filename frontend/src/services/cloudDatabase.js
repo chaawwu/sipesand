@@ -504,3 +504,222 @@ export async function deleteCloudUserAccount(id, tenant = null) {
   }
   return { success: true, message: "Akun berhasil dihapus" };
 }
+
+// -----------------------------------------------------------------------------
+// 9. DASHBOARD STATISTIK MULTI-DEVICE (LIVE CLOUD AGGREGATION)
+// -----------------------------------------------------------------------------
+export async function getCloudDashboardStats(tenant = null) {
+  try {
+    const [santriRes, ledgerRes, billsRes, permitsRes, pocketRes] = await Promise.all([
+      getCloudSantriList(tenant),
+      getCloudLedgerEntries(tenant),
+      getCloudBills(tenant),
+      getCloudPermits(tenant),
+      getCloudPocketTransactions(tenant)
+    ]);
+
+    const santriList = santriRes.data || [];
+    const ledger = ledgerRes.data || [];
+    const bills = billsRes.data || [];
+    const permits = permitsRes.data || [];
+    const pocketTxs = pocketRes.data || [];
+
+    const totalSantri = santriList.length;
+    const activeSantri = santriList.filter(s => s.status === 'AKTIF').length;
+    const rfidSantriCount = santriList.filter(s => s.nfcUid).length;
+    const totalPocketBalance = santriList.reduce((acc, s) => acc + (parseFloat(s.saldo_saku) || 0), 0);
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    ledger.forEach(e => {
+      const amt = parseFloat(e.amount || 0);
+      if (e.type === 'INCOME') totalIncome += amt;
+      else totalExpense += amt;
+    });
+
+    const unpaidBills = bills.filter(b => b.status === 'UNPAID' || b.status === 'PENDING_VERIFICATION');
+    const totalTunggakan = unpaidBills.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
+
+    const activePermitsCount = permits.filter(p => p.status === 'ACTIVE').length;
+    const now = new Date();
+    const overduePermits = permits.filter(p => p.status === 'ACTIVE' && new Date(p.returnTime) < now).length;
+    const pendingOnlinePaymentsCount = bills.filter(b => b.status === 'PENDING_VERIFICATION').length;
+
+    return {
+      success: true,
+      data: {
+        totalSantri,
+        activeSantri,
+        rfidSantriCount,
+        totalPocketBalance,
+        totalIncome,
+        totalExpense,
+        ledgerBalance: totalIncome - totalExpense,
+        totalTunggakan,
+        countTunggakan: unpaidBills.length,
+        activePermitsCount,
+        overduePermits,
+        pendingOnlinePaymentsCount,
+        pendingDivisionFundsCount: 0,
+        recentPocketTxs: pocketTxs.slice(0, 5),
+        recentLedgerTxs: ledger.slice(0, 5),
+        currentActivePermits: permits.filter(p => p.status === 'ACTIVE').slice(0, 5),
+        pendingBillsList: bills.filter(b => b.status === 'PENDING_VERIFICATION').slice(0, 5),
+        recentAcademics: []
+      }
+    };
+  } catch (err) {
+    console.warn("getCloudDashboardStats fallback local:", err);
+    return localDb.getDashboardStats();
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 10. PORTAL WALI LIVE CLOUD LOOKUP
+// -----------------------------------------------------------------------------
+export async function getCloudPortalWaliData(query, tenant = null) {
+  if (!query) return { success: false, message: 'NIS atau Kode Kartu santri wajib dimasukkan' };
+  try {
+    const santriRes = await getCloudSantriList(tenant);
+    const santriList = santriRes.data || [];
+    const q = query.trim().toUpperCase();
+
+    const santri = santriList.find(s => 
+      (s.nis && s.nis.toUpperCase() === q) ||
+      (s.nfcUid && s.nfcUid.toUpperCase() === q) ||
+      (s.nama && s.nama.toUpperCase().includes(q))
+    );
+
+    if (!santri) {
+      return { success: false, message: 'Data santri tidak ditemukan. Pastikan NIS atau nama santri sudah sesuai.' };
+    }
+
+    const [billsRes, pocketRes, permitsRes, academicsRes] = await Promise.all([
+      getCloudBills(tenant),
+      getCloudPocketTransactions(tenant),
+      getCloudPermits(tenant),
+      getCloudAcademicRecords(tenant)
+    ]);
+
+    const bills = (billsRes.data || []).filter(b => String(b.santriId) === String(santri.id));
+    const pocketTxs = (pocketRes.data || []).filter(t => String(t.santriId) === String(santri.id)).slice(0, 10);
+    const permits = (permitsRes.data || []).filter(p => String(p.santriId) === String(santri.id)).slice(0, 5);
+    const academics = (academicsRes.data || []).filter(a => String(a.santriId) === String(santri.id));
+
+    return {
+      success: true,
+      data: {
+        santri,
+        bills,
+        pocketTxs,
+        permits,
+        academics
+      }
+    };
+  } catch (err) {
+    console.warn("getCloudPortalWaliData fallback local:", err);
+    return localDb.getPortalWaliData(query);
+  }
+}
+
+export async function getCloudSantriById(id, tenant = null) {
+  try {
+    const santriRes = await getCloudSantriList(tenant);
+    const santri = (santriRes.data || []).find(s => String(s.id) === String(id));
+    if (santri) {
+      const [pocketRes, permitsRes, billsRes, academicsRes] = await Promise.all([
+        getCloudPocketTransactions(tenant),
+        getCloudPermits(tenant),
+        getCloudBills(tenant),
+        getCloudAcademicRecords(tenant)
+      ]);
+      return {
+        success: true,
+        data: {
+          ...santri,
+          pocketTxs: (pocketRes.data || []).filter(t => String(t.santriId) === String(id)),
+          permits: (permitsRes.data || []).filter(p => String(p.santriId) === String(id)),
+          bills: (billsRes.data || []).filter(b => String(b.santriId) === String(id)),
+          academics: (academicsRes.data || []).filter(a => String(a.santriId) === String(id)),
+          violations: []
+        }
+      };
+    }
+  } catch (err) {
+    console.warn("getCloudSantriById fallback:", err);
+  }
+  return localDb.getSantriById(id);
+}
+
+export async function getCloudSantriByNfc(uid, tenant = null) {
+  try {
+    const santriRes = await getCloudSantriList(tenant);
+    const santri = (santriRes.data || []).find(s => s.nfcUid && s.nfcUid.toUpperCase() === uid.toUpperCase());
+    if (santri) return { success: true, data: santri };
+  } catch (err) {
+    console.warn("getCloudSantriByNfc fallback:", err);
+  }
+  return localDb.getSantriByNfc(uid);
+}
+
+export async function getCloudLedgerSummary(tenant = null) {
+  try {
+    const res = await getCloudLedgerEntries(tenant);
+    const entries = res.data || [];
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const catMap = {};
+    entries.forEach(e => {
+      const amt = parseFloat(e.amount || 0);
+      if (e.type === 'INCOME') totalIncome += amt;
+      else totalExpense += amt;
+      const key = e.category || 'Lain-lain';
+      if (!catMap[key]) catMap[key] = { category: key, total: 0, count: 0 };
+      catMap[key].total += amt;
+      catMap[key].count += 1;
+    });
+    return {
+      success: true,
+      data: {
+        totalIncome,
+        totalExpense,
+        balance: totalIncome - totalExpense,
+        categoryBreakdown: Object.values(catMap)
+      }
+    };
+  } catch (err) {
+    console.warn("getCloudLedgerSummary fallback:", err);
+    return localDb.getLedgerSummary();
+  }
+}
+
+export async function getCloudMasterBills(tenant = null) {
+  try {
+    const colRef = getTenantCol("master_bills", tenant);
+    const snap = await getDocs(colRef);
+    if (!snap.empty) {
+      return { success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+    }
+  } catch (err) {
+    console.warn("getCloudMasterBills fallback:", err);
+  }
+  return localDb.getMasterBills();
+}
+
+export async function uploadCloudPaymentProof({ billId, proofUrl, proofNote }, tenant = null) {
+  const updateData = {
+    status: 'PENDING_VERIFICATION',
+    proofUrl,
+    proofNote: proofNote || 'Upload Bukti Pembayaran Portal Wali',
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    await setDoc(getTenantDoc("bills", billId, tenant), updateData, { merge: true });
+    localDb.updateSantriBill(billId, updateData);
+    return { success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' };
+  } catch (err) {
+    console.warn("uploadCloudPaymentProof fallback:", err);
+    return localDb.uploadPaymentProof({ billId, proofUrl, proofNote });
+  }
+}
+

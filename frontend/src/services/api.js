@@ -25,7 +25,14 @@ import {
   getCloudUserAccounts,
   createCloudUserAccount,
   updateCloudUserAccount,
-  deleteCloudUserAccount
+  deleteCloudUserAccount,
+  getCloudDashboardStats,
+  getCloudPortalWaliData,
+  getCloudSantriById,
+  getCloudSantriByNfc,
+  getCloudLedgerSummary,
+  getCloudMasterBills,
+  uploadCloudPaymentProof
 } from './cloudDatabase';
 
 // Backend Base URL: jika diisi di env atau custom server, gunakan.
@@ -129,20 +136,21 @@ async function runHybrid(apiFn, fallbackFn) {
 // 1. DASHBOARD STATISTICS
 // =============================================================================
 export const getDashboardStats = () => 
-  runHybrid(() => api.get('/dashboard/stats'), () => localDb.getDashboardStats());
+  runHybrid(() => api.get('/dashboard/stats'), () => getCloudDashboardStats());
 
 export const getDashboardCharts = (period = 'month') =>
   runHybrid(
     () => api.get('/dashboard/charts', { params: { period } }),
-    () => {
-      const stats = localDb.getDashboardStats().data;
+    async () => {
+      const statsRes = await getCloudDashboardStats();
+      const stats = statsRes.data || {};
       return {
         success: true,
         data: [
-          { name: 'Uang Saku', value: stats.totalPocketBalance },
-          { name: 'Pemasukan Kas', value: stats.totalIncome },
-          { name: 'Pengeluaran Kas', value: stats.totalExpense },
-          { name: 'Tunggakan SPP', value: stats.totalTunggakan }
+          { name: 'Uang Saku', value: stats.totalPocketBalance || 0 },
+          { name: 'Pemasukan Kas', value: stats.totalIncome || 0 },
+          { name: 'Pengeluaran Kas', value: stats.totalExpense || 0 },
+          { name: 'Tunggakan SPP', value: stats.totalTunggakan || 0 }
         ]
       };
     }
@@ -155,7 +163,7 @@ export const getSantriList = (params) =>
   runHybrid(() => api.get('/santri', { params }), () => getCloudSantriList());
 
 export const getSantriById = (id) => 
-  runHybrid(() => api.get(`/santri/${id}`), () => localDb.getSantriById(id));
+  runHybrid(() => api.get(`/santri/${id}`), () => getCloudSantriById(id));
 
 export const createSantri = (data) => 
   runHybrid(() => api.post('/santri', data), () => createCloudSantri(data));
@@ -167,7 +175,7 @@ export const deleteSantri = (id) =>
   runHybrid(() => api.delete(`/santri/${id}`), () => deleteCloudSantri(id));
 
 export const getSantriByNfc = (uid) => 
-  runHybrid(() => api.get(`/santri/nfc/${uid}`), () => localDb.getSantriByNfc(uid));
+  runHybrid(() => api.get(`/santri/nfc/${uid}`), () => getCloudSantriByNfc(uid));
 
 export const registerRfidCard = (data) => 
   runHybrid(() => api.post('/santri/register-rfid', data), () => registerCloudRfid(data.santriId || data.id, data.nfcUid));
@@ -238,7 +246,7 @@ export const getLedgerEntries = (params) =>
   runHybrid(() => api.get('/ledger', { params }), () => getCloudLedgerEntries());
 
 export const getLedgerSummary = () => 
-  runHybrid(() => api.get('/ledger/summary'), () => localDb.getLedgerSummary());
+  runHybrid(() => api.get('/ledger/summary'), () => getCloudLedgerSummary());
 
 export const createLedgerEntry = (data) => 
   runHybrid(() => api.post('/ledger', data), () => createCloudLedgerEntry(data));
@@ -276,7 +284,7 @@ export const checkInByNfc = (data) =>
 // 6. MASTER BILLS & INVOICES
 // =============================================================================
 export const getMasterBills = () => 
-  runHybrid(() => api.get('/bills/master'), () => localDb.getMasterBills());
+  runHybrid(() => api.get('/bills/master'), () => getCloudMasterBills());
 
 export const createMasterBill = (data) => 
   runHybrid(() => api.post('/bills/master', data), () => localDb.createMasterBill(data));
@@ -482,16 +490,16 @@ export const getBackupData = () =>
 // 11. PORTAL WALI (PUBLIK)
 // =============================================================================
 export const getPortalWaliData = (query) => 
-  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => localDb.getPortalWaliData(query));
+  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => getCloudPortalWaliData(query));
 
 export const getPublicSantriData = (query) => 
-  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => localDb.getPortalWaliData(query));
+  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => getCloudPortalWaliData(query));
 
 export const getPublicSantriBills = (query) => 
   runHybrid(
     () => api.get(`/portal-wali/bills/${encodeURIComponent(query)}`),
-    () => {
-      const res = localDb.getPortalWaliData(query);
+    async () => {
+      const res = await getCloudPortalWaliData(query);
       if (res.success && res.data) {
         return { success: true, data: res.data.bills || [] };
       }
@@ -500,7 +508,7 @@ export const getPublicSantriBills = (query) =>
   );
 
 export const uploadPaymentProof = (data) => 
-  runHybrid(() => api.post('/bills/pay-online', data), () => localDb.uploadPaymentProof(data));
+  runHybrid(() => api.post('/bills/pay-online', data), () => uploadCloudPaymentProof(data));
 
 // =============================================================================
 // 12. MITRA / SAAS PLATFORM

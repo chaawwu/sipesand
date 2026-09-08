@@ -35,6 +35,7 @@ import MobileAppInstallModal from '../components/MobileAppInstallModal';
 import DeveloperFooter from '../components/DeveloperFooter';
 import PesantrenTenantHome from '../components/PesantrenTenantHome';
 import { useSettings } from '../context/SettingsContext';
+import { getPublicSantriData } from '../services/api';
 
 export default function LandingPage({ 
   onLoginPetugas, 
@@ -77,13 +78,17 @@ export default function LandingPage({
       setLoadingSearch(true);
       setSearchError('');
       
-      const res = await fetch(`/api/portal-wali/santri/${encodeURIComponent(q)}`, {
-        headers: activeTenantSubdomain ? { 'X-Tenant-Subdomain': activeTenantSubdomain } : {}
-      });
-      const result = await res.json();
+      const res = await getPublicSantriData(q);
+      const result = res.data;
       
-      if (result.success && result.data) {
-        setTrackerSantri(result.data);
+      if (result && result.success && result.data) {
+        const pData = result.data.santri || result.data;
+        setTrackerSantri({
+          ...pData,
+          saldoSaku: pData.saldo_saku || 0,
+          permits: result.data.permits || [],
+          bills: result.data.bills || []
+        });
         setIsTrackerOpen(true);
         return;
       }

@@ -29,7 +29,8 @@ export function getCurrentTenant() {
       return parts[0];
     }
   }
-  return 'default';
+  // Default tenant adalah 'darulrahman' agar konsisten multi-device di semua hostname (termasuk pages.dev, IP, dan localhost)
+  return 'darulrahman';
 }
 
 const STORAGE_PREFIX = 'sipesand_db_v2_';

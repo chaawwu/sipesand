@@ -67,7 +67,8 @@ export function getActiveTenantSubdomain() {
       return parts[0].trim();
     }
   }
-  return null;
+  // Default active tenant adalah darulrahman agar konsisten multi-device di semua URL
+  return 'darulrahman';
 }
 
 const defaultSettings = {
