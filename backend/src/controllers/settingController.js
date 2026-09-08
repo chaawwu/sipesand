@@ -79,7 +79,7 @@ exports.loginUser = async (req, res) => {
 
       const foundDemo = demoMap[username];
       if (foundDemo && (password === foundDemo.pass || password === 'admin123' || password === 'password123')) {
-        user = await prisma.userAccount.create({
+        user = await db.userAccount.create({
           data: {
             username,
             password,

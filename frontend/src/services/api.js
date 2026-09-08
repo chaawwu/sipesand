@@ -12,13 +12,19 @@ api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
-    const tenantQuery = searchParams.get('tenant');
+    const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
+    const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root'];
 
-    if (tenantQuery) {
-      config.headers['X-Tenant-Subdomain'] = tenantQuery;
-    } else if (hostname.includes('sipesand.web.id')) {
+    if (tenantQuery && !ignoredSubdomains.includes(tenantQuery.toLowerCase().trim())) {
+      config.headers['X-Tenant-Subdomain'] = tenantQuery.toLowerCase().trim();
+    } else if (hostname.includes('.sipesand.web.id')) {
       const parts = hostname.replace('.sipesand.web.id', '').split('.');
-      if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'mitra' && parts[0] !== 'pay') {
+      if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
+        config.headers['X-Tenant-Subdomain'] = parts[0];
+      }
+    } else if (hostname.endsWith('.localhost')) {
+      const parts = hostname.replace('.localhost', '').split('.');
+      if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
         config.headers['X-Tenant-Subdomain'] = parts[0];
       }
     }

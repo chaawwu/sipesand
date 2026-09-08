@@ -8,23 +8,27 @@ import {
   ArrowRight, 
   UserCheck, 
   Lock, 
-  Award,
-  Database,
-  CheckCircle2,
-  Smartphone,
-  ShieldCheck,
-  Download,
-  Share2,
-  FileCheck,
-  ShoppingBag,
-  ArrowDown,
-  ChevronRight,
-  ChevronLeft,
-  Wallet,
-  BookOpen,
-  Calendar,
-  Users,
-  ExternalLink
+  Award, 
+  Database, 
+  CheckCircle2, 
+  Smartphone, 
+  ShieldCheck, 
+  Download, 
+  Share2, 
+  FileCheck, 
+  ShoppingBag, 
+  ArrowDown, 
+  ChevronRight, 
+  ChevronLeft, 
+  Wallet, 
+  BookOpen, 
+  Calendar, 
+  Users, 
+  ExternalLink,
+  MapPin,
+  Phone,
+  Mail,
+  CheckCircle
 } from 'lucide-react';
 import SantriTrackerModal from '../components/SantriTrackerModal';
 import MobileAppInstallModal from '../components/MobileAppInstallModal';
@@ -35,10 +39,10 @@ export default function LandingPage({
   onLoginPetugas, 
   onOpenPortalWali, 
   onOpenNfcScanner, 
-  onOpenSaasLanding,
-  onNavigateLegal
+  onOpenSaasLanding, 
+  onNavigateLegal 
 }) {
-  const { settings, isNfcEnabled } = useSettings();
+  const { settings, isNfcEnabled, activeTenantSubdomain, isTenantInstance } = useSettings();
   const [quickQuery, setQuickQuery] = useState('');
   const [trackerSantri, setTrackerSantri] = useState(null);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
@@ -47,15 +51,24 @@ export default function LandingPage({
   const [searchError, setSearchError] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
 
-  const logoPondok = '/logo.png';
-  const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Terpadu';
-  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Sistem Informasi & Manajemen Terpadu Pesantren Digital';
+  const logoPondok = settings.LOGO_PONDOK_URL || '/logo.png';
+  const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
+  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Lembaga Pendidikan Islam & Tahfidzul Qur\'an Darul Rahman Sumbersari';
 
-  const handleSearchSantri = async (e) => {
+  const handleDirectSearch = (searchTerm) => {
+    setQuickQuery(searchTerm);
+    executeSearch(searchTerm);
+  };
+
+  const handleSearchSantri = (e) => {
     if (e) e.preventDefault();
-    const q = quickQuery.trim();
+    executeSearch(quickQuery);
+  };
+
+  const executeSearch = async (searchTerm) => {
+    const q = (searchTerm || '').trim();
     if (!q) {
-      setSearchError('Silakan masukkan NIS atau Nama santri untuk mengecek status izin');
+      setSearchError('Silakan masukkan NIS atau Nama santri untuk mengecek status izin & tagihan');
       return;
     }
 
@@ -63,50 +76,80 @@ export default function LandingPage({
       setLoadingSearch(true);
       setSearchError('');
       
-      const res = await fetch(`/api/portal-wali/santri/${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/portal-wali/santri/${encodeURIComponent(q)}`, {
+        headers: activeTenantSubdomain ? { 'X-Tenant-Subdomain': activeTenantSubdomain } : {}
+      });
       const result = await res.json();
       
       if (result.success && result.data) {
         setTrackerSantri(result.data);
         setIsTrackerOpen(true);
-      } else {
-        // Fallback demo santri jika offline / API belum connect
-        setTrackerSantri({
-          id: 'demo-1',
-          nama: q,
-          nis: '202601001',
-          kelas: '10 IPA 1 (KMI 4)',
-          asrama: 'Asrama Sunan Giri',
-          waliNama: 'Wali dari ' + q,
-          saldoSaku: 45000,
-          dailyLimit: 20000,
-          permits: [
-            { id: 'p1', reason: 'Izin Sambangan Keluarga', returnDate: '08-09-2026 17:00', status: 'ACTIVE' }
-          ],
-          bills: [
-            { id: 'b1', title: 'Syahriyah Shafar 1448 H', amount: 350000, status: 'PAID' }
-          ]
-        });
-        setIsTrackerOpen(true);
+        return;
       }
     } catch (err) {
-      // Demo fallback saat koneksi lokal
-      setTrackerSantri({
-        id: 'demo-1',
-        nama: q,
-        nis: '202601001',
-        kelas: '10 IPA 1 (KMI 4)',
-        asrama: 'Asrama Sunan Giri',
-        waliNama: 'Wali Santri',
-        saldoSaku: 50000,
-        dailyLimit: 20000,
-        permits: [],
-        bills: []
-      });
-      setIsTrackerOpen(true);
+      console.warn('API santri fallback ke dataset santri mandiri:', err);
     } finally {
       setLoadingSearch(false);
     }
+
+    // Fallback Demo Santri Terverifikasi Khusus Darul Rahman
+    const lowerQ = q.toLowerCase();
+    let fallbackName = q;
+    let fallbackNis = '202601001';
+    let fallbackKelas = '10 IPA 1 (KMI 4)';
+    let fallbackAsrama = 'Asrama Umar bin Khattab No. 04';
+    let fallbackSaldo = 175000;
+
+    if (lowerQ.includes('farhan')) {
+      fallbackName = 'Muhammad Farhan Al-Fatih';
+      fallbackNis = '202601001';
+      fallbackKelas = '10 IPA 1 (KMI 4)';
+      fallbackAsrama = 'Asrama Umar bin Khattab No. 04';
+      fallbackSaldo = 175000;
+    } else if (lowerQ.includes('aisyah')) {
+      fallbackName = 'Aisyah Nur Ramadhani';
+      fallbackNis = '202601002';
+      fallbackKelas = '11 Keagamaan (KMI 5)';
+      fallbackAsrama = 'Asrama Siti Khadijah No. 12';
+      fallbackSaldo = 250000;
+    } else if (lowerQ.includes('zaki')) {
+      fallbackName = 'Ahmad Zaki Mubarak';
+      fallbackNis = '202601003';
+      fallbackKelas = '12 IPS (KMI 6)';
+      fallbackAsrama = 'Asrama Abu Bakar No. 07';
+      fallbackSaldo = 85000;
+    } else if (lowerQ.includes('fatimah') || lowerQ.includes('fathimah')) {
+      fallbackName = 'Fathimah Azzahra';
+      fallbackNis = '202601004';
+      fallbackKelas = '10 IPA 2 (KMI 4)';
+      fallbackAsrama = 'Asrama Aisyah No. 03';
+      fallbackSaldo = 320000;
+    } else if (lowerQ.includes('bilal')) {
+      fallbackName = 'Bilal Habasyi Rizqullah';
+      fallbackNis = '202601005';
+      fallbackKelas = '11 IPA (KMI 5)';
+      fallbackAsrama = 'Asrama Ali bin Abi Thalib No. 02';
+      fallbackSaldo = 85000;
+    }
+
+    setTrackerSantri({
+      id: 'demo-1',
+      nama: fallbackName,
+      nis: fallbackNis,
+      kelas: fallbackKelas,
+      kamar: fallbackAsrama,
+      waliNama: 'Wali Santri (' + fallbackName + ')',
+      saldoSaku: fallbackSaldo,
+      dailyLimit: 20000,
+      permits: [
+        { id: 'p1', reason: 'Izin Sambangan Keluarga & Kepulangan Bulanan', returnDate: '08-09-2026 17:00', status: 'ACTIVE' }
+      ],
+      bills: [
+        { id: 'b1', title: 'Syahriyah Shafar 1448 H', amount: 350000, status: 'PAID' },
+        { id: 'b2', title: 'Uang Makan & Konsumsi Dapur', amount: 600000, status: 'PAID' }
+      ]
+    });
+    setIsTrackerOpen(true);
   };
 
   const categories = [
@@ -128,60 +171,78 @@ export default function LandingPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           
           {/* Brand & New Monogram Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#8CE829] flex items-center justify-center p-1.5 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-[#8CE829] flex items-center justify-center p-1.5 shadow-sm flex-shrink-0">
               <img 
-                src="/logo.png" 
+                src={logoPondok} 
                 alt="SiPesand Logo" 
                 className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-xl tracking-tight text-slate-900">
-                  SiPesand
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-black text-base sm:text-xl tracking-tight text-slate-900 truncate">
+                  {isTenantInstance ? namaLembaga : 'SiPesand'}
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#8CE829]/25 text-slate-900 border border-[#8CE829]/40">
-                  Official
-                </span>
+                {isTenantInstance ? (
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 flex-shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    <span>Pesantren Mandiri</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#8CE829]/25 text-slate-900 border border-[#8CE829]/40">
+                    Official
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-400 font-medium leading-none">
-                {namaLembaga}
+              <p className="text-[11px] text-slate-400 font-medium leading-none truncate max-w-sm">
+                {isTenantInstance ? (settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur') : namaLembaga}
               </p>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-bold text-slate-600">
+          <nav className="hidden md:flex items-center gap-6 text-xs font-bold text-slate-600">
             <a href="#modul" className="hover:text-[#0B52E2] transition-colors">
-              Modul Pondok
+              Modul Layanan
             </a>
+            {isTenantInstance ? (
+              <a href="#profil" className="hover:text-[#0B52E2] transition-colors">
+                Profil Pondok
+              </a>
+            ) : null}
             <button 
               onClick={() => onOpenPortalWali('')}
-              className="hover:text-[#0B52E2] transition-colors"
+              className="hover:text-[#0B52E2] transition-colors cursor-pointer"
             >
               Portal Wali Santri
             </button>
             <button
               onClick={() => setIsMobileModalOpen(true)}
-              className="hover:text-[#0B52E2] transition-colors"
+              className="hover:text-[#0B52E2] transition-colors cursor-pointer"
             >
               Aplikasi Mobile
             </button>
-            <button
-              onClick={onOpenSaasLanding}
-              className="hover:text-[#0B52E2] transition-colors"
-            >
-              Beli Lisensi SaaS
-            </button>
+            {isTenantInstance ? (
+              <a href="#kontak" className="hover:text-[#0B52E2] transition-colors">
+                Kontak & Alamat
+              </a>
+            ) : (
+              <button
+                onClick={onOpenSaasLanding}
+                className="hover:text-[#0B52E2] transition-colors cursor-pointer"
+              >
+                Beli Lisensi SaaS
+              </button>
+            )}
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             {isNfcEnabled && (
               <button
                 onClick={onOpenNfcScanner}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-stone-100 hover:bg-stone-200 text-slate-800 text-xs font-bold transition-colors"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-stone-100 hover:bg-stone-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
                 title="Simulasi Tap Reader RFID / NFC KTSD"
               >
                 <Radio className="w-3.5 h-3.5 text-emerald-600" />
@@ -191,7 +252,7 @@ export default function LandingPage({
 
             <button
               onClick={() => onOpenPortalWali('')}
-              className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold transition-colors"
+              className="hidden lg:flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
             >
               <UserCheck className="w-3.5 h-3.5 text-[#0B52E2]" />
               <span>Portal Wali</span>
@@ -200,7 +261,7 @@ export default function LandingPage({
             {/* Dark Pill Button Login Petugas */}
             <button
               onClick={onLoginPetugas}
-              className="px-5 py-2.5 rounded-full bg-[#18181B] hover:bg-black text-white text-xs font-extrabold flex items-center gap-2 shadow-md transition-all active:scale-95"
+              className="px-5 py-2.5 rounded-full bg-[#18181B] hover:bg-black text-white text-xs font-extrabold flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
             >
               <Lock className="w-3.5 h-3.5 text-[#8CE829]" />
               <span>Login Petugas</span>
@@ -225,68 +286,116 @@ export default function LandingPage({
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-white">
                 <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
-                <span>Ekosistem Pesantren Digital Generasi Baru</span>
+                <span>
+                  {isTenantInstance 
+                    ? `Portal Resmi • ${namaLembaga}` 
+                    : 'Ekosistem Pesantren Digital Generasi Baru'}
+                </span>
               </div>
             </div>
 
             {/* Main Bold Editorial Typography */}
             <div className="space-y-4 my-6 sm:my-8">
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-white">
-                Kelola Pesantren <br />
-                Tumbuh Tanpa Batas
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white">
+                {isTenantInstance ? (
+                  <>
+                    <span>{namaLembaga}</span>
+                  </>
+                ) : (
+                  <>
+                    Kelola Pesantren <br />
+                    Tumbuh Tanpa Batas
+                  </>
+                )}
               </h1>
               <p className="text-white/85 text-xs sm:text-sm font-medium leading-relaxed max-w-lg">
-                Satu platform terintegrasi untuk verifikasi kartu santri digital RFID/NFC, kasir uang saku cashless, perizinan Kamtib, dan transparansi wali santri.
+                {taglineLembaga}
               </p>
             </div>
 
             {/* Integrated White Pill Search Bar */}
-            <form onSubmit={handleSearchSantri} className="space-y-2">
-              <div className="bg-white rounded-full p-2 sm:p-2.5 flex items-center gap-2 shadow-2xl">
-                <div className="flex items-center gap-2.5 pl-3 flex-1 min-w-0">
-                  <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <input
-                    type="text"
-                    value={quickQuery}
-                    onChange={(e) => setQuickQuery(e.target.value)}
-                    placeholder="Ketik Nama Santri atau NIS (Cek Izin / SPP)..."
-                    className="w-full bg-transparent text-slate-900 text-xs sm:text-sm font-semibold placeholder:text-slate-400 focus:outline-hidden"
-                  />
+            <div className="space-y-2.5">
+              <form onSubmit={handleSearchSantri}>
+                <div className="bg-white rounded-full p-2 sm:p-2.5 flex items-center gap-2 shadow-2xl">
+                  <div className="flex items-center gap-2.5 pl-3 flex-1 min-w-0">
+                    <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={quickQuery}
+                      onChange={(e) => setQuickQuery(e.target.value)}
+                      placeholder={isTenantInstance ? `Cari Santri Darul Rahman (Nama / NIS)...` : "Ketik Nama Santri atau NIS (Cek Izin / SPP)..."}
+                      className="w-full bg-transparent text-slate-900 text-xs sm:text-sm font-semibold placeholder:text-slate-400 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div className="hidden sm:flex items-center border-l border-slate-200 px-3 text-slate-600 font-bold text-xs">
+                    <span>Portal Bebas Akses</span>
+                  </div>
+
+                  {/* Arrow Submit Button with Electric Lime Background */}
+                  <button
+                    type="submit"
+                    disabled={loadingSearch}
+                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#8CE829] hover:bg-[#7BD420] text-slate-950 flex items-center justify-center flex-shrink-0 transition-transform active:scale-90 shadow-md cursor-pointer"
+                    title="Cari Data Santri"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div className="hidden sm:flex items-center border-l border-slate-200 px-3 text-slate-600 font-bold text-xs">
-                  <span>Portal Bebas Akses</span>
-                </div>
+                {searchError && (
+                  <div className="text-[11px] text-amber-200 font-bold pl-3 mt-1.5">
+                    {searchError}
+                  </div>
+                )}
+              </form>
 
-                {/* Arrow Submit Button with Electric Lime Background */}
-                <button
-                  type="submit"
-                  disabled={loadingSearch}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#8CE829] hover:bg-[#7BD420] text-slate-950 flex items-center justify-center flex-shrink-0 transition-transform active:scale-90 shadow-md"
-                  title="Cari Data Santri"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+              {/* Quick Search Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap pl-1">
+                <span className="text-[10px] text-white/75 font-semibold">Cek Cepat:</span>
+                {['Farhan', 'Aisyah', 'Zaki', 'Fathimah', 'Bilal'].map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => handleDirectSearch(name)}
+                    className="px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-white text-white hover:text-slate-900 text-[10px] font-bold border border-white/20 transition-all cursor-pointer"
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
-
-              {searchError && (
-                <div className="text-[11px] text-amber-200 font-bold pl-3">
-                  {searchError}
-                </div>
-              )}
-            </form>
+            </div>
 
             {/* Floating Category Badges Bottom Left */}
             <div className="pt-4 flex items-center gap-2 flex-wrap text-[10px] font-bold text-white/80">
-              <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #KamtibDigital
-              </span>
-              <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #KTSDCashless
-              </span>
-              <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #Tahfidz30Juz
-              </span>
+              {isTenantInstance ? (
+                <>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #DarulRahmanSumbersari
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #KTSDCashless
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #Tahfidz30Juz
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #KamtibResmi
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #KamtibDigital
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #KTSDCashless
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                    #Tahfidz30Juz
+                  </span>
+                </>
+              )}
             </div>
 
           </div>
@@ -631,6 +740,108 @@ export default function LandingPage({
       </section>
 
       {/* ========================================================================= */}
+      {/* 3b. SECTION: PROFIL & SALURAN RESMI LEMBAGA (KHUSUS TENANT MANDIRI)       */}
+      {/* ========================================================================= */}
+      {isTenantInstance && (
+        <section id="profil" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 border border-stone-200/90 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-8 border-b border-stone-100">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Profil Lembaga & Kontak Resmi</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {namaLembaga}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-xl leading-relaxed">
+                  {taglineLembaga}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => onOpenPortalWali('')}
+                  className="px-5 py-2.5 rounded-full bg-[#0B52E2] hover:bg-blue-700 text-white text-xs font-extrabold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4 text-[#8CE829]" />
+                  <span>Buka Portal Wali</span>
+                </button>
+                <button
+                  onClick={onLoginPetugas}
+                  className="px-5 py-2.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-extrabold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <Lock className="w-4 h-4 text-[#8CE829]" />
+                  <span>Login Petugas</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Info Grid 4 Kolom */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8 text-xs">
+              
+              {/* Kolom 1: Alamat */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/60 space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
+                  <MapPin className="w-4.5 h-4.5" />
+                </div>
+                <div className="font-bold text-slate-900 text-sm">Alamat Pesantren</div>
+                <p className="text-slate-600 leading-relaxed text-[11px]">
+                  {settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur'}
+                </p>
+              </div>
+
+              {/* Kolom 2: Kontak WA & Email */}
+              <div id="kontak" className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/60 space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                  <Phone className="w-4.5 h-4.5" />
+                </div>
+                <div className="font-bold text-slate-900 text-sm">Call Center & WhatsApp</div>
+                <div className="text-slate-600 text-[11px] leading-relaxed space-y-1">
+                  <a 
+                    href={`https://wa.me/${(settings.WHATSAPP_CENTER || '085123734342').replace(/[^0-9]/g, '')}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                  >
+                    <span>{settings.WHATSAPP_CENTER || '+62 851-2373-4342'}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <span className="block text-slate-500 font-mono text-[10px] truncate">{settings.EMAIL_LEMBAGA || 'darulrahmansumbersari@gmail.com'}</span>
+                </div>
+              </div>
+
+              {/* Kolom 3: Pengasuh & Pimpinan */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/60 space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                  <UserCheck className="w-4.5 h-4.5" />
+                </div>
+                <div className="font-bold text-slate-900 text-sm">Pengasuhan & Pimpinan</div>
+                <div className="text-slate-700 font-semibold text-[11px] leading-relaxed space-y-0.5">
+                  <span className="block">{settings.NAMA_KEPALA_PONDOK || 'K.H. Pengasuh Darul Rahman'}</span>
+                  <span className="block text-slate-500 font-normal text-[10.5px]">Bendahara: {settings.NAMA_BENDAHARA || 'Ustadz Bendahara Darul Rahman, S.E.'}</span>
+                </div>
+              </div>
+
+              {/* Kolom 4: Rekening Resmi Syahriyah */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/60 space-y-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                  <CreditCard className="w-4.5 h-4.5" />
+                </div>
+                <div className="font-bold text-slate-900 text-sm">Rekening Resmi Syahriyah</div>
+                <div className="text-[11px] text-slate-700 leading-relaxed">
+                  <div className="font-bold text-slate-900">{settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)'}</div>
+                  <div className="font-mono text-blue-700 font-bold tracking-wider">{settings.BANK_ACCOUNT_NO || '7192837465'}</div>
+                  <div className="text-[10px] text-slate-500 uppercase truncate">{settings.BANK_ACCOUNT_HOLDER || 'YAYASAN DARUL RAHMAN SUMBERSARI'}</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================================= */}
       {/* 4. MODALS INTEGRASI (PORTAL TRACKER, MOBILE APP, NFC)                     */}
       {/* ========================================================================= */}
       {isTrackerOpen && (
@@ -653,7 +864,30 @@ export default function LandingPage({
       )}
 
       {/* 5. FOOTER RESMI */}
-      <DeveloperFooter onNavigateLegal={onNavigateLegal} />
+      {isTenantInstance ? (
+        <footer className="bg-white border-t border-slate-200 py-6 px-4 text-slate-500 text-[11px] font-sans">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div>
+              <div className="font-black text-slate-900 text-xs flex items-center justify-center sm:justify-start gap-2">
+                <span>{namaLembaga}</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-emerald-700 font-bold">Portal Mandiri Resmi</span>
+              </div>
+              <p className="text-[10.5px] text-slate-500 mt-0.5">
+                {settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur'} • WA: {settings.WHATSAPP_CENTER || '+62 851-2373-4342'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4 font-semibold text-[10.5px]">
+              <button onClick={() => onOpenPortalWali('')} className="hover:text-blue-700 hover:underline cursor-pointer">Portal Wali</button>
+              <button onClick={onLoginPetugas} className="hover:text-blue-700 hover:underline cursor-pointer">Login Petugas</button>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-400">© {new Date().getFullYear()} {namaLembaga}</span>
+            </div>
+          </div>
+        </footer>
+      ) : (
+        <DeveloperFooter onNavigateLegal={onNavigateLegal} />
+      )}
 
     </div>
   );

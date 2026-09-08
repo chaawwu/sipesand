@@ -1,8 +1,13 @@
-const prisma = require('../config/prisma');
+const masterPrisma = require('../config/prisma');
+
+function getDb(req) {
+  return req.prisma || masterPrisma;
+}
 
 // 1. Ambil Informasi Lengkap Santri untuk Portal Wali & Sistem Pelacakan Real-Time
 exports.getSantriPortalData = async (req, res) => {
   try {
+    const db = getDb(req);
     let { query } = req.params;
     if (!query) {
       return res.status(400).json({ success: false, message: 'Masukkan NIS, Nama, atau ID Santri' });
@@ -11,7 +16,7 @@ exports.getSantriPortalData = async (req, res) => {
     query = query.trim();
     const isNumeric = /^\d+$/.test(query);
 
-    const santri = await prisma.santri.findFirst({
+    const santri = await db.santri.findFirst({
       where: {
         OR: [
           { nis: query },
@@ -47,7 +52,7 @@ exports.getSantriPortalData = async (req, res) => {
     }
 
     // Ambil Info Rekening & QRIS dari Settings
-    const settingsList = await prisma.systemSetting.findMany();
+    const settingsList = await db.systemSetting.findMany();
     const settings = {};
     settingsList.forEach(s => { settings[s.key] = s.value; });
 
@@ -132,6 +137,7 @@ exports.getSantriPortalData = async (req, res) => {
 // 2. Ambil Tagihan Santri Berdasarkan Query
 exports.getSantriBillsByQuery = async (req, res) => {
   try {
+    const db = getDb(req);
     let { query } = req.params;
     if (!query) {
       return res.status(400).json({ success: false, message: 'Parameter query santri dibutuhkan' });
@@ -140,7 +146,7 @@ exports.getSantriBillsByQuery = async (req, res) => {
     query = query.trim();
     const isNumeric = /^\d+$/.test(query);
 
-    const santri = await prisma.santri.findFirst({
+    const santri = await db.santri.findFirst({
       where: {
         OR: [
           { nis: query },
@@ -155,7 +161,7 @@ exports.getSantriBillsByQuery = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Santri tidak ditemukan', data: [] });
     }
 
-    const bills = await prisma.santriBill.findMany({
+    const bills = await db.santriBill.findMany({
       where: { santriId: santri.id },
       include: { masterBill: true, santri: true },
       orderBy: { createdAt: 'desc' }

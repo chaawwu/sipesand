@@ -54,7 +54,7 @@ function MainAppContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { isNfcEnabled } = useSettings();
+  const { isNfcEnabled, isTenantInstance, activeTenantSubdomain } = useSettings();
 
   // Otomatis Deteksi Subdomain & Path Legal (faq, refund-policy, terms, kontak)
   React.useEffect(() => {
@@ -190,7 +190,7 @@ function MainAppContent() {
     setCurrentUser(null);
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
-    if (hostname.startsWith('app.') || searchParams.get('view') === 'app') {
+    if (!isTenantInstance && (hostname.startsWith('app.') || searchParams.get('view') === 'app')) {
       setCurrentView('app-gateway');
     } else {
       setCurrentView('landing');
@@ -237,7 +237,7 @@ function MainAppContent() {
     return (
       <div className="min-h-screen bg-[#FAF8F4]">
         <LandingPage
-          onLoginPetugas={() => setCurrentView('app-gateway')}
+          onLoginPetugas={() => setIsLoginModalOpen(true)}
           onOpenPortalWali={handleOpenPortalWali}
           onOpenNfcScanner={() => setIsNfcModalOpen(true)}
           onOpenSaasLanding={() => setCurrentView('landing-saas')}
@@ -272,6 +272,44 @@ function MainAppContent() {
 
   // 1b. Tampilan Khusus Centralized Multi-Tenant Gateway Login (app.sipesand.web.id)
   if (currentView === 'app-gateway' || (currentView === 'app' && !currentUser)) {
+    // Jika berada dalam domain tenant mandiri, selalu tampilkan landing page tenant dengan modal login
+    if (isTenantInstance) {
+      return (
+        <div className="min-h-screen bg-[#FAF8F4]">
+          <LandingPage
+            onLoginPetugas={() => setIsLoginModalOpen(true)}
+            onOpenPortalWali={handleOpenPortalWali}
+            onOpenNfcScanner={() => setIsNfcModalOpen(true)}
+            onOpenSaasLanding={() => setCurrentView('landing-saas')}
+            onNavigateLegal={(path) => setCurrentView(path)}
+          />
+
+          {/* Modal Login Petugas */}
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+
+          {/* Developer Login Modal */}
+          <DeveloperLoginModal
+            isOpen={isDevLoginModalOpen}
+            onClose={() => setIsDevLoginModalOpen(false)}
+            onLoginSuccess={handleDevLoginSuccess}
+          />
+
+          {/* Global NFC Simulator Modal */}
+          {isNfcEnabled && (
+            <NfcScannerModal
+              isOpen={isNfcModalOpen}
+              onClose={() => setIsNfcModalOpen(false)}
+              onSuccess={handleNfcSuccess}
+            />
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#FAF8F4]">
         <AppGatewayPage

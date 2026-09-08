@@ -43,26 +43,32 @@ function getTenantPrismaClient(subdomain) {
 function tenantResolver(req, res, next) {
   const host = req.headers.host || '';
   const customHeader = req.headers['x-tenant-subdomain'];
-  const queryTenant = req.query.tenant;
+  const queryTenant = req.query.tenant || req.query.subdomain;
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root'];
 
   let subdomain = null;
 
   // 1. Cek dari Custom Header
-  if (customHeader && customHeader !== 'master') {
+  if (customHeader && !ignoredSubdomains.includes(customHeader.toLowerCase().trim())) {
     subdomain = customHeader.toLowerCase().trim();
   }
-  // 2. Cek dari Query Parameter (?tenant=...)
-  else if (queryTenant && queryTenant !== 'master') {
+  // 2. Cek dari Query Parameter (?tenant=... / ?subdomain=...)
+  else if (queryTenant && !ignoredSubdomains.includes(queryTenant.toLowerCase().trim())) {
     subdomain = queryTenant.toLowerCase().trim();
   }
-  // 3. Cek dari Hostname URL (e.g. darululum.sipesand.web.id)
+  // 3. Cek dari Hostname URL (e.g. darulrahman.sipesand.web.id atau darulrahman.localhost)
   else {
     const baseDomain = process.env.BASE_DOMAIN || 'sipesand.web.id';
     const hostWithoutPort = host.split(':')[0].toLowerCase();
 
     if (hostWithoutPort.endsWith(baseDomain) && hostWithoutPort !== baseDomain && hostWithoutPort !== `www.${baseDomain}`) {
       const parts = hostWithoutPort.replace(`.${baseDomain}`, '').split('.');
-      if (parts.length > 0 && parts[0] && parts[0] !== 'www' && parts[0] !== 'api') {
+      if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
+        subdomain = parts[0];
+      }
+    } else if (hostWithoutPort.endsWith('.localhost')) {
+      const parts = hostWithoutPort.replace('.localhost', '').split('.');
+      if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0])) {
         subdomain = parts[0];
       }
     }
