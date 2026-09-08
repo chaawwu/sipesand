@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Server, 
@@ -44,9 +44,11 @@ import {
   Settings,
   Shield,
   HelpCircle,
-  X
+  X,
+  Cloud
 } from 'lucide-react';
 import { TENANT_PROFILES } from '../context/SettingsContext';
+import { getR2StorageQuota, cleanupR2Storage, backupDatabaseToR2 } from '../services/api';
 
 export default function DashboardDeveloper({ 
   onLogout, 
@@ -57,6 +59,62 @@ export default function DashboardDeveloper({
   const [activeTab, setActiveTab] = useState('overview');
   const [environment, setEnvironment] = useState('production'); // 'production' | 'staging'
   const [globalSearch, setGlobalSearch] = useState('');
+
+  // ---------------------------------------------------------------------------
+  // CLOUDFLARE R2 OBJECT STORAGE & 10 GB QUOTA SAFEGUARD (CENTRALIZED MITRA)
+  // ---------------------------------------------------------------------------
+  const [r2Stats, setR2Stats] = useState({
+    connected: true,
+    usedFormatted: '0 B',
+    quotaLimitFormatted: '10.00 GB',
+    remainingFormatted: '10.00 GB',
+    percentUsed: 0,
+    fileCount: 0,
+    bucketName: 'sipesand-storage',
+    binding: 'SIPESAND_R2 & SIPESAN_R2',
+    accountName: "chaawwu@gmail.com's Account"
+  });
+  const [loadingR2, setLoadingR2] = useState(false);
+  const [r2Message, setR2Message] = useState(null);
+
+  useEffect(() => {
+    loadR2Status();
+  }, []);
+
+  const loadR2Status = async () => {
+    try {
+      setLoadingR2(true);
+      const res = await getR2StorageQuota();
+      if (res && res.data) {
+        setR2Stats(prev => ({
+          ...prev,
+          ...res.data,
+          bucketName: 'sipesand-storage',
+          binding: 'SIPESAND_R2 & SIPESAN_R2',
+          accountName: "chaawwu@gmail.com's Account"
+        }));
+      }
+    } catch (e) {
+      console.warn('Gagal memuat status R2:', e);
+    } finally {
+      setLoadingR2(false);
+    }
+  };
+
+  const handleR2Cleanup = async () => {
+    if (!window.confirm('Jalankan auto-pruning untuk membersihkan berkas sementara dan file usang di Cloudflare R2?')) return;
+    try {
+      setLoadingR2(true);
+      const res = await cleanupR2Storage();
+      setR2Message({ type: 'success', text: res.message || 'Pembersihan R2 selesai!' });
+      loadR2Status();
+    } catch (e) {
+      setR2Message({ type: 'error', text: 'Gagal membersihkan R2: ' + (e.message || 'Error') });
+    } finally {
+      setLoadingR2(false);
+      setTimeout(() => setR2Message(null), 5000);
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // 1. STATE: TENANT MANAGEMENT (CRM)
@@ -1302,6 +1360,103 @@ export default function DashboardDeveloper({
                 </div>
               </div>
 
+              {/* Cloudflare R2 Object Storage & 10 GB Quota Guard (Centralized SaaS Infrastructure) */}
+              <div className="bg-slate-900 rounded-xl border border-slate-800 text-white shadow-md p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
+                      <Cloud className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-white">Cloudflare R2 Object Storage (Central Bucket)</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          ● TERHUBUNG
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Penyimpanan multi-tenant terisolasi untuk foto santri, dokumen kwitansi, dan arsip database global.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={loadR2Status}
+                      disabled={loadingR2}
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${loadingR2 ? 'animate-spin text-indigo-400' : ''}`} />
+                      <span>Segarkan Kuota</span>
+                    </button>
+                    <button
+                      onClick={handleR2Cleanup}
+                      disabled={loadingR2}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Auto-Pruning Cache Usang</span>
+                    </button>
+                  </div>
+                </div>
+
+                {r2Message && (
+                  <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${
+                    r2Message.type === 'success' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
+                  }`}>
+                    {r2Message.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                    <span>{r2Message.text}</span>
+                  </div>
+                )}
+
+                {/* Storage Meter & 10 GB Guard info */}
+                <div className="space-y-3 bg-slate-950/60 p-4 rounded-lg border border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <HardDrive className="w-4 h-4 text-indigo-400" />
+                      <span className="font-bold text-slate-200">Kapasitas Storage Terpakai:</span>
+                      <span className="font-mono text-indigo-300 font-bold">{r2Stats.usedFormatted || '0 B'}</span>
+                      <span className="text-slate-500">/ 10.00 GB (Free Tier)</span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-400">{r2Stats.percentUsed || 0}%</span>
+                  </div>
+
+                  <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(1, Math.min(100, r2Stats.percentUsed || 1))}%` }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-xs">
+                    <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
+                      <span className="text-slate-500 text-[10px] block uppercase font-bold">Bucket Name</span>
+                      <span className="font-mono text-indigo-300 font-bold">{r2Stats.bucketName}</span>
+                    </div>
+                    <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
+                      <span className="text-slate-500 text-[10px] block uppercase font-bold">Binding Variables</span>
+                      <span className="font-mono text-emerald-400 font-bold">{r2Stats.binding}</span>
+                    </div>
+                    <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
+                      <span className="text-slate-500 text-[10px] block uppercase font-bold">Ruang Tersedia</span>
+                      <span className="font-mono text-slate-200 font-bold">{r2Stats.remainingFormatted || '10.00 GB'}</span>
+                    </div>
+                    <div className="bg-slate-900 p-2.5 rounded border border-slate-800">
+                      <span className="text-slate-500 text-[10px] block uppercase font-bold">Total File Tersimpan</span>
+                      <span className="font-mono text-slate-200 font-bold">{r2Stats.fileCount || 0} berkas</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-indigo-950/40 border border-indigo-500/20 text-xs text-indigo-200 leading-relaxed">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-white">Sistem Proteksi Kuota 10 GB Aktif: </span>
+                    Serverless API secara otomatis memvalidasi setiap unggahan berkas. Jika akumulasi berkas mendekati atau melampaui batas 10 GB per bulan, permintaan unggahan baru langsung ditolak dengan status HTTP 413 untuk menjamin platform SaaS SiPesand 100% bebas dari risiko tagihan Cloudflare.
+                  </div>
+                </div>
+              </div>
+
               {/* SQLite Storage Monitor Per Tenant */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-5 border-b border-slate-200 flex items-center justify-between">
@@ -2324,6 +2479,13 @@ export default function DashboardDeveloper({
                     <div className="flex items-center justify-between p-2 rounded bg-slate-50">
                       <span className="text-slate-600">*.sipesand.web.id (darulrahman)</span>
                       <span className="text-teal-600 font-bold">Isolated Tenant Profile</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded bg-indigo-50/70 border border-indigo-100">
+                      <div className="flex items-center gap-1.5">
+                        <Cloud className="w-3.5 h-3.5 text-indigo-600" />
+                        <span className="text-slate-800 font-bold">Cloudflare R2 Object Storage</span>
+                      </div>
+                      <span className="text-indigo-600 font-bold">sipesand-storage (10 GB Free Tier)</span>
                     </div>
                   </div>
                 </div>

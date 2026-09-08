@@ -25,11 +25,7 @@ import {
   Square,
   Edit,
   BookOpen,
-  Award,
-  Cloud,
-  HardDrive,
-  RefreshCw,
-  AlertTriangle
+  Award
 } from 'lucide-react';
 import { 
   getUserAccounts, 
@@ -39,9 +35,6 @@ import {
   getBackupData, 
   getSantriList, 
   clearCloudDemoData,
-  getR2StorageQuota,
-  backupDatabaseToR2,
-  cleanupR2Storage,
   uploadFileToR2
 } from '../services/api';
 import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
@@ -165,72 +158,6 @@ export default function SettingsAndAccounts() {
       setClearingDemo(false);
     }
   };
-
-  // Cloudflare R2 Object Storage state & 10 GB Guard
-  const [r2Quota, setR2Quota] = useState(null);
-  const [loadingR2Quota, setLoadingR2Quota] = useState(false);
-  const [backingUpToR2, setBackingUpToR2] = useState(false);
-  const [cleaningR2, setCleaningR2] = useState(false);
-  const [r2ActionMessage, setR2ActionMessage] = useState(null);
-
-  useEffect(() => {
-    if (subTab === 'backup') {
-      loadR2Quota();
-    }
-  }, [subTab]);
-
-  const loadR2Quota = async () => {
-    try {
-      setLoadingR2Quota(true);
-      const res = await getR2StorageQuota();
-      if (res && res.data) {
-        setR2Quota(res.data);
-      }
-    } catch (e) {
-      console.warn('Gagal memuat kuota R2:', e);
-    } finally {
-      setLoadingR2Quota(false);
-    }
-  };
-
-  const handleBackupToR2 = async () => {
-    try {
-      setBackingUpToR2(true);
-      const data = await getBackupData();
-      const res = await backupDatabaseToR2(data);
-      if (res && res.success) {
-        setR2ActionMessage({ type: 'success', text: `Database berhasil diarsipkan ke Cloudflare R2 (${res.data?.sizeFormatted || 'OK'})` });
-        loadR2Quota();
-      } else {
-        setR2ActionMessage({ type: 'error', text: res?.message || 'Gagal mengarsipkan ke R2' });
-      }
-    } catch (err) {
-      setR2ActionMessage({ type: 'error', text: 'Error backup ke R2: ' + (err.response?.data?.message || err.message) });
-    } finally {
-      setBackingUpToR2(false);
-      setTimeout(() => setR2ActionMessage(null), 5000);
-    }
-  };
-
-  const handleCleanupR2 = async () => {
-    if (!window.confirm('Bersihkan berkas sementara dan cadangan usang (>30 hari) di Cloudflare R2?')) return;
-    try {
-      setCleaningR2(true);
-      const res = await cleanupR2Storage();
-      if (res && res.success) {
-        setR2ActionMessage({ type: 'success', text: res.message });
-        loadR2Quota();
-      } else {
-        setR2ActionMessage({ type: 'error', text: res?.message || 'Gagal membersihkan storage' });
-      }
-    } catch (err) {
-      setR2ActionMessage({ type: 'error', text: 'Error pembersihan storage: ' + (err.message || 'Error') });
-    } finally {
-      setCleaningR2(false);
-      setTimeout(() => setR2ActionMessage(null), 5000);
-    }
-  };
-
   const [uploadingImageKey, setUploadingImageKey] = useState(null);
 
   // Image Upload Helper: kompresi Canvas otomatis + unggah ke Cloudflare R2 (dengan fallback aman data URL)
@@ -1377,151 +1304,6 @@ export default function SettingsAndAccounts() {
                 <span>Simpan Tautan Spreadsheet</span>
               </button>
             </div>
-          </div>
-
-          {/* Card 2.5: Cloudflare R2 Object Storage & Proteksi Kuota 10 GB */}
-          <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md border border-indigo-900/50 space-y-4 mt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/40 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-xl">
-                  <Cloud className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-sm text-white">Cloudflare R2 Object Storage</h4>
-                    {r2Quota?.connected ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                        ● TERHUBUNG
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        ○ SIAP DIHUBUNGKAN
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-indigo-200/70 text-xs mt-0.5">
-                    Penyimpanan berkas foto santri, dokumen kwitansi, dan arsip database otomatis di edge global
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={loadR2Quota}
-                disabled={loadingR2Quota}
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingR2Quota ? 'animate-spin' : ''}`} />
-                <span>Segarkan Kuota</span>
-              </button>
-            </div>
-
-            {/* Quota Progress Bar & 10 GB Guard info */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <HardDrive className="w-4 h-4 text-indigo-400" />
-                  <span>Penggunaan Storage R2:</span>
-                  <span className="text-indigo-300 font-mono">{r2Quota?.usedFormatted || '0 B'}</span>
-                  <span className="text-slate-400">/ 10.00 GB</span>
-                </div>
-                <div className="font-mono text-xs font-bold text-emerald-400">
-                  {r2Quota?.percentUsed !== undefined ? `${r2Quota.percentUsed}%` : '0.00%'}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
-                <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    (r2Quota?.percentUsed || 0) > 90
-                      ? 'bg-rose-500'
-                      : (r2Quota?.percentUsed || 0) > 75
-                      ? 'bg-amber-500'
-                      : 'bg-gradient-to-r from-blue-500 to-indigo-500'
-                  }`}
-                  style={{ width: `${Math.max(1, Math.min(100, r2Quota?.percentUsed || 1))}%` }}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-[11px]">
-                <div className="bg-white/5 p-2.5 rounded-lg">
-                  <span className="text-slate-400 block">Batas Kuota Bulanan:</span>
-                  <span className="font-bold text-white font-mono">10.00 GB (Free Tier)</span>
-                </div>
-                <div className="bg-white/5 p-2.5 rounded-lg">
-                  <span className="text-slate-400 block">Ruang Tersedia:</span>
-                  <span className="font-bold text-emerald-300 font-mono">{r2Quota?.remainingFormatted || '10.00 GB'}</span>
-                </div>
-                <div className="bg-white/5 p-2.5 rounded-lg">
-                  <span className="text-slate-400 block">Total Berkas Tersimpan:</span>
-                  <span className="font-bold text-indigo-300 font-mono">{r2Quota?.fileCount || 0} berkas</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Proteksi 10 GB Guard Callout */}
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-xs text-indigo-200 leading-relaxed">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-white">Sistem Proteksi Kuota 10 GB Aktif: </span>
-                Setiap permintaan unggahan berkas diverifikasi secara ketat oleh serverless API. Jika batas 10 GB per bulan akan terlampaui, sistem otomatis memblokir unggahan untuk memastikan pesantren tidak pernah ditagih biaya sepeserpun (100% Free Tier Cloudflare R2 tanpa biaya egress data).
-              </div>
-            </div>
-
-            {r2ActionMessage && (
-              <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                r2ActionMessage.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'
-              }`}>
-                {r2ActionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                <span>{r2ActionMessage.text}</span>
-              </div>
-            )}
-
-            {/* R2 Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={handleBackupToR2}
-                disabled={backingUpToR2}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-sm text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <Cloud className="w-4 h-4" />
-                <span>{backingUpToR2 ? 'Mengarsipkan...' : 'Arsipkan Database ke Cloudflare R2'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCleanupR2}
-                disabled={cleaningR2}
-                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/20 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4 text-rose-400" />
-                <span>{cleaningR2 ? 'Membersihkan...' : 'Pembersihan File Sampah & Cache Usang'}</span>
-              </button>
-            </div>
-
-            {/* Step-by-step Setup Guide */}
-            {!r2Quota?.connected && (
-              <div className="mt-3 p-4 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs text-amber-200 space-y-2">
-                <div className="font-bold text-amber-300 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Panduan 1-Menit Aktivasi R2 Binding di Cloudflare Pages:</span>
-                </div>
-                <ol className="list-decimal list-inside space-y-1 text-amber-100/90 text-[11px] leading-relaxed">
-                  <li>Buka <b>Cloudflare Dashboard</b> → Pilih menu <b>R2 Object Storage</b> di sidebar kiri.</li>
-                  <li>Klik <b>Create bucket</b> → Masukkan nama: <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">sipesand-storage</code> → Klik <b>Create Bucket</b>.</li>
-                  <li>Masuk ke menu <b>Workers & Pages</b> → Klik project <code className="bg-black/40 px-1 py-0.5 rounded text-amber-300">sipesand-app</code> → Tab <b>Settings</b> → Sub-tab <b>Functions</b>.</li>
-                  <li>Scroll ke bagian <b>R2 bucket bindings</b> → Klik <b>Add binding</b>:
-                    <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5 text-amber-200 font-mono text-[10px]">
-                      <li>Variable name: <b>SIPESAND_R2</b></li>
-                      <li>R2 bucket: <b>sipesand-storage</b></li>
-                    </ul>
-                  </li>
-                  <li>Klik <b>Save</b>. Cloudflare R2 otomatis aktif & terlindungi kuota 10 GB!</li>
-                </ol>
-              </div>
-            )}
           </div>
 
           {/* Card 3: Kesiapan Produksi & Pembersihan Data Demo */}
