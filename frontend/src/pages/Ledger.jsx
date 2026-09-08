@@ -15,6 +15,7 @@ import {
   Printer
 } from 'lucide-react';
 import { getLedgerEntries, getLedgerSummary, createLedgerEntry, deleteLedgerEntry } from '../services/api';
+import { subscribeCloudLedger } from '../services/cloudDatabase';
 import OfficialReceipt from '../components/OfficialReceipt';
 
 const categories = {
@@ -47,6 +48,15 @@ export default function Ledger() {
 
   useEffect(() => {
     fetchData();
+    // Multi-device real-time subscription
+    const unsubscribe = subscribeCloudLedger(null, (updatedEntries) => {
+      if (updatedEntries) {
+        setEntries(updatedEntries);
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [typeFilter]);
 
   const fetchData = async () => {
@@ -119,9 +129,11 @@ export default function Ledger() {
   const handleDelete = async (id, code) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus catatan kas ${code}?`)) {
       try {
+        setEntries(prev => prev.filter(e => String(e.id) !== String(id)));
         await deleteLedgerEntry(id);
         fetchData();
       } catch (err) {
+        fetchData();
         alert(err.response?.data?.message || 'Gagal menghapus entri');
       }
     }

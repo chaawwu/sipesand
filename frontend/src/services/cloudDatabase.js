@@ -30,6 +30,23 @@ function getTenantDoc(collectionName, docId, tenant = null) {
   return doc(db, "tenants", activeTenant, collectionName, String(docId));
 }
 
+async function isTenantInit(collectionKey, tenant = null) {
+  try {
+    const initDocRef = getTenantDoc("metadata", "init_" + collectionKey, tenant);
+    const snap = await getDoc(initDocRef);
+    return snap.exists();
+  } catch (e) {
+    return false;
+  }
+}
+
+async function markTenantInit(collectionKey, tenant = null) {
+  try {
+    const initDocRef = getTenantDoc("metadata", "init_" + collectionKey, tenant);
+    await setDoc(initDocRef, { initialized: true, timestamp: new Date().toISOString() }, { merge: true });
+  } catch (e) {}
+}
+
 // -----------------------------------------------------------------------------
 // 1. PENGATURAN SISTEM & WEB LANDING (SETTINGS)
 // -----------------------------------------------------------------------------
@@ -110,18 +127,28 @@ export async function getCloudSantriList(tenant = null) {
     const colRef = getTenantCol("santri", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
+      await markTenantInit("santri", tenant);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const dbLocal = localDb.getData();
       dbLocal.santri = items;
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
+      const initialized = await isTenantInit("santri", tenant);
+      if (initialized) {
+        // Tenant was already initialized and user deleted records. Do NOT resurrect!
+        const dbLocal = localDb.getData();
+        dbLocal.santri = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
       // Migrasi inisial lokal ke Cloud Firestore
       const dbLocal = localDb.getData();
       if (dbLocal.santri && dbLocal.santri.length > 0) {
         for (const s of dbLocal.santri) {
           await setDoc(getTenantDoc("santri", s.id, tenant), s);
         }
+        await markTenantInit("santri", tenant);
         return { success: true, data: dbLocal.santri };
       }
     }
@@ -131,11 +158,30 @@ export async function getCloudSantriList(tenant = null) {
   return localDb.getSantriList();
 }
 
+export function subscribeCloudSantri(tenant = null, callback) {
+  try {
+    const colRef = getTenantCol("santri", tenant);
+    return onSnapshot(colRef, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.santri = items;
+      localDb.saveData(dbLocal);
+      callback(items);
+    }, (err) => {
+      console.warn("subscribeCloudSantri snapshot error:", err);
+    });
+  } catch (e) {
+    console.warn("Cannot subscribe to santri:", e);
+    return () => {};
+  }
+}
+
 export async function createCloudSantri(santriData, tenant = null) {
   const localRes = localDb.createSantri(santriData);
   if (localRes.success && localRes.data) {
     try {
       await setDoc(getTenantDoc("santri", localRes.data.id, tenant), localRes.data);
+      await markTenantInit("santri", tenant);
     } catch (err) {
       console.warn("Gagal simpan santri ke Firestore:", err);
     }
@@ -157,6 +203,7 @@ export async function deleteCloudSantri(id, tenant = null) {
   const localRes = localDb.deleteSantri(id);
   try {
     await deleteDoc(getTenantDoc("santri", id, tenant));
+    await markTenantInit("santri", tenant);
   } catch (err) {
     console.warn("Gagal delete santri dari Firestore:", err);
   }
@@ -181,17 +228,26 @@ export async function getCloudLedgerEntries(tenant = null) {
     const colRef = getTenantCol("ledger", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
+      await markTenantInit("ledger", tenant);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const dbLocal = localDb.getData();
       dbLocal.generalLedger = items;
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
+      const initialized = await isTenantInit("ledger", tenant);
+      if (initialized) {
+        const dbLocal = localDb.getData();
+        dbLocal.generalLedger = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
       const dbLocal = localDb.getData();
       if (dbLocal.generalLedger && dbLocal.generalLedger.length > 0) {
         for (const l of dbLocal.generalLedger) {
           await setDoc(getTenantDoc("ledger", l.id, tenant), l);
         }
+        await markTenantInit("ledger", tenant);
         return { success: true, data: dbLocal.generalLedger };
       }
     }
@@ -201,14 +257,44 @@ export async function getCloudLedgerEntries(tenant = null) {
   return localDb.getLedgerEntries();
 }
 
+export function subscribeCloudLedger(tenant = null, callback) {
+  try {
+    const colRef = getTenantCol("ledger", tenant);
+    return onSnapshot(colRef, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.generalLedger = items;
+      localDb.saveData(dbLocal);
+      callback(items);
+    }, (err) => {
+      console.warn("subscribeCloudLedger snapshot error:", err);
+    });
+  } catch (e) {
+    console.warn("Cannot subscribe to ledger:", e);
+    return () => {};
+  }
+}
+
 export async function createCloudLedgerEntry(entryData, tenant = null) {
   const localRes = localDb.createLedgerEntry(entryData);
   if (localRes.success && localRes.data) {
     try {
       await setDoc(getTenantDoc("ledger", localRes.data.id, tenant), localRes.data);
+      await markTenantInit("ledger", tenant);
     } catch (err) {
       console.warn("Gagal simpan kas ke Firestore:", err);
     }
+  }
+  return localRes;
+}
+
+export async function deleteCloudLedgerEntry(id, tenant = null) {
+  const localRes = localDb.deleteLedgerEntry(id);
+  try {
+    await deleteDoc(getTenantDoc("ledger", id, tenant));
+    await markTenantInit("ledger", tenant);
+  } catch (err) {
+    console.warn("Gagal delete kas dari Firestore:", err);
   }
   return localRes;
 }
@@ -312,16 +398,43 @@ export async function getCloudBills(tenant = null) {
     const colRef = getTenantCol("bills", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
+      await markTenantInit("bills", tenant);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const dbLocal = localDb.getData();
       dbLocal.santriBills = items;
       localDb.saveData(dbLocal);
       return { success: true, data: items };
+    } else {
+      const initialized = await isTenantInit("bills", tenant);
+      if (initialized) {
+        const dbLocal = localDb.getData();
+        dbLocal.santriBills = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
     }
   } catch (err) {
     console.warn("Firebase getCloudBills fallback local:", err);
   }
   return localDb.getSantriBills();
+}
+
+export function subscribeCloudBills(tenant = null, callback) {
+  try {
+    const colRef = getTenantCol("bills", tenant);
+    return onSnapshot(colRef, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.santriBills = items;
+      localDb.saveData(dbLocal);
+      callback(items);
+    }, (err) => {
+      console.warn("subscribeCloudBills snapshot error:", err);
+    });
+  } catch (e) {
+    console.warn("Cannot subscribe to bills:", e);
+    return () => {};
+  }
 }
 
 export async function generateCloudBulkBills(masterBillId, period, dueDate, tenant = null) {
@@ -331,6 +444,7 @@ export async function generateCloudBulkBills(masterBillId, period, dueDate, tena
       for (const b of localRes.data.bills) {
         await setDoc(getTenantDoc("bills", b.id, tenant), b);
       }
+      await markTenantInit("bills", tenant);
     } catch (err) {
       console.warn("Gagal sync generate bills ke Firestore:", err);
     }
@@ -360,6 +474,17 @@ export async function payCloudBill(billId, paymentMethod, reference, tenant = nu
   return localRes;
 }
 
+export async function deleteCloudBill(id, tenant = null) {
+  const localRes = localDb.deleteSantriBill(id);
+  try {
+    await deleteDoc(getTenantDoc("bills", id, tenant));
+    await markTenantInit("bills", tenant);
+  } catch (err) {
+    console.warn("Gagal delete bill dari Firestore:", err);
+  }
+  return localRes;
+}
+
 // -----------------------------------------------------------------------------
 // 6. PERIZINAN KAMTIB (PERMITS)
 // -----------------------------------------------------------------------------
@@ -368,11 +493,20 @@ export async function getCloudPermits(tenant = null) {
     const colRef = getTenantCol("permits", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
+      await markTenantInit("permits", tenant);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const dbLocal = localDb.getData();
       dbLocal.permits = items;
       localDb.saveData(dbLocal);
       return { success: true, data: items };
+    } else {
+      const initialized = await isTenantInit("permits", tenant);
+      if (initialized) {
+        const dbLocal = localDb.getData();
+        dbLocal.permits = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
     }
   } catch (err) {
     console.warn("Firebase getCloudPermits fallback local:", err);
@@ -380,11 +514,30 @@ export async function getCloudPermits(tenant = null) {
   return localDb.getPermits();
 }
 
+export function subscribeCloudPermits(tenant = null, callback) {
+  try {
+    const colRef = getTenantCol("permits", tenant);
+    return onSnapshot(colRef, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.permits = items;
+      localDb.saveData(dbLocal);
+      callback(items);
+    }, (err) => {
+      console.warn("subscribeCloudPermits snapshot error:", err);
+    });
+  } catch (e) {
+    console.warn("Cannot subscribe to permits:", e);
+    return () => {};
+  }
+}
+
 export async function createCloudPermit(permitData, tenant = null) {
   const localRes = localDb.createPermit(permitData);
   if (localRes.success && localRes.data) {
     try {
       await setDoc(getTenantDoc("permits", localRes.data.id, tenant), localRes.data);
+      await markTenantInit("permits", tenant);
     } catch (err) {
       console.warn("Gagal sync permit ke Firestore:", err);
     }
@@ -402,6 +555,17 @@ export async function updateCloudPermitStatus(permitId, status, actualReturnTime
   return localRes;
 }
 
+export async function deleteCloudPermit(id, tenant = null) {
+  const localRes = localDb.deletePermit(id);
+  try {
+    await deleteDoc(getTenantDoc("permits", id, tenant));
+    await markTenantInit("permits", tenant);
+  } catch (err) {
+    console.warn("Gagal delete permit dari Firestore:", err);
+  }
+  return localRes;
+}
+
 // -----------------------------------------------------------------------------
 // 7. AKADEMIK & MUHAFADZOH (ACADEMIC RECORDS)
 // -----------------------------------------------------------------------------
@@ -410,11 +574,20 @@ export async function getCloudAcademicRecords(tenant = null) {
     const colRef = getTenantCol("academic_records", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
+      await markTenantInit("academics", tenant);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       const dbLocal = localDb.getData();
       dbLocal.academics = items;
       localDb.saveData(dbLocal);
       return { success: true, data: items };
+    } else {
+      const initialized = await isTenantInit("academics", tenant);
+      if (initialized) {
+        const dbLocal = localDb.getData();
+        dbLocal.academics = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
     }
   } catch (err) {
     console.warn("Firebase getCloudAcademicRecords fallback local:", err);
@@ -426,7 +599,7 @@ export async function saveCloudAcademicRecord(recordData, tenant = null) {
   let localRes;
   if (recordData.id) {
     const db = localDb.getData();
-    const idx = (db.academics || []).findIndex(a => a.id === parseInt(recordData.id));
+    const idx = (db.academics || []).findIndex(a => String(a.id) === String(recordData.id));
     if (idx !== -1) {
       db.academics[idx] = { ...db.academics[idx], ...recordData };
       localDb.saveData(db);
@@ -441,9 +614,74 @@ export async function saveCloudAcademicRecord(recordData, tenant = null) {
   if (localRes.success && localRes.data) {
     try {
       await setDoc(getTenantDoc("academic_records", localRes.data.id, tenant), localRes.data);
+      await markTenantInit("academics", tenant);
     } catch (err) {
       console.warn("Gagal save academic ke Firestore:", err);
     }
+  }
+  return localRes;
+}
+
+export async function deleteCloudAcademicRecord(id, tenant = null) {
+  const localRes = localDb.deleteAcademicRecord(id);
+  try {
+    await deleteDoc(getTenantDoc("academic_records", id, tenant));
+    await markTenantInit("academics", tenant);
+  } catch (err) {
+    console.warn("Gagal delete academic record dari Firestore:", err);
+  }
+  return localRes;
+}
+
+// -----------------------------------------------------------------------------
+// 7B. PELANGGARAN SANTRI (VIOLATIONS)
+// -----------------------------------------------------------------------------
+export async function getCloudViolations(params = {}, tenant = null) {
+  try {
+    const colRef = getTenantCol("violations", tenant);
+    const snap = await getDocs(colRef);
+    if (!snap.empty) {
+      await markTenantInit("violations", tenant);
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.violations = items;
+      localDb.saveData(dbLocal);
+      return { success: true, data: items };
+    } else {
+      const initialized = await isTenantInit("violations", tenant);
+      if (initialized) {
+        const dbLocal = localDb.getData();
+        dbLocal.violations = [];
+        localDb.saveData(dbLocal);
+        return { success: true, data: [] };
+      }
+    }
+  } catch (err) {
+    console.warn("Firebase getCloudViolations fallback:", err);
+  }
+  return localDb.getViolations(params);
+}
+
+export async function createCloudViolation(violationData, tenant = null) {
+  const localRes = localDb.createViolation(violationData);
+  if (localRes.success && localRes.data) {
+    try {
+      await setDoc(getTenantDoc("violations", localRes.data.id, tenant), localRes.data);
+      await markTenantInit("violations", tenant);
+    } catch (err) {
+      console.warn("Gagal save violation ke Firestore:", err);
+    }
+  }
+  return localRes;
+}
+
+export async function deleteCloudViolation(id, tenant = null) {
+  const localRes = localDb.deleteViolation(id);
+  try {
+    await deleteDoc(getTenantDoc("violations", id, tenant));
+    await markTenantInit("violations", tenant);
+  } catch (err) {
+    console.warn("Gagal delete violation dari Firestore:", err);
   }
   return localRes;
 }

@@ -27,6 +27,7 @@ import {
   deleteSantri,
   exportSantriData 
 } from '../services/api';
+import { subscribeCloudSantri } from '../services/cloudDatabase';
 import SantriIdCard from '../components/SantriIdCard';
 import FirebaseMigratorModal from '../components/FirebaseMigratorModal';
 import AestheticToast from '../components/AestheticToast';
@@ -72,6 +73,15 @@ export default function Santri({ onOpenNfcModal }) {
 
   useEffect(() => {
     fetchSantri();
+    // Real-time synchronization across all devices
+    const unsubscribe = subscribeCloudSantri(null, (cloudItems) => {
+      if (cloudItems) {
+        setSantriList(cloudItems);
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [search, statusFilter]);
 
   const fetchSantri = async () => {
@@ -212,6 +222,7 @@ export default function Santri({ onOpenNfcModal }) {
 
   const handleDelete = async (id, nama) => {
     try {
+      setSantriList(prev => prev.filter(s => String(s.id) !== String(id)));
       await deleteSantri(id);
       setToast({
         isOpen: true,
@@ -221,6 +232,7 @@ export default function Santri({ onOpenNfcModal }) {
       });
       fetchSantri();
     } catch (err) {
+      fetchSantri();
       setToast({
         isOpen: true,
         type: 'error',

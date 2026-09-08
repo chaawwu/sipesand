@@ -7,9 +7,12 @@ import {
   createCloudSantri,
   updateCloudSantri,
   deleteCloudSantri,
+  subscribeCloudSantri,
   registerCloudRfid,
   getCloudLedgerEntries,
   createCloudLedgerEntry,
+  deleteCloudLedgerEntry,
+  subscribeCloudLedger,
   getCloudPocketTransactions,
   topupCloudPocket,
   withdrawCloudPocket,
@@ -17,11 +20,19 @@ import {
   getCloudBills,
   generateCloudBulkBills,
   payCloudBill,
+  deleteCloudBill,
+  subscribeCloudBills,
   getCloudPermits,
   createCloudPermit,
   updateCloudPermitStatus,
+  deleteCloudPermit,
+  subscribeCloudPermits,
   getCloudAcademicRecords,
   saveCloudAcademicRecord,
+  deleteCloudAcademicRecord,
+  getCloudViolations,
+  createCloudViolation,
+  deleteCloudViolation,
   getCloudUserAccounts,
   createCloudUserAccount,
   updateCloudUserAccount,
@@ -252,7 +263,7 @@ export const createLedgerEntry = (data) =>
   runHybrid(() => api.post('/ledger', data), () => createCloudLedgerEntry(data));
 
 export const deleteLedgerEntry = (id) => 
-  runHybrid(() => api.delete(`/ledger/${id}`), () => localDb.deleteLedgerEntry(id));
+  runHybrid(() => api.delete(`/ledger/${id}`), () => deleteCloudLedgerEntry(id));
 
 // =============================================================================
 // 5. SECURITY & PERMITS (PERIZINAN KAMTIB)
@@ -265,6 +276,9 @@ export const createPermit = (data) =>
 
 export const updatePermitStatus = (id, data) => 
   runHybrid(() => api.put(`/permits/${id}/status`, data), () => updateCloudPermitStatus(id, data.status, data.actualReturnTime));
+
+export const deletePermit = (id) => 
+  runHybrid(() => api.delete(`/permits/${id}`), () => deleteCloudPermit(id));
 
 export const checkSantriOverdue = () => 
   runHybrid(
@@ -294,7 +308,7 @@ export const updateMasterBill = (id, data) =>
     () => api.put(`/bills/master/${id}`, data),
     () => {
       const db = localDb.getData();
-      const index = (db.masterBills || []).findIndex(b => b.id === parseInt(id));
+      const index = (db.masterBills || []).findIndex(b => String(b.id) === String(id));
       if (index !== -1) {
         db.masterBills[index] = { ...db.masterBills[index], ...data };
         localDb.saveData(db);
@@ -307,12 +321,7 @@ export const updateMasterBill = (id, data) =>
 export const deleteMasterBill = (id) => 
   runHybrid(
     () => api.delete(`/bills/master/${id}`),
-    () => {
-      const db = localDb.getData();
-      db.masterBills = (db.masterBills || []).filter(b => b.id !== parseInt(id));
-      localDb.saveData(db);
-      return { success: true, message: 'Master tagihan dihapus' };
-    }
+    () => localDb.deleteMasterBill(id)
   );
 
 export const getSantriBills = (params) => 
@@ -330,12 +339,7 @@ export const updateSantriBill = (id, data) =>
 export const deleteSantriBill = (id) => 
   runHybrid(
     () => api.delete(`/bills/${id}`),
-    () => {
-      const db = localDb.getData();
-      db.santriBills = (db.santriBills || []).filter(b => b.id !== parseInt(id));
-      localDb.saveData(db);
-      return { success: true, message: 'Tagihan santri dihapus' };
-    }
+    () => deleteCloudBill(id)
   );
 
 // =============================================================================
@@ -377,29 +381,24 @@ export const updateAcademicRecord = (id, data) =>
 export const deleteAcademicRecord = (id) => 
   runHybrid(
     () => api.delete(`/academics/${id}`),
-    () => {
-      const db = localDb.getData();
-      db.academics = (db.academics || []).filter(a => a.id !== parseInt(id));
-      localDb.saveData(db);
-      return { success: true, message: 'Catatan akademik berhasil dihapus' };
-    }
+    () => deleteCloudAcademicRecord(id)
   );
 
 // =============================================================================
 // 9. KEAMANAN & PELANGGARAN
 // =============================================================================
 export const getViolations = (params) => 
-  runHybrid(() => api.get('/security/violations', { params }), () => localDb.getViolations(params));
+  runHybrid(() => api.get('/security/violations', { params }), () => getCloudViolations(params));
 
 export const createViolation = (data) => 
-  runHybrid(() => api.post('/security/violations', data), () => localDb.createViolation(data));
+  runHybrid(() => api.post('/security/violations', data), () => createCloudViolation(data));
 
 export const updateViolationStatus = (id, data) => 
   runHybrid(
     () => api.put(`/security/violations/${id}/status`, data),
     () => {
       const db = localDb.getData();
-      const v = (db.violations || []).find(v => v.id === parseInt(id));
+      const v = (db.violations || []).find(v => String(v.id) === String(id));
       if (v) {
         v.status = data.status;
         localDb.saveData(db);
@@ -412,12 +411,7 @@ export const updateViolationStatus = (id, data) =>
 export const deleteViolation = (id) => 
   runHybrid(
     () => api.delete(`/security/violations/${id}`),
-    () => {
-      const db = localDb.getData();
-      db.violations = (db.violations || []).filter(v => v.id !== parseInt(id));
-      localDb.saveData(db);
-      return { success: true, message: 'Catatan pelanggaran dihapus' };
-    }
+    () => deleteCloudViolation(id)
   );
 
 // =============================================================================

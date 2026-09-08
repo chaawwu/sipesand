@@ -8,50 +8,69 @@
  */
 
 export function getCurrentTenant() {
-  if (typeof window === 'undefined') return 'master';
+  if (typeof window === 'undefined') return 'darulrahman';
   const searchParams = new URLSearchParams(window.location.search);
   const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
   const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'];
 
+  // 1. URL search params (e.g. ?tenant=darulrahman)
   if (tenantQuery && !ignoredSubdomains.includes(tenantQuery.toLowerCase().trim())) {
-    return tenantQuery.toLowerCase().trim();
+    const t = tenantQuery.toLowerCase().trim();
+    try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+    return t;
   }
 
+  // 2. Subdomain on sipesand.web.id (e.g. darulrahman.sipesand.web.id)
   const hostname = window.location.hostname.toLowerCase();
-
-  // Root domain sipesand.web.id and www.sipesand.web.id are pure SaaS landing
-  if (hostname === 'sipesand.web.id' || hostname === 'www.sipesand.web.id') {
-    return 'master';
-  }
-
-  // Gateway, developer, and system subdomains are non-tenant
-  if (
-    hostname.startsWith('app.') || 
-    hostname.startsWith('mitra.') || 
-    hostname.startsWith('pay.') || 
-    hostname.startsWith('api.')
-  ) {
-    return 'master';
-  }
-
-  // Tenant subdomain: [subdomain].sipesand.web.id
   if (hostname.includes('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
     if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
-      return parts[0].trim();
+      const t = parts[0].trim();
+      try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+      return t;
     }
   }
 
-  // Tenant subdomain on localhost: [subdomain].localhost
+  // 3. Subdomain on localhost (e.g. darulrahman.localhost)
   if (hostname.endsWith('.localhost')) {
     const parts = hostname.replace('.localhost', '').split('.');
     if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
-      return parts[0].trim();
+      const t = parts[0].trim();
+      try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+      return t;
     }
   }
 
-  // Default tenant for preview / master is 'master'
-  return 'master';
+  // 4. Stored active tenant in localStorage for multi-device session continuity
+  try {
+    const stored = localStorage.getItem('sipesand_active_tenant');
+    if (stored && !ignoredSubdomains.includes(stored.toLowerCase().trim())) {
+      return stored.toLowerCase().trim();
+    }
+  } catch (e) {}
+
+  // 5. Stored user session tenant
+  try {
+    const rawUser = localStorage.getItem('sipesand_user') || sessionStorage.getItem('sipesand_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u.tenant && !ignoredSubdomains.includes(u.tenant.toLowerCase().trim())) {
+        return u.tenant.toLowerCase().trim();
+      }
+    }
+  } catch (e) {}
+
+  // 6. Default active pesantren tenant across all devices:
+  // Selalu menghubungkan ke 'darulrahman' sebagai tenant operasional utama
+  return 'darulrahman';
+}
+
+export function setCurrentTenant(tenant) {
+  if (typeof window !== 'undefined' && tenant) {
+    try {
+      localStorage.setItem('sipesand_active_tenant', tenant.toLowerCase().trim());
+    } catch (e) {}
+  }
 }
 
 const STORAGE_PREFIX = 'sipesand_db_v2_';
@@ -451,30 +470,41 @@ function buildInitialDatabase(tenant) {
 // -----------------------------------------------------------------------------
 export class LocalDatabase {
   constructor(tenant = null) {
-    this.tenant = tenant || getCurrentTenant();
-    this.storageKey = getStorageKey(this.tenant);
+    this.tenantOverride = tenant;
   }
 
-  getData() {
+  get tenant() {
+    return this.tenantOverride || getCurrentTenant();
+  }
+
+  get storageKey() {
+    return getStorageKey(this.tenant);
+  }
+
+  getData(tenant = null) {
+    const activeT = tenant || this.tenant;
+    const targetKey = getStorageKey(activeT);
     try {
-      if (typeof window === 'undefined') return buildInitialDatabase(this.tenant);
-      const raw = localStorage.getItem(this.storageKey);
+      if (typeof window === 'undefined') return buildInitialDatabase(activeT);
+      const raw = localStorage.getItem(targetKey);
       if (!raw) {
-        const initial = buildInitialDatabase(this.tenant);
-        this.saveData(initial);
+        const initial = buildInitialDatabase(activeT);
+        this.saveData(initial, activeT);
         return initial;
       }
       return JSON.parse(raw);
     } catch (e) {
       console.warn('[LocalDatabase] Fallback parsing database error:', e);
-      return buildInitialDatabase(this.tenant);
+      return buildInitialDatabase(activeT);
     }
   }
 
-  saveData(data) {
+  saveData(data, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const targetKey = getStorageKey(activeT);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(this.storageKey, JSON.stringify(data));
+        localStorage.setItem(targetKey, JSON.stringify(data));
       }
     } catch (e) {
       console.error('[LocalDatabase] Gagal menyimpan ke localStorage:', e);
@@ -525,17 +555,17 @@ export class LocalDatabase {
 
   getSantriById(id) {
     const db = this.getData();
-    const numId = parseInt(id);
-    const santri = (db.santri || []).find(s => s.id === numId);
+    const strId = String(id);
+    const santri = (db.santri || []).find(s => String(s.id) === strId);
     if (!santri) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
 
-    const pocketTxs = (db.pocketTxs || []).filter(t => t.santriId === numId);
-    const permits = (db.permits || []).filter(p => p.santriId === numId);
-    const bills = (db.santriBills || []).filter(b => b.santriId === numId);
-    const academics = (db.academics || []).filter(a => a.santriId === numId);
-    const violations = (db.violations || []).filter(v => v.santriId === numId);
+    const pocketTxs = (db.pocketTxs || []).filter(t => String(t.santriId) === strId);
+    const permits = (db.permits || []).filter(p => String(p.santriId) === strId);
+    const bills = (db.santriBills || []).filter(b => String(b.santriId) === strId);
+    const academics = (db.academics || []).filter(a => String(a.santriId) === strId);
+    const violations = (db.violations || []).filter(v => String(v.santriId) === strId);
 
     return {
       success: true,
@@ -558,7 +588,8 @@ export class LocalDatabase {
 
     // Cek duplikasi NIS
     if (payload.nis && payload.nis.trim()) {
-      const existsNis = (db.santri || []).some(s => s.nis === payload.nis.trim());
+      const cleanNis = payload.nis.trim();
+      const existsNis = (db.santri || []).some(s => s.nis && String(s.nis).trim() === cleanNis);
       if (existsNis) {
         return { success: false, message: 'NIS sudah digunakan santri lain' };
       }
@@ -573,7 +604,8 @@ export class LocalDatabase {
       }
     }
 
-    const nextId = (db.santri || []).reduce((max, s) => Math.max(max, s.id || 0), 0) + 1;
+    // ID unik multi-device anti-tabrakan
+    const nextId = payload.id ? payload.id : (Date.now() + Math.floor(Math.random() * 1000));
     const newSantri = {
       id: nextId,
       nis: payload.nis ? payload.nis.trim() : `2026${Math.floor(10000 + Math.random() * 90000)}`,
@@ -588,7 +620,7 @@ export class LocalDatabase {
       saldo_saku: parseFloat(payload.saldo_saku || 0),
       status: payload.status || 'AKTIF',
       foto: payload.foto || null,
-      createdAt: new Date().toISOString(),
+      createdAt: payload.createdAt || new Date().toISOString(),
     };
 
     db.santri = [newSantri, ...(db.santri || [])];
@@ -603,8 +635,8 @@ export class LocalDatabase {
 
   updateSantri(id, payload) {
     const db = this.getData();
-    const numId = parseInt(id);
-    const index = (db.santri || []).findIndex(s => s.id === numId);
+    const strId = String(id);
+    const index = (db.santri || []).findIndex(s => String(s.id) === strId);
     if (index === -1) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
@@ -612,7 +644,7 @@ export class LocalDatabase {
     // Cek duplikasi NFC jika diubah
     if (payload.nfcUid && payload.nfcUid.trim()) {
       const cleanUid = payload.nfcUid.trim().toUpperCase();
-      const duplicate = (db.santri || []).some(s => s.id !== numId && s.nfcUid && s.nfcUid.toUpperCase() === cleanUid);
+      const duplicate = (db.santri || []).some(s => String(s.id) !== strId && s.nfcUid && s.nfcUid.toUpperCase() === cleanUid);
       if (duplicate) {
         return { success: false, message: 'NFC Card UID sudah terdaftar pada santri lain' };
       }
@@ -621,7 +653,7 @@ export class LocalDatabase {
     const updated = {
       ...db.santri[index],
       ...payload,
-      id: numId,
+      id: db.santri[index].id,
       saldo_saku: payload.saldo_saku !== undefined ? parseFloat(payload.saldo_saku) : db.santri[index].saldo_saku,
       updatedAt: new Date().toISOString(),
     };
@@ -638,8 +670,8 @@ export class LocalDatabase {
 
   deleteSantri(id) {
     const db = this.getData();
-    const numId = parseInt(id);
-    db.santri = (db.santri || []).filter(s => s.id !== numId);
+    const strId = String(id);
+    db.santri = (db.santri || []).filter(s => String(s.id) !== strId);
     this.saveData(db);
     return { success: true, message: 'Santri berhasil dihapus' };
   }
@@ -657,14 +689,14 @@ export class LocalDatabase {
 
   registerRfidCard({ santriId, nfcUid, saldoSaku, status = 'AKTIF' }) {
     const db = this.getData();
-    const numId = parseInt(santriId);
-    const santri = (db.santri || []).find(s => s.id === numId);
+    const strId = String(santriId);
+    const santri = (db.santri || []).find(s => String(s.id) === strId);
     if (!santri) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
 
     const cleanUid = nfcUid.trim().toUpperCase();
-    const existingHolder = (db.santri || []).find(s => s.id !== numId && s.nfcUid && s.nfcUid.toUpperCase() === cleanUid);
+    const existingHolder = (db.santri || []).find(s => String(s.id) !== strId && s.nfcUid && s.nfcUid.toUpperCase() === cleanUid);
     if (existingHolder) {
       return {
         success: false,
@@ -689,8 +721,8 @@ export class LocalDatabase {
 
   unregisterRfidCard({ santriId }) {
     const db = this.getData();
-    const numId = parseInt(santriId);
-    const santri = (db.santri || []).find(s => s.id === numId);
+    const strId = String(santriId);
+    const santri = (db.santri || []).find(s => String(s.id) === strId);
     if (!santri) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
@@ -809,8 +841,8 @@ export class LocalDatabase {
 
   deleteLedgerEntry(id) {
     const db = this.getData();
-    const numId = parseInt(id);
-    db.generalLedger = (db.generalLedger || []).filter(e => e.id !== numId);
+    const strId = String(id);
+    db.generalLedger = (db.generalLedger || []).filter(e => String(e.id) !== strId);
     this.saveData(db);
     return { success: true, message: 'Catatan kas berhasil dihapus' };
   }
@@ -823,13 +855,13 @@ export class LocalDatabase {
     let txs = [...(db.pocketTxs || [])];
 
     if (params.santriId) {
-      const numId = parseInt(params.santriId);
-      txs = txs.filter(t => t.santriId === numId);
+      const strSantriId = String(params.santriId);
+      txs = txs.filter(t => String(t.santriId) === strSantriId);
     }
 
     // Attach santri info
     const enriched = txs.map(t => {
-      const s = (db.santri || []).find(santri => santri.id === t.santriId);
+      const s = (db.santri || []).find(santri => String(santri.id) === String(t.santriId));
       return {
         ...t,
         santri: s ? { id: s.id, nama: s.nama, nis: s.nis, kamar: s.kamar, kelas: s.kelas } : null
@@ -846,10 +878,10 @@ export class LocalDatabase {
   createPocketTransaction(payload) {
     const db = this.getData();
     const { santriId, type, amount, description } = payload;
-    const numId = parseInt(santriId);
+    const strSantriId = String(santriId);
     const numAmount = parseFloat(amount);
 
-    const santri = (db.santri || []).find(s => s.id === numId);
+    const santri = (db.santri || []).find(s => String(s.id) === strSantriId);
     if (!santri) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
@@ -867,15 +899,15 @@ export class LocalDatabase {
 
     santri.saldo_saku = newBalance;
 
-    const nextId = (db.pocketTxs || []).reduce((max, t) => Math.max(max, t.id || 0), 0) + 1;
+    const nextId = payload.id ? payload.id : (Date.now() + Math.floor(Math.random() * 1000));
     const newTx = {
       id: nextId,
-      santriId: numId,
+      santriId: santri.id,
       type: type || 'PURCHASE',
       amount: numAmount,
       currentBalance: newBalance,
       description: description || (type === 'TOPUP' ? 'Top-Up Saldo Uang Saku' : 'Transaksi Uang Saku'),
-      createdAt: new Date().toISOString(),
+      createdAt: payload.createdAt || new Date().toISOString(),
     };
 
     db.pocketTxs = [newTx, ...(db.pocketTxs || [])];
@@ -908,7 +940,7 @@ export class LocalDatabase {
 
   createMasterBill(payload) {
     const db = this.getData();
-    const nextId = (db.masterBills || []).reduce((max, b) => Math.max(max, b.id || 0), 0) + 1;
+    const nextId = payload.id ? String(payload.id) : ('MBILL-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     const newBill = {
       id: nextId,
       name: payload.name,
@@ -923,6 +955,13 @@ export class LocalDatabase {
     return { success: true, data: newBill };
   }
 
+  deleteMasterBill(id) {
+    const db = this.getData();
+    db.masterBills = (db.masterBills || []).filter(b => String(b.id) !== String(id));
+    this.saveData(db);
+    return { success: true, message: 'Master tagihan dihapus' };
+  }
+
   getSantriBills(params = {}) {
     const db = this.getData();
     let list = [...(db.santriBills || [])];
@@ -931,13 +970,12 @@ export class LocalDatabase {
       list = list.filter(b => b.status === params.status);
     }
     if (params.santriId) {
-      const numId = parseInt(params.santriId);
-      list = list.filter(b => b.santriId === numId);
+      list = list.filter(b => String(b.santriId) === String(params.santriId));
     }
 
     const enriched = list.map(b => {
-      const s = (db.santri || []).find(santri => santri.id === b.santriId);
-      const m = (db.masterBills || []).find(master => master.id === b.masterBillId);
+      const s = (db.santri || []).find(santri => String(santri.id) === String(b.santriId));
+      const m = (db.masterBills || []).find(master => String(master.id) === String(b.masterBillId));
       return {
         ...b,
         santri: s || null,
@@ -950,8 +988,7 @@ export class LocalDatabase {
 
   updateSantriBill(id, payload) {
     const db = this.getData();
-    const numId = parseInt(id);
-    const index = (db.santriBills || []).findIndex(b => b.id === numId);
+    const index = (db.santriBills || []).findIndex(b => String(b.id) === String(id));
     if (index === -1) {
       return { success: false, message: 'Tagihan tidak ditemukan' };
     }
@@ -960,14 +997,14 @@ export class LocalDatabase {
     const updated = {
       ...prev,
       ...payload,
-      id: numId,
+      id: prev.id,
       updatedAt: new Date().toISOString(),
     };
 
     // Bila status berubah jadi PAID dan belum pernah dicatat di Kas, catat otomatis ke Kas Umum
     if (payload.status === 'PAID' && prev.status !== 'PAID') {
       updated.paidAt = new Date().toISOString();
-      const s = (db.santri || []).find(santri => santri.id === updated.santriId);
+      const s = (db.santri || []).find(santri => String(santri.id) === String(updated.santriId));
       this.createLedgerEntry({
         type: 'INCOME',
         category: 'SPP',
@@ -982,26 +1019,34 @@ export class LocalDatabase {
     return { success: true, data: updated };
   }
 
+  deleteSantriBill(id) {
+    const db = this.getData();
+    db.santriBills = (db.santriBills || []).filter(b => String(b.id) !== String(id));
+    this.saveData(db);
+    return { success: true, message: 'Tagihan santri dihapus' };
+  }
+
   autoGenerateHijriBills(payload) {
     const db = this.getData();
     const { masterBillId, hijriMonth, hijriYear } = payload;
-    const master = (db.masterBills || []).find(m => m.id === parseInt(masterBillId));
+    const master = (db.masterBills || []).find(m => String(m.id) === String(masterBillId));
     if (!master) {
       return { success: false, message: 'Master tagihan tidak ditemukan' };
     }
 
     const activeSantri = (db.santri || []).filter(s => s.status === 'AKTIF');
     let generatedCount = 0;
+    const generatedBills = [];
 
     activeSantri.forEach(s => {
       const exists = (db.santriBills || []).some(b => 
-        b.santriId === s.id && 
-        b.masterBillId === master.id && 
+        String(b.santriId) === String(s.id) && 
+        String(b.masterBillId) === String(master.id) && 
         b.hijriMonth === hijriMonth && 
         b.hijriYear === hijriYear
       );
       if (!exists) {
-        const nextId = (db.santriBills || []).reduce((max, b) => Math.max(max, b.id || 0), 0) + 1;
+        const nextId = 'BILL-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
         const newBill = {
           id: nextId,
           santriId: s.id,
@@ -1015,12 +1060,13 @@ export class LocalDatabase {
           createdAt: new Date().toISOString(),
         };
         db.santriBills.push(newBill);
+        generatedBills.push(newBill);
         generatedCount++;
       }
     });
 
     this.saveData(db);
-    return { success: true, count: generatedCount, message: `Berhasil menerbitkan ${generatedCount} tagihan santri` };
+    return { success: true, count: generatedCount, data: { bills: generatedBills }, message: `Berhasil menerbitkan ${generatedCount} tagihan santri` };
   }
 
   // ---------------------------------------------------------------------------
@@ -1034,12 +1080,11 @@ export class LocalDatabase {
       list = list.filter(p => p.status === params.status);
     }
     if (params.santriId) {
-      const numId = parseInt(params.santriId);
-      list = list.filter(p => p.santriId === numId);
+      list = list.filter(p => String(p.santriId) === String(params.santriId));
     }
 
     const enriched = list.map(p => {
-      const s = (db.santri || []).find(santri => santri.id === p.santriId);
+      const s = (db.santri || []).find(santri => String(santri.id) === String(p.santriId));
       return {
         ...p,
         santri: s || null
@@ -1052,16 +1097,15 @@ export class LocalDatabase {
 
   createPermit(payload) {
     const db = this.getData();
-    const numId = parseInt(payload.santriId);
-    const santri = (db.santri || []).find(s => s.id === numId);
+    const santri = (db.santri || []).find(s => String(s.id) === String(payload.santriId));
     if (!santri) {
       return { success: false, message: 'Santri tidak ditemukan' };
     }
 
-    const nextId = (db.permits || []).reduce((max, p) => Math.max(max, p.id || 0), 0) + 1;
+    const nextId = payload.id ? String(payload.id) : ('PERMIT-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     const newPermit = {
       id: nextId,
-      santriId: numId,
+      santriId: santri.id,
       reason: payload.reason || '',
       destination: payload.destination || '',
       departureTime: payload.departureTime || new Date().toISOString(),
@@ -1079,18 +1123,24 @@ export class LocalDatabase {
 
   updatePermitStatus(id, payload) {
     const db = this.getData();
-    const numId = parseInt(id);
-    const permit = (db.permits || []).find(p => p.id === numId);
+    const permit = (db.permits || []).find(p => String(p.id) === String(id));
     if (!permit) {
       return { success: false, message: 'Data perizinan tidak ditemukan' };
     }
 
     permit.status = payload.status;
     if (payload.status === 'RETURNED') {
-      permit.actualReturnTime = new Date().toISOString();
+      permit.actualReturnTime = payload.actualReturnTime || new Date().toISOString();
     }
     this.saveData(db);
     return { success: true, data: permit };
+  }
+
+  deletePermit(id) {
+    const db = this.getData();
+    db.permits = (db.permits || []).filter(p => String(p.id) !== String(id));
+    this.saveData(db);
+    return { success: true, message: 'Data izin santri berhasil dihapus' };
   }
 
   checkInByNfc({ nfcUid }) {
@@ -1101,7 +1151,7 @@ export class LocalDatabase {
       return { success: false, message: 'Kartu RFID belum terdaftar' };
     }
 
-    const activePermit = (db.permits || []).find(p => p.santriId === santri.id && p.status === 'ACTIVE');
+    const activePermit = (db.permits || []).find(p => String(p.santriId) === String(santri.id) && p.status === 'ACTIVE');
     if (!activePermit) {
       return {
         success: true,
@@ -1128,22 +1178,21 @@ export class LocalDatabase {
     const db = this.getData();
     let list = [...(db.academics || [])];
     if (params.santriId) {
-      const numId = parseInt(params.santriId);
-      list = list.filter(a => a.santriId === numId);
+      list = list.filter(a => String(a.santriId) === String(params.santriId));
     }
     const enriched = list.map(a => ({
       ...a,
-      santri: (db.santri || []).find(s => s.id === a.santriId) || null
+      santri: (db.santri || []).find(s => String(s.id) === String(a.santriId)) || null
     }));
     return { success: true, data: enriched };
   }
 
   createAcademicRecord(payload) {
     const db = this.getData();
-    const nextId = (db.academics || []).reduce((max, a) => Math.max(max, a.id || 0), 0) + 1;
+    const nextId = payload.id ? String(payload.id) : ('ACAD-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     const newRecord = {
       id: nextId,
-      santriId: parseInt(payload.santriId),
+      santriId: String(payload.santriId),
       subject: payload.subject,
       score: parseFloat(payload.score || 0),
       grade: payload.grade || 'A',
@@ -1156,6 +1205,13 @@ export class LocalDatabase {
     return { success: true, data: newRecord, message: 'Nilai muhafadzoh berhasil dicatat' };
   }
 
+  deleteAcademicRecord(id) {
+    const db = this.getData();
+    db.academics = (db.academics || []).filter(a => String(a.id) !== String(id));
+    this.saveData(db);
+    return { success: true, message: 'Catatan akademik berhasil dihapus' };
+  }
+
   // ---------------------------------------------------------------------------
   // 7. SECURITY VIOLATIONS
   // ---------------------------------------------------------------------------
@@ -1163,22 +1219,21 @@ export class LocalDatabase {
     const db = this.getData();
     let list = [...(db.violations || [])];
     if (params.santriId) {
-      const numId = parseInt(params.santriId);
-      list = list.filter(v => v.santriId === numId);
+      list = list.filter(v => String(v.santriId) === String(params.santriId));
     }
     const enriched = list.map(v => ({
       ...v,
-      santri: (db.santri || []).find(s => s.id === v.santriId) || null
+      santri: (db.santri || []).find(s => String(s.id) === String(v.santriId)) || null
     }));
     return { success: true, data: enriched };
   }
 
   createViolation(payload) {
     const db = this.getData();
-    const nextId = (db.violations || []).reduce((max, v) => Math.max(max, v.id || 0), 0) + 1;
+    const nextId = payload.id ? String(payload.id) : ('VIOL-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     const newV = {
       id: nextId,
-      santriId: parseInt(payload.santriId),
+      santriId: String(payload.santriId),
       violationType: payload.violationType || 'DISIPLIN',
       description: payload.description || '',
       sanction: payload.sanction || '',
@@ -1191,6 +1246,13 @@ export class LocalDatabase {
     return { success: true, data: newV, message: 'Catatan pelanggaran santri berhasil disimpan' };
   }
 
+  deleteViolation(id) {
+    const db = this.getData();
+    db.violations = (db.violations || []).filter(v => String(v.id) !== String(id));
+    this.saveData(db);
+    return { success: true, message: 'Catatan pelanggaran santri berhasil dihapus' };
+  }
+
   // ---------------------------------------------------------------------------
   // 8. APPROVALS & DIVISION FUNDS
   // ---------------------------------------------------------------------------
@@ -1201,7 +1263,7 @@ export class LocalDatabase {
 
   createDivisionFund(payload) {
     const db = this.getData();
-    const nextId = (db.divisionFunds || []).reduce((max, f) => Math.max(max, f.id || 0), 0) + 1;
+    const nextId = payload.id ? String(payload.id) : ('FUND-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     const newFund = {
       id: nextId,
       division: payload.division || 'PENGASUHAN',
@@ -1220,8 +1282,7 @@ export class LocalDatabase {
 
   updateDivisionFundStatus(id, payload) {
     const db = this.getData();
-    const numId = parseInt(id);
-    const fund = (db.divisionFunds || []).find(f => f.id === numId);
+    const fund = (db.divisionFunds || []).find(f => String(f.id) === String(id));
     if (!fund) return { success: false, message: 'Pengajuan dana tidak ditemukan' };
 
     fund.status = payload.status;
@@ -1310,10 +1371,10 @@ export class LocalDatabase {
       return { success: false, message: 'Data santri tidak ditemukan. Pastikan NIS atau nomor kartu santri sudah sesuai.' };
     }
 
-    const bills = (db.santriBills || []).filter(b => b.santriId === santri.id);
-    const pocketTxs = (db.pocketTxs || []).filter(t => t.santriId === santri.id).slice(0, 10);
-    const permits = (db.permits || []).filter(p => p.santriId === santri.id).slice(0, 5);
-    const academics = (db.academics || []).filter(a => a.santriId === santri.id);
+    const bills = (db.santriBills || []).filter(b => String(b.santriId) === String(santri.id));
+    const pocketTxs = (db.pocketTxs || []).filter(t => String(t.santriId) === String(santri.id)).slice(0, 10);
+    const permits = (db.permits || []).filter(p => String(p.santriId) === String(santri.id)).slice(0, 5);
+    const academics = (db.academics || []).filter(a => String(a.santriId) === String(santri.id));
 
     return {
       success: true,
@@ -1329,8 +1390,7 @@ export class LocalDatabase {
 
   uploadPaymentProof({ billId, proofUrl, proofNote }) {
     const db = this.getData();
-    const numId = parseInt(billId);
-    const bill = (db.santriBills || []).find(b => b.id === numId);
+    const bill = (db.santriBills || []).find(b => String(b.id) === String(billId));
     if (!bill) return { success: false, message: 'Tagihan tidak ditemukan' };
 
     bill.status = 'PENDING_VERIFICATION';

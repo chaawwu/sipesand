@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Radio, 
@@ -6,9 +6,11 @@ import {
   Globe, 
   ExternalLink,
   ShieldCheck,
-  Menu
+  Menu,
+  Cloud
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { getCurrentTenant, setCurrentTenant } from '../services/localDatabase';
 
 const TAB_TITLES = {
   dashboard: 'Dashboard Utama',
@@ -31,9 +33,20 @@ export default function Header({
   onToggleMobileSidebar
 }) {
   const { settings, isNfcEnabled } = useSettings();
+  const [activeTenant, setActiveTenant] = useState('darulrahman');
   const pageTitle = TAB_TITLES[activeTab] || 'SiPesand Terpadu';
   const logoPondok = settings.LOGO_PONDOK_URL;
   const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand';
+
+  useEffect(() => {
+    setActiveTenant(getCurrentTenant());
+  }, []);
+
+  const handleTenantChange = (newTenant) => {
+    setActiveTenant(newTenant);
+    setCurrentTenant(newTenant);
+    window.location.reload();
+  };
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 text-xs font-sans">
@@ -67,6 +80,24 @@ export default function Header({
       {/* Right: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         
+        {/* Tenant Selector & Multi-device Live Sync Indicator */}
+        <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-lg text-slate-700 transition-colors shadow-2xs">
+          <Building2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+          <span className="hidden md:inline text-[10px] font-semibold text-slate-500">Tenant:</span>
+          <select 
+            value={activeTenant} 
+            onChange={(e) => handleTenantChange(e.target.value)}
+            className="bg-transparent font-bold text-[11px] text-slate-900 border-none outline-none cursor-pointer pr-1"
+            title="Pilih Tenant Pesantren (Multi-device)"
+          >
+            <option value="darulrahman">Darul Rahman</option>
+            <option value="alhikmah">Al-Hikmah</option>
+            <option value="nurulhuda">Nurul Huda</option>
+            <option value="master">Pusat / Master</option>
+          </select>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Multi-Device Cloud Real-Time Active" />
+        </div>
+
         {/* NFC Scanner Trigger (If Enabled) */}
         {isNfcEnabled && (
           <button
