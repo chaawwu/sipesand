@@ -35,9 +35,16 @@ import {
   MessagesSquare,
   Repeat,
   Menu,
-  X
+  X,
+  Camera,
+  Edit,
+  Save,
+  Upload,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
-import { useSettings } from '../context/SettingsContext';
+import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
+import { compressImage } from '../utils/imageCompressor';
 
 export default function PesantrenTenantHome({
   onLoginPetugas,
@@ -49,10 +56,71 @@ export default function PesantrenTenantHome({
   loadingSearch,
   searchError
 }) {
-  const { settings, isNfcEnabled } = useSettings();
+  const { settings, updateSettings, isNfcEnabled } = useSettings();
   const [copiedBank, setCopiedBank] = useState(false);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // State Edit Profil & Kalam Pengasuh
+  const [isEditPengasuhOpen, setIsEditPengasuhOpen] = useState(false);
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isSavingPengasuh, setIsSavingPengasuh] = useState(false);
+  const [pengasuhToast, setPengasuhToast] = useState('');
+  const [editForm, setEditForm] = useState({
+    NAMA_KEPALA_PONDOK: '',
+    JABATAN_PENGASUH: '',
+    LOKASI_PENGASUH: '',
+    FOTO_PENGASUH_URL: '',
+    KALAM_PENGASUH: '',
+  });
+
+  const openEditPengasuh = () => {
+    setEditForm({
+      NAMA_KEPALA_PONDOK: settings.NAMA_KEPALA_PONDOK || 'K.H. Amir Hasan',
+      JABATAN_PENGASUH: settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman',
+      LOKASI_PENGASUH: settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri',
+      FOTO_PENGASUH_URL: settings.FOTO_PENGASUH_URL || DEFAULT_PENGASUH_AVATAR,
+      KALAM_PENGASUH: settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.',
+    });
+    setIsEditPengasuhOpen(true);
+  };
+
+  const handleQuickPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsCompressingPhoto(true);
+      const compressedDataUrl = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.82,
+      });
+
+      await updateSettings({ FOTO_PENGASUH_URL: compressedDataUrl });
+      setPengasuhToast('Foto Pengasuh berhasil diubah!');
+      setTimeout(() => setPengasuhToast(''), 3000);
+    } catch (err) {
+      alert('Gagal memproses foto: ' + (err.message || 'Error'));
+    } finally {
+      setIsCompressingPhoto(false);
+    }
+  };
+
+  const handleSavePengasuhModal = async (e) => {
+    e?.preventDefault();
+    try {
+      setIsSavingPengasuh(true);
+      await updateSettings(editForm);
+      setIsEditPengasuhOpen(false);
+      setPengasuhToast('Profil & Kalam Pengasuh berhasil disimpan!');
+      setTimeout(() => setPengasuhToast(''), 3000);
+    } catch (err) {
+      alert('Gagal menyimpan perubahan: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingPengasuh(false);
+    }
+  };
 
   const logoPondok = settings.LOGO_PONDOK_URL || '/logo.png';
   const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
@@ -63,10 +131,10 @@ export default function PesantrenTenantHome({
   const bankNo = settings.BANK_ACCOUNT_NO || '7192837465';
   const bankName = settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)';
   const bankHolder = settings.BANK_ACCOUNT_HOLDER || 'YAYASAN DARUL RAHMAN SUMBERSARI';
-  const namaPengasuh = settings.NAMA_KEPALA_PONDOK || 'K.H. Pengasuh Darul Rahman';
+  const namaPengasuh = settings.NAMA_KEPALA_PONDOK || 'K.H. Amir Hasan';
   const jabatanPengasuh = settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman';
   const lokasiPengasuh = settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri';
-  const fotoPengasuh = settings.FOTO_PENGASUH_URL || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80';
+  const fotoPengasuh = settings.FOTO_PENGASUH_URL || DEFAULT_PENGASUH_AVATAR;
   const kalamPengasuh = settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.';
   const stat1Number = settings.STAT_1_NUMBER || '500+';
   const stat1Label = settings.STAT_1_LABEL || 'Santri Mukim';
@@ -408,22 +476,68 @@ export default function PesantrenTenantHome({
       {/* 3. SECTION: KALAM PENGASUH & STATISTIK PESANTREN (EDITORIAL CARD)         */}
       {/* ========================================================================= */}
       <section id="kalam" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 border border-stone-200/90 shadow-sm">
+        <div className="bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 border border-stone-200/90 shadow-sm relative">
           
+          {/* Toast Notifikasi Berhasil Simpan */}
+          {pengasuhToast && (
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-lg flex items-center gap-2 animate-bounce">
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span>{pengasuhToast}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pb-8 border-b border-stone-100">
             
             {/* Foto & Identitas Pengasuh */}
             <div className="lg:col-span-4 flex flex-col items-center text-center space-y-3">
-              <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl overflow-hidden border-4 border-[#0B52E2]/10 shadow-lg bg-slate-900">
+              <div className="relative group w-36 h-36 sm:w-44 sm:h-44 rounded-3xl overflow-hidden border-4 border-[#0B52E2]/10 shadow-lg bg-slate-900">
                 <img 
                   src={fotoPengasuh} 
                   alt={namaPengasuh} 
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80";
+                    e.target.src = DEFAULT_PENGASUH_AVATAR;
                   }}
                 />
+
+                {/* Loading overlay saat kompresi foto */}
+                {isCompressingPhoto && (
+                  <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-white text-xs font-bold gap-1 z-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#8CE829]" />
+                    <span>Menyimpan Foto...</span>
+                  </div>
+                )}
+
+                {/* Tombol Kamera Cepat pada Foto (Desktop Hover) */}
+                <label 
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer p-2 text-center z-10"
+                  title="Klik untuk langsung ganti foto pengasuh dari HP/Laptop"
+                >
+                  <Camera className="w-6 h-6 mb-1 text-[#8CE829]" />
+                  <span className="text-[10px] font-extrabold bg-[#0B52E2] px-2.5 py-0.5 rounded-full shadow-md">Ganti Foto</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleQuickPhotoUpload} 
+                    className="hidden" 
+                    disabled={isCompressingPhoto}
+                  />
+                </label>
               </div>
+
+              {/* Tombol Ubah Foto Mobile (Terlihat jelas di layar sentuh HP) */}
+              <label className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-[#0B52E2] hover:bg-blue-100 text-[11px] font-bold cursor-pointer transition-colors border border-blue-200 shadow-xs">
+                <Camera className="w-3.5 h-3.5" />
+                <span>{isCompressingPhoto ? 'Menyimpan...' : 'Ganti Foto Pengasuh'}</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleQuickPhotoUpload} 
+                  className="hidden" 
+                  disabled={isCompressingPhoto}
+                />
+              </label>
+
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
                   {namaPengasuh}
@@ -437,9 +551,22 @@ export default function PesantrenTenantHome({
 
             {/* Kalam Pengasuh */}
             <div className="lg:col-span-8 space-y-4 border-t lg:border-t-0 lg:border-l border-stone-200 pt-6 lg:pt-0 lg:pl-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-[#0B52E2] text-xs font-extrabold border border-blue-100">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Kalam & Nasihat Pengasuh</span>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-[#0B52E2] text-xs font-extrabold border border-blue-100">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Kalam & Nasihat Pengasuh</span>
+                </div>
+
+                {/* Tombol Edit Profil & Kalam Pengasuh */}
+                <button
+                  type="button"
+                  onClick={openEditPengasuh}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 hover:bg-blue-50 text-slate-700 hover:text-[#0B52E2] text-xs font-bold border border-stone-200/80 hover:border-blue-200 transition-all cursor-pointer shadow-xs"
+                  title="Klik untuk mengubah nama, jabatan, foto, dan teks nasihat pengasuh"
+                >
+                  <Edit className="w-3.5 h-3.5 text-[#0B52E2]" />
+                  <span>Edit Profil & Kalam</span>
+                </button>
               </div>
 
               <blockquote className="text-base sm:text-lg font-serif italic text-slate-800 leading-relaxed">
@@ -1185,6 +1312,193 @@ export default function PesantrenTenantHome({
           <span className="text-[9px] font-bold mt-0.5">Login</span>
         </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 10. MODAL EDIT PROFIL, FOTO & KALAM PENGASUH                             */}
+      {/* ========================================================================= */}
+      {isEditPengasuhOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-stone-200 space-y-5 max-h-[90vh] overflow-y-auto">
+            
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-stone-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B52E2] flex items-center justify-center">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">Edit Profil & Kalam Pengasuh</h3>
+                  <p className="text-slate-400 text-xs">Ubah foto resmi, identitas, dan nasihat pengasuh pondok</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditPengasuhOpen(false)}
+                className="p-1.5 rounded-full hover:bg-stone-100 text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePengasuhModal} className="space-y-4 text-xs">
+              
+              {/* Foto Pengasuh */}
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-[#0B52E2]" />
+                    <span>Foto Resmi Pengasuh</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm(prev => ({ ...prev, FOTO_PENGASUH_URL: DEFAULT_PENGASUH_AVATAR }))}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Reset ke Avatar Standar
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-stone-300 bg-slate-900 flex-shrink-0 shadow-sm relative">
+                    <img 
+                      src={editForm.FOTO_PENGASUH_URL || DEFAULT_PENGASUH_AVATAR} 
+                      alt="Preview Pengasuh" 
+                      className="w-full h-full object-cover object-top"
+                      onError={(e) => { e.target.src = DEFAULT_PENGASUH_AVATAR; }}
+                    />
+                    {isCompressingPhoto && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[10px] font-bold">
+                        <Loader2 className="w-4 h-4 animate-spin text-[#8CE829]" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 flex-1 w-full">
+                    <div>
+                      <label className="block text-[11px] text-slate-500 font-bold mb-1">
+                        Pilih Foto dari HP / Laptop (Otomatis Disesuaikan)
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setIsCompressingPhoto(true);
+                            const compressed = await compressImage(file, { maxWidth: 600, maxHeight: 600, quality: 0.82 });
+                            setEditForm(prev => ({ ...prev, FOTO_PENGASUH_URL: compressed }));
+                          } catch (err) {
+                            alert('Gagal membaca foto: ' + err.message);
+                          } finally {
+                            setIsCompressingPhoto(false);
+                          }
+                        }}
+                        className="text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-slate-500 font-bold mb-1">
+                        Atau Masukkan Tautan / URL Foto
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.FOTO_PENGASUH_URL || ''}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, FOTO_PENGASUH_URL: e.target.value }))}
+                        placeholder="https://..."
+                        className="w-full px-3 py-1.5 border border-stone-300 rounded-xl bg-white font-mono text-[11px] focus:ring-2 focus:ring-[#0B52E2]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nama Pengasuh */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Nama Pengasuh / Pimpinan Pondok *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.NAMA_KEPALA_PONDOK || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, NAMA_KEPALA_PONDOK: e.target.value }))}
+                  placeholder="Contoh: K.H. Amir Hasan"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-[#0B52E2]"
+                />
+              </div>
+
+              {/* Jabatan & Lokasi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Jabatan *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.JABATAN_PENGASUH || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, JABATAN_PENGASUH: e.target.value }))}
+                    placeholder="Contoh: Pengasuh Pondok Pesantren Darul Rahman"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-xl text-slate-800 focus:ring-2 focus:ring-[#0B52E2]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Lokasi Pesantren *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.LOKASI_PENGASUH || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, LOKASI_PENGASUH: e.target.value }))}
+                    placeholder="Contoh: Kencong, Kepung, Kediri"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-xl text-slate-800 focus:ring-2 focus:ring-[#0B52E2]"
+                  />
+                </div>
+              </div>
+
+              {/* Kalam & Nasihat */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Teks Kalam & Nasihat Pengasuh *</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={editForm.KALAM_PENGASUH || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, KALAM_PENGASUH: e.target.value }))}
+                  placeholder="Ketik kalam / nasihat pengasuh..."
+                  className="w-full px-3 py-2 border border-stone-300 rounded-xl text-slate-800 text-xs leading-relaxed focus:ring-2 focus:ring-[#0B52E2]"
+                />
+              </div>
+
+              {/* Tombol Simpan & Batal */}
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditPengasuhOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPengasuh || isCompressingPhoto}
+                  className="px-5 py-2 rounded-xl bg-[#0B52E2] hover:bg-blue-700 text-white font-extrabold shadow-md flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingPengasuh ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Menyimpan ke Cloud...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 text-[#8CE829]" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

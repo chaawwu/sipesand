@@ -36,7 +36,8 @@ import {
   getSantriList,
   clearCloudDemoData
 } from '../services/api';
-import { useSettings } from '../context/SettingsContext';
+import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
+import { compressImage } from '../utils/imageCompressor';
 
 const DIVISION_ROLES = [
   { 
@@ -157,18 +158,34 @@ export default function SettingsAndAccounts() {
     }
   };
 
-  // Image Upload Helper to Data URL (Base64)
-  const handleImageUpload = (key, e) => {
-    const file = e.target.files[0];
+  const [uploadingImageKey, setUploadingImageKey] = useState(null);
+
+  // Image Upload Helper dengan kompresi Canvas otomatis (menjamin ukuran ~30-60KB, aman Firestore & LocalStorage)
+  const handleImageUpload = async (key, e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const updated = { ...formSettings, [key]: event.target.result };
+    try {
+      setUploadingImageKey(key);
+      const isTransparent = ['CAP_STEMPEL_URL', 'TTD_KEPALA_URL', 'TTD_BENDAHARA_URL'].includes(key);
+      const compressedDataUrl = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.82,
+        preserveTransparency: isTransparent,
+      });
+
+      const updated = { ...formSettings, [key]: compressedDataUrl };
       setFormSettings(updated);
-      updateSettings(updated);
-    };
-    reader.readAsDataURL(file);
+      await updateSettings(updated);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error mengompresi/mengunggah gambar:', err);
+      alert('Gagal mengunggah foto: ' + (err.message || 'Format berkas tidak didukung'));
+    } finally {
+      setUploadingImageKey(null);
+    }
   };
 
   const handleCreateAccount = async (e) => {
@@ -645,19 +662,42 @@ export default function SettingsAndAccounts() {
 
             {/* Foto Pengasuh with File Upload and URL */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <label className="block font-bold text-slate-700 mb-2">Foto Resmi Pengasuh</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block font-bold text-slate-700">Foto Resmi Pengasuh</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = { ...formSettings, FOTO_PENGASUH_URL: DEFAULT_PENGASUH_AVATAR };
+                    setFormSettings(updated);
+                    updateSettings(updated);
+                  }}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                >
+                  Gunakan Avatar Islami Bawaan
+                </button>
+              </div>
               <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-slate-300 bg-white flex-shrink-0 shadow-sm">
-                  {formSettings.FOTO_PENGASUH_URL ? (
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-slate-300 bg-slate-900 flex-shrink-0 shadow-sm relative">
+                  {uploadingImageKey === 'FOTO_PENGASUH_URL' ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-blue-50 text-blue-600 text-xs p-2 text-center font-bold">
+                      <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-1" />
+                      <span>Mengompresi...</span>
+                    </div>
+                  ) : formSettings.FOTO_PENGASUH_URL ? (
                     <img 
                       src={formSettings.FOTO_PENGASUH_URL} 
                       alt="Foto Pengasuh" 
-                      className="w-full h-full object-cover object-top" 
+                      className="w-full h-full object-cover object-top"
+                      onError={(e) => {
+                        e.target.src = DEFAULT_PENGASUH_AVATAR;
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs">
-                      No Foto
-                    </div>
+                    <img 
+                      src={DEFAULT_PENGASUH_AVATAR} 
+                      alt="Avatar Pengasuh" 
+                      className="w-full h-full object-cover object-top" 
+                    />
                   )}
                 </div>
                 <div className="space-y-2 flex-1 w-full">
@@ -672,7 +712,9 @@ export default function SettingsAndAccounts() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-500 font-bold mb-1">Atau Unggah Langsung Foto Dari Perangkat</label>
+                    <label className="block text-[11px] text-slate-500 font-bold mb-1">
+                      Atau Unggah Foto dari Perangkat (Otomatis Disesuaikan & Dikompresi)
+                    </label>
                     <input
                       type="file"
                       accept="image/*"

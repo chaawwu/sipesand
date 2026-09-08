@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSystemSettings, saveSystemSettings } from '../services/api';
 import { subscribeCloudSettings } from '../services/cloudDatabase';
 
+export const DEFAULT_PENGASUH_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240' width='240' height='240'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230B52E2'/%3E%3Cstop offset='100%25' stop-color='%23062D7D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='240' rx='36' fill='url(%23bg)'/%3E%3Ccircle cx='120' cy='95' r='42' fill='%23FFFFFF' opacity='0.92'/%3E%3Cpath d='M82 82 C82 52, 158 52, 158 82 Z' fill='%23111827'/%3E%3Cpath d='M50 210 C50 152, 190 152, 190 210 Z' fill='%23FFFFFF' opacity='0.92'/%3E%3Cpath d='M120 152 L120 210' stroke='%230B52E2' stroke-width='4' stroke-dasharray='4 4'/%3E%3C/svg%3E";
+
 export const TENANT_PROFILES = {
   darulrahman: {
     NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
@@ -13,10 +15,10 @@ export const TENANT_PROFILES = {
     WEBSITE_LEMBAGA: 'https://darulrahman.sipesand.web.id',
     INSTAGRAM_AKUN: '@darulrahman_sumbersari',
     YOUTUBE_AKUN: 'Darul Rahman Official Channel',
-    NAMA_KEPALA_PONDOK: 'K.H. Pengasuh Darul Rahman',
+    NAMA_KEPALA_PONDOK: 'K.H. Amir Hasan',
     JABATAN_PENGASUH: 'Pengasuh Pondok Pesantren Darul Rahman',
     LOKASI_PENGASUH: 'Kencong, Kepung, Kediri',
-    FOTO_PENGASUH_URL: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80',
+    FOTO_PENGASUH_URL: DEFAULT_PENGASUH_AVATAR,
     KALAM_PENGASUH: 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.',
     STAT_1_NUMBER: '500+',
     STAT_1_LABEL: 'Santri Mukim',
@@ -109,7 +111,7 @@ const defaultSettings = {
   NAMA_KEPALA_PONDOK: 'Pusat Manajemen Pesantren',
   JABATAN_PENGASUH: 'Direktorat Layanan Pesantren Digital',
   LOKASI_PENGASUH: 'Indonesia',
-  FOTO_PENGASUH_URL: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80',
+  FOTO_PENGASUH_URL: DEFAULT_PENGASUH_AVATAR,
   KALAM_PENGASUH: 'SiPesand hadir mentransformasi tata kelola pesantren nusantara dengan perpaduan nilai salafiyah dan teknologi digital mutakhir. Menjamin kemandirian pesantren melalui transparansi keuangan, pencatatan akademik kitab kuning, serta kemudahan komunikasi antara pesantren dan wali santri.',
   STAT_1_NUMBER: '120+',
   STAT_1_LABEL: 'Pesantren Terpadu',
