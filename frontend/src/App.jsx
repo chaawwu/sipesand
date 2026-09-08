@@ -25,6 +25,9 @@ import FaqPage from './pages/FaqPage';
 import RefundPolicyPage from './pages/RefundPolicyPage';
 import TermsConditionsPage from './pages/TermsConditionsPage';
 import ContactPage from './pages/ContactPage';
+import SeoPillarPage from './pages/SeoPillarPage';
+import BlogPage from './pages/BlogPage';
+import { SEO_PILLAR_PAGES } from './data/seoData';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 
 function resolveInitialView() {
@@ -39,6 +42,13 @@ function resolveInitialView() {
   if (pathname.includes('/refund') || viewParam === 'refund-policy') return 'refund-policy';
   if (pathname.includes('/terms') || pathname.includes('/condition') || viewParam === 'terms-and-conditions') return 'terms-and-conditions';
   if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') return 'kontak';
+
+  // 1b. Pusat Edukasi (Blog Directory & Reader)
+  if (pathname.startsWith('/blog') || viewParam === 'blog') return 'blog';
+
+  // 1c. 10 Pillar Pages Otoritas Tinggi SEO
+  const cleanPath = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (SEO_PILLAR_PAGES[cleanPath] || viewParam === 'seo-pillar') return 'seo-pillar';
 
   // 2. Super Dashboard Developer (mitra.sipesand.web.id)
   if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev' || hostname.startsWith('mitra.')) {
@@ -85,10 +95,32 @@ function resolveInitialView() {
 }
 
 function MainAppContent() {
-  // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app-gateway' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak'
+  // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app-gateway' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak' | 'seo-pillar' | 'blog'
   const [currentView, setCurrentView] = useState(resolveInitialView);
   const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
-  
+
+  // SEO Pillar & Blog Navigation State
+  const [currentPillarSlug, setCurrentPillarSlug] = useState(() => {
+    if (typeof window === 'undefined') return 'aplikasi-pesantren';
+    const cleanPath = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+    if (SEO_PILLAR_PAGES[cleanPath]) return cleanPath;
+    const searchParams = new URLSearchParams(window.location.search);
+    const p = searchParams.get('slug') || searchParams.get('pillar');
+    if (p && SEO_PILLAR_PAGES[p]) return p;
+    return 'aplikasi-pesantren';
+  });
+
+  const [currentBlogSlug, setCurrentBlogSlug] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const pathname = window.location.pathname.toLowerCase();
+    if (pathname.startsWith('/blog/')) {
+      const s = pathname.replace(/^\/blog\//i, '').replace(/\/$/, '');
+      return s || null;
+    }
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('slug') || null;
+  });
+
   // Developer Portal Auth State (mitra.sipesand.web.id)
   const [isDeveloperLoggedIn, setIsDeveloperLoggedIn] = useState(() => {
     try {
@@ -113,7 +145,7 @@ function MainAppContent() {
 
   const { isNfcEnabled, isTenantInstance, activeTenantSubdomain } = useSettings();
 
-  // Otomatis Deteksi Subdomain & Path Legal (faq, refund-policy, terms, kontak)
+  // Otomatis Deteksi Subdomain, Path Legal, Blog & SEO Pillars
   React.useEffect(() => {
     const hostname = window.location.hostname.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
@@ -128,6 +160,18 @@ function MainAppContent() {
       setCurrentView('terms-and-conditions');
     } else if (pathname.includes('/kontak') || pathname.includes('/contact') || viewParam === 'kontak') {
       setCurrentView('kontak');
+    } else if (pathname.startsWith('/blog') || viewParam === 'blog') {
+      setCurrentView('blog');
+      if (pathname.startsWith('/blog/')) {
+        const s = pathname.replace(/^\/blog\//i, '').replace(/\/$/, '');
+        if (s) setCurrentBlogSlug(s);
+      }
+    } else if (SEO_PILLAR_PAGES[pathname.replace(/^\/+|\/+$/g, '').toLowerCase()] || viewParam === 'seo-pillar') {
+      setCurrentView('seo-pillar');
+      const clean = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      if (SEO_PILLAR_PAGES[clean]) {
+        setCurrentPillarSlug(clean);
+      }
     } else if (viewParam === 'dev' || viewParam === 'developer' || viewParam === 'mitra-dev') {
       setIsDeveloperLoggedIn(true);
       try { sessionStorage.setItem('sipesand_dev_auth', 'true'); } catch (e) {}
@@ -150,6 +194,44 @@ function MainAppContent() {
       setCurrentView('app-gateway');
     }
   }, []);
+
+  // Browser History Navigation (Back / Forward buttons)
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const nextView = resolveInitialView();
+      setCurrentView(nextView);
+      const cleanPath = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+      if (SEO_PILLAR_PAGES[cleanPath]) {
+        setCurrentPillarSlug(cleanPath);
+      }
+      if (window.location.pathname.toLowerCase().startsWith('/blog/')) {
+        const slug = window.location.pathname.replace(/^\/blog\//i, '').replace(/\/$/, '');
+        setCurrentBlogSlug(slug || null);
+      } else if (window.location.pathname.toLowerCase() === '/blog') {
+        setCurrentBlogSlug(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleNavigatePillar = (slug) => {
+    setCurrentPillarSlug(slug);
+    setCurrentView('seo-pillar');
+    window.history.pushState({}, '', `/${slug}`);
+  };
+
+  const handleNavigateBlog = (slug = null) => {
+    setCurrentBlogSlug(slug);
+    setCurrentView('blog');
+    window.history.pushState({}, '', slug ? `/blog/${slug}` : '/blog');
+  };
+
+  const handleNavigateHome = () => {
+    setCurrentView('landing-saas');
+    window.history.pushState({}, '', '/');
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -440,6 +522,8 @@ function MainAppContent() {
               window.location.href = url.toString();
             }
           }}
+          onNavigatePillar={handleNavigatePillar}
+          onNavigateBlog={handleNavigateBlog}
           onNavigateLegal={(path) => setCurrentView(path)}
           onOpenDeveloperPortal={() => {
             if (window.location.hostname.includes('sipesand.web.id')) {
@@ -520,6 +604,41 @@ function MainAppContent() {
   if (currentView === 'kontak') {
     return (
       <ContactPage onBackToHome={() => setCurrentView('landing')} />
+    );
+  }
+
+  // 8. Halaman SEO Pillar (10 Landing Page Otoritas Tinggi Target Google Indonesia)
+  if (currentView === 'seo-pillar') {
+    return (
+      <SeoPillarPage
+        pillarSlug={currentPillarSlug}
+        onNavigateHome={handleNavigateHome}
+        onNavigatePillar={handleNavigatePillar}
+        onNavigateBlog={handleNavigateBlog}
+        onNavigateGateway={() => {
+          if (window.location.hostname.includes('sipesand.web.id')) {
+            window.location.href = 'https://app.sipesand.web.id';
+          } else {
+            setCurrentView('app-gateway');
+          }
+        }}
+        onNavigateLegal={(path) => setCurrentView(path)}
+      />
+    );
+  }
+
+  // 9. Halaman Blog & Pusat Edukasi (100 Artikel SEO)
+  if (currentView === 'blog') {
+    return (
+      <BlogPage
+        initialSlug={currentBlogSlug}
+        onNavigateHome={handleNavigateHome}
+        onNavigatePillar={handleNavigatePillar}
+        onNavigateArticle={(slug) => {
+          setCurrentBlogSlug(slug);
+        }}
+        onNavigateLegal={(path) => setCurrentView(path)}
+      />
     );
   }
 

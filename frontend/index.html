@@ -2,19 +2,134 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1e293b" />
+    <title>SiPesand – Aplikasi Pesantren Digital | Sistem Terpadu Manajemen Pondok Pesantren Indonesia</title>
+    <meta name="description" content="SiPesand adalah aplikasi pesantren digital dan sistem terpadu manajemen pondok pesantren Indonesia untuk PPDB, absensi RFID, keuangan, wali santri, perizinan, tahfidz, pembayaran QRIS, inventaris, dan administrasi." />
+    <meta name="keywords" content="Aplikasi Pesantren, Sistem Pesantren, Sistem Terpadu Pesantren, Manajemen Pesantren, Pesantren Digital, Smart Pesantren, E-Pesantren, Aplikasi Pondok Pesantren, PPDB Pesantren Online, RFID Pesantren, Keuangan Pesantren, Tahfidz Digital, Absensi Santri, Wali Santri, Pondok Modern, Pesantren Indonesia" />
+    <meta name="author" content="SiPesand Ecosystem" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://sipesand.web.id/" />
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sipesand.web.id/" />
+    <meta property="og:site_name" content="SiPesand" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:title" content="SiPesand – Aplikasi Pesantren Digital | Sistem Terpadu Manajemen Pondok Pesantren Indonesia" />
+    <meta property="og:description" content="SiPesand adalah aplikasi pesantren digital dan sistem terpadu manajemen pondok pesantren Indonesia untuk PPDB, absensi RFID, keuangan, wali santri, perizinan, tahfidz, pembayaran QRIS, inventaris, dan administrasi." />
+    <meta property="og:image" content="https://sipesand.web.id/logo.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="SiPesand - Sistem Terpadu Pesantren Digital" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://sipesand.web.id/" />
+    <meta name="twitter:title" content="SiPesand – Aplikasi Pesantren Digital | Sistem Terpadu Manajemen Pondok Pesantren Indonesia" />
+    <meta name="twitter:description" content="Solusi terpadu ekosistem pesantren digital Indonesia: PPDB online, absensi RFID, syahriyah Hijriyah, portal wali, dan tahfidz." />
+    <meta name="twitter:image" content="https://sipesand.web.id/logo.png" />
+
+    <!-- Search Engine Verification -->
+    <meta name="google-site-verification" content="google_search_console_sipesand_verification_token" />
+    <meta name="msvalidate.01" content="bing_webmaster_sipesand_verification_token" />
+
+    <!-- PWA & Mobile Web App Meta -->
+    <meta name="theme-color" content="#0052FF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SiPesand" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>SiPesand - Sistem Terpadu Pesantren Digital</title>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Structured Data (JSON-LD) - Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SiPesand",
+      "alternateName": "Sistem Terpadu Pesantren Digital",
+      "url": "https://sipesand.web.id",
+      "logo": "https://sipesand.web.id/logo.png",
+      "description": "Platform ekosistem aplikasi pesantren digital terpadu nomor 1 di Indonesia.",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+62-812-3456-7890",
+        "contactType": "Customer Support",
+        "areaServed": "ID",
+        "availableLanguage": ["Indonesian", "Arabic", "English"]
+      },
+      "sameAs": [
+        "https://www.facebook.com/sipesand",
+        "https://www.instagram.com/sipesand",
+        "https://twitter.com/sipesand"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data (JSON-LD) - SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SiPesand",
+      "operatingSystem": "Web, Android, iOS",
+      "applicationCategory": "EducationalApplication, BusinessApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "IDR",
+        "priceValidUntil": "2027-12-31"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "342",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "featureList": [
+        "Penerimaan Santri Baru (PPDB Online)",
+        "Absensi Digital RFID & NFC Santri",
+        "Manajemen Syahriyah Hijriyah & QRIS Otomatis",
+        "Portal Terbuka Wali Santri",
+        "Mutaba'ah Tahfidz & Muhafadzoh Kitab Kuning",
+        "Perizinan Keluar Santri & Keamanan Gerbang"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data (JSON-LD) - WebSite & SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "url": "https://sipesand.web.id/",
+      "name": "SiPesand",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://sipesand.web.id/blog?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Google tag (gtag.js) - GA4 Stub Ready -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SIPESAND2026"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SIPESAND2026');
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-800 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>

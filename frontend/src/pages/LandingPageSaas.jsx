@@ -42,7 +42,15 @@ import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
 
-export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGateway, onGoToTenant, onNavigateLegal, onOpenDeveloperPortal }) {
+export default function LandingPageSaas({ 
+  onBackToPesantrenDemo, 
+  onGoToAppGateway, 
+  onGoToTenant, 
+  onNavigateLegal, 
+  onOpenDeveloperPortal,
+  onNavigatePillar,
+  onNavigateBlog 
+}) {
   // Form State
   const [formData, setFormData] = useState({
     namaPondok: '',
@@ -255,9 +263,21 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
           </div>
 
           {/* Quick Anchor Navigation */}
-          <nav className="hidden md:flex items-center gap-6 font-bold text-slate-600 text-xs">
+          <nav className="hidden md:flex items-center gap-5 font-bold text-slate-600 text-xs">
             <a href="#fitur" className="hover:text-[#0052FF] transition-colors">Pilihan Modul</a>
             <a href="#daftar-lisensi" className="hover:text-[#0052FF] transition-colors">Paket Lisensi</a>
+            <button 
+              onClick={() => onNavigatePillar && onNavigatePillar('aplikasi-pesantren')} 
+              className="hover:text-[#0052FF] transition-colors font-bold cursor-pointer"
+            >
+              Aplikasi Pesantren
+            </button>
+            <button 
+              onClick={() => onNavigateBlog && onNavigateBlog()} 
+              className="hover:text-[#0052FF] transition-colors font-bold cursor-pointer"
+            >
+              Pusat Edukasi
+            </button>
             <a href="#faq" className="hover:text-[#0052FF] transition-colors">Tanya Jawab</a>
           </nav>
 
@@ -928,6 +948,56 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
 
         </div>
 
+      </section>
+
+      {/* 9. MASTER SEO 2026 INTERNAL LINKS & PILLARS SHOWCASE */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 border-t border-slate-200">
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#0052FF] bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+                Pilar Solusi Pesantren Indonesia 2026
+              </span>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                Eksplorasi Modul & Sistem Pesantren Terpadu
+              </h3>
+            </div>
+            <button
+              onClick={() => onNavigateBlog && onNavigateBlog()}
+              className="inline-flex items-center gap-1.5 text-xs font-black text-[#0052FF] hover:underline cursor-pointer"
+            >
+              Lihat 100+ Artikel Edukasi <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {[
+              { slug: 'aplikasi-pesantren', label: 'Aplikasi Pesantren', badge: 'Terbaik 2026' },
+              { slug: 'pesantren-digital', label: 'Pesantren Digital', badge: 'Cloud Mandiri' },
+              { slug: 'smart-pesantren', label: 'Smart Pesantren', badge: 'IoT & Card' },
+              { slug: 'manajemen-pesantren', label: 'Manajemen Pesantren', badge: 'All-in-One' },
+              { slug: 'e-pesantren', label: 'E-Pesantren', badge: 'Web & PWA' },
+              { slug: 'ppdb-online-pesantren', label: 'PPDB Online Pesantren', badge: 'Pendaftaran' },
+              { slug: 'rfid-pesantren', label: 'RFID Pesantren', badge: 'Presensi KTSD' },
+              { slug: 'keuangan-pesantren', label: 'Keuangan Pesantren', badge: 'PSAK 109 & QRIS' },
+              { slug: 'wali-santri', label: 'Portal Wali Santri', badge: 'Tanpa Install' },
+              { slug: 'tahfidz-pesantren', label: 'Tahfidz Digital', badge: 'Mutabaah Hafalan' },
+            ].map(item => (
+              <button
+                key={item.slug}
+                onClick={() => onNavigatePillar && onNavigatePillar(item.slug)}
+                className="bg-white p-3.5 rounded-2xl border border-slate-200 hover:border-slate-900 hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] transition-all text-left group cursor-pointer"
+              >
+                <span className="inline-block text-[9px] font-black text-[#0052FF] uppercase tracking-wider mb-1">
+                  {item.badge}
+                </span>
+                <div className="font-extrabold text-xs text-slate-800 group-hover:text-[#0052FF] transition-colors leading-tight">
+                  {item.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Aesthetic Toast Notification */}

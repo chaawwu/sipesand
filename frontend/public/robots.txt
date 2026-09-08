@@ -1,0 +1,30 @@
+# Robots.txt for SiPesand Enterprise Platform (https://sipesand.web.id)
+User-agent: *
+Allow: /
+Allow: /aplikasi-pesantren
+Allow: /pesantren-digital
+Allow: /smart-pesantren
+Allow: /manajemen-pesantren
+Allow: /e-pesantren
+Allow: /ppdb-online-pesantren
+Allow: /rfid-pesantren
+Allow: /keuangan-pesantren
+Allow: /wali-santri
+Allow: /tahfidz-pesantren
+Allow: /blog
+Allow: /blog/*
+Allow: /faq
+Allow: /refund-policy
+Allow: /terms-and-conditions
+Allow: /kontak
+
+# Disallow private developer console & API endpoints
+Disallow: /api/
+Disallow: /dev
+Disallow: /admin
+Disallow: /mitra
+
+# Crawl Delay & Host Specification
+Crawl-delay: 1
+Host: https://sipesand.web.id
+Sitemap: https://sipesand.web.id/sitemap.xml
