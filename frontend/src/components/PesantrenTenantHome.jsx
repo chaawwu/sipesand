@@ -33,7 +33,9 @@ import {
   HelpCircle,
   ArrowDown,
   MessagesSquare,
-  Repeat
+  Repeat,
+  Menu,
+  X
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -50,6 +52,7 @@ export default function PesantrenTenantHome({
   const { settings, isNfcEnabled } = useSettings();
   const [copiedBank, setCopiedBank] = useState(false);
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const logoPondok = settings.LOGO_PONDOK_URL || '/logo.png';
   const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
@@ -61,6 +64,22 @@ export default function PesantrenTenantHome({
   const bankName = settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)';
   const bankHolder = settings.BANK_ACCOUNT_HOLDER || 'YAYASAN DARUL RAHMAN SUMBERSARI';
   const namaPengasuh = settings.NAMA_KEPALA_PONDOK || 'K.H. Pengasuh Darul Rahman';
+  const jabatanPengasuh = settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman';
+  const lokasiPengasuh = settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri';
+  const fotoPengasuh = settings.FOTO_PENGASUH_URL || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80';
+  const kalamPengasuh = settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.';
+  const stat1Number = settings.STAT_1_NUMBER || '500+';
+  const stat1Label = settings.STAT_1_LABEL || 'Santri Mukim';
+  const stat2Number = settings.STAT_2_NUMBER || '1.000 Bait';
+  const stat2Label = settings.STAT_2_LABEL || 'Nadzom Alfiyah & Imrithi';
+  const stat3Number = settings.STAT_3_NUMBER || '18+';
+  const stat3Label = settings.STAT_3_LABEL || 'Asatidz Pengampu Salaf';
+  const stat4Number = settings.STAT_4_NUMBER || '100%';
+  const stat4Label = settings.STAT_4_LABEL || 'Cashless KTSD RFID';
+  const psbStatus = settings.PSB_STATUS || 'BUKA';
+  const psbTahun = settings.PSB_TAHUN || '2026/2027';
+  const psbWhatsapp = settings.PSB_WHATSAPP || settings.WHATSAPP_CENTER || '+6285123734342';
+  const psbDesc = settings.PSB_DESCRIPTION || 'Membuka pendaftaran santri baru untuk program Madrasah Diniyah Salafiyah, Muhafadzoh Nadzom Kitab, serta jenjang formal SMP dan SMA terpadu. Kuota asrama terbatas setiap angkatan.';
   const namaBendahara = settings.NAMA_BENDAHARA || 'Ustadz Bendahara Darul Rahman, S.E.';
 
   const handleCopyBank = () => {
@@ -92,7 +111,7 @@ export default function PesantrenTenantHome({
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF8F4] text-[#111827] flex flex-col font-sans selection:bg-[#8CE829] selection:text-[#0A1128]">
+    <div className="min-h-screen bg-[#FAF8F4] text-[#111827] flex flex-col font-sans pb-16 sm:pb-0 selection:bg-[#8CE829] selection:text-[#0A1128]">
       
       {/* ========================================================================= */}
       {/* 1. TOP NAVBAR (WOOT EDITORIAL THEME SAMA)                                 */}
@@ -129,14 +148,14 @@ export default function PesantrenTenantHome({
             </div>
           </a>
 
-          {/* Navigation Links */}
+          {/* Navigation Links Desktop */}
           <nav className="hidden xl:flex items-center gap-6 text-xs font-bold text-slate-600">
             <a href="#profil" className="hover:text-[#0B52E2] transition-colors">Profil Pondok</a>
             <a href="#kalam" className="hover:text-[#0B52E2] transition-colors">Kalam Pengasuh</a>
             <a href="#program" className="hover:text-[#0B52E2] transition-colors">Kitab & Muhafadzoh</a>
             <a href="#rutinitas" className="hover:text-[#0B52E2] transition-colors">Kegiatan Santri</a>
             <a href="#fasilitas" className="hover:text-[#0B52E2] transition-colors">Fasilitas</a>
-            <a href="#psb" className="hover:text-[#0B52E2] transition-colors">PSB 2026</a>
+            <a href="#psb" className="hover:text-[#0B52E2] transition-colors">PSB {psbTahun}</a>
             <button 
               onClick={() => onOpenPortalWali('')}
               className="hover:text-[#0B52E2] transition-colors cursor-pointer"
@@ -170,14 +189,114 @@ export default function PesantrenTenantHome({
             {/* Dark Pill Button Login Petugas */}
             <button
               onClick={onLoginPetugas}
-              className="px-5 py-2.5 rounded-full bg-[#18181B] hover:bg-black text-white text-xs font-extrabold flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+              className="hidden sm:flex px-5 py-2.5 rounded-full bg-[#18181B] hover:bg-black text-white text-xs font-extrabold items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
             >
               <Lock className="w-3.5 h-3.5 text-[#8CE829]" />
               <span>Login Petugas</span>
             </button>
+
+            {/* Mobile / Tablet Hamburger Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="xl:hidden p-2 rounded-2xl bg-stone-100 hover:bg-stone-200 text-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
 
         </div>
+
+        {/* Mobile / Tablet Sliding Drawer Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="xl:hidden bg-white/98 backdrop-blur-lg border-t border-stone-200 shadow-xl px-4 py-4 space-y-3 animate-in slide-in-from-top-3">
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+              <a 
+                href="#profil" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4 text-[#0B52E2]" />
+                <span>Profil Pondok</span>
+              </a>
+              <a 
+                href="#kalam" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <BookOpen className="w-4 h-4 text-[#0B52E2]" />
+                <span>Kalam Pengasuh</span>
+              </a>
+              <a 
+                href="#program" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <Award className="w-4 h-4 text-[#0B52E2]" />
+                <span>Kitab & Nadzom</span>
+              </a>
+              <a 
+                href="#rutinitas" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <Clock className="w-4 h-4 text-[#0B52E2]" />
+                <span>Kegiatan Santri</span>
+              </a>
+              <a 
+                href="#fasilitas" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <School className="w-4 h-4 text-[#0B52E2]" />
+                <span>Fasilitas</span>
+              </a>
+              <a 
+                href="#psb" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <GraduationCap className="w-4 h-4 text-[#0B52E2]" />
+                <span>PSB {psbTahun}</span>
+              </a>
+              <a 
+                href="#kontak" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2"
+              >
+                <Phone className="w-4 h-4 text-[#0B52E2]" />
+                <span>Kontak Lembaga</span>
+              </a>
+              <button 
+                onClick={() => { setMobileMenuOpen(false); onOpenPortalWali(''); }}
+                className="p-2.5 rounded-xl bg-blue-50 text-[#0B52E2] flex items-center gap-2 text-left font-extrabold cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4 text-[#0B52E2]" />
+                <span>Portal Wali</span>
+              </button>
+            </div>
+
+            {/* Mobile Action Buttons in Drawer */}
+            <div className="pt-2 border-t border-stone-100 flex flex-col sm:flex-row gap-2">
+              {isNfcEnabled && (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); onOpenNfcScanner(); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-800 font-bold text-xs cursor-pointer"
+                >
+                  <Radio className="w-4 h-4 text-emerald-600" />
+                  <span>Scan Reader KTSD RFID</span>
+                </button>
+              )}
+              <button
+                onClick={() => { setMobileMenuOpen(false); onLoginPetugas(); }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#18181B] hover:bg-black text-white font-extrabold text-xs shadow-md cursor-pointer"
+              >
+                <Lock className="w-4 h-4 text-[#8CE829]" />
+                <span>Login Petugas & Asatidz</span>
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ========================================================================= */}
@@ -202,11 +321,10 @@ export default function PesantrenTenantHome({
             {/* Main Bold Editorial Typography Berisi Karakter Salafiyah & Muhafadzoh */}
             <div className="space-y-4 my-6 sm:my-8">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white">
-                Pondok Pesantren <br />
-                Darul Rahman Sumbersari
+                {namaLembaga}
               </h1>
               <p className="text-white/85 text-xs sm:text-sm font-medium leading-relaxed max-w-lg">
-                Pusat Pengkajian Kitab Kuning (Salafiyah), Muhafadzoh Nadzoman (Alfiyah Ibnu Malik, Imrithi), Musyawarah Fiqih & Bahtsul Masa'il, serta Takror Santri di Kencong, Kediri.
+                {taglineLembaga}
               </p>
             </div>
 
@@ -267,7 +385,7 @@ export default function PesantrenTenantHome({
               <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-[42px] bg-[#0B52E2] shadow-2xl flex flex-col items-center justify-center p-8 border-4 border-white/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-3xl">
                 <img 
                   src={logoPondok} 
-                  alt="Logo Pesantren Darul Rahman" 
+                  alt={namaLembaga} 
                   className="w-28 h-28 sm:w-32 sm:h-32 object-contain drop-shadow-md"
                 />
               </div>
@@ -276,7 +394,7 @@ export default function PesantrenTenantHome({
             {/* Sub-label under the App Icon */}
             <div className="text-center mt-6">
               <span className="text-xs font-black tracking-wider uppercase text-slate-900 bg-white/40 px-3 py-1 rounded-full">
-                Pesantren Salafiyah • Kencong, Kediri
+                Pesantren Salafiyah • {lokasiPengasuh}
               </span>
             </div>
 
@@ -298,9 +416,12 @@ export default function PesantrenTenantHome({
             <div className="lg:col-span-4 flex flex-col items-center text-center space-y-3">
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl overflow-hidden border-4 border-[#0B52E2]/10 shadow-lg bg-slate-900">
                 <img 
-                  src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80" 
-                  alt="K.H. Pengasuh Darul Rahman" 
+                  src={fotoPengasuh} 
+                  alt={namaPengasuh} 
                   className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80";
+                  }}
                 />
               </div>
               <div>
@@ -308,9 +429,9 @@ export default function PesantrenTenantHome({
                   {namaPengasuh}
                 </h3>
                 <p className="text-xs font-bold text-[#0B52E2]">
-                  Pengasuh Pondok Pesantren Darul Rahman
+                  {jabatanPengasuh}
                 </p>
-                <span className="text-[11px] text-slate-400 font-medium">Kencong, Kepung, Kediri</span>
+                <span className="text-[11px] text-slate-400 font-medium">{lokasiPengasuh}</span>
               </div>
             </div>
 
@@ -322,10 +443,10 @@ export default function PesantrenTenantHome({
               </div>
 
               <blockquote className="text-base sm:text-lg font-serif italic text-slate-800 leading-relaxed">
-                "Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat."
+                "{kalamPengasuh}"
               </blockquote>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-3 pt-2 flex-wrap">
                 <button
                   onClick={() => onOpenPortalWali('')}
                   className="px-4 py-2 rounded-full bg-[#0B52E2] hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-pointer transition-all"
@@ -347,20 +468,20 @@ export default function PesantrenTenantHome({
           {/* 4 Angka Statistik Utama Pesantren */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 text-center sm:text-left">
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
-              <div className="text-2xl sm:text-3xl font-black text-[#0B52E2]">500+</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Santri Mukim</div>
+              <div className="text-2xl sm:text-3xl font-black text-[#0B52E2]">{stat1Number}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{stat1Label}</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
-              <div className="text-2xl sm:text-3xl font-black text-[#8CE829] bg-slate-900 px-2 py-0.5 rounded-lg inline-block">1.000 Bait</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Nadzom Alfiyah & Imrithi</div>
+              <div className="text-2xl sm:text-3xl font-black text-[#8CE829] bg-slate-900 px-2 py-0.5 rounded-lg inline-block">{stat2Number}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{stat2Label}</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
-              <div className="text-2xl sm:text-3xl font-black text-slate-900">18+</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Asatidz Pengampu Salaf</div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900">{stat3Number}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{stat3Label}</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-600">100%</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Cashless KTSD RFID</div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-600">{stat4Number}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">{stat4Label}</div>
             </div>
           </div>
 
@@ -834,7 +955,7 @@ export default function PesantrenTenantHome({
       </section>
 
       {/* ========================================================================= */}
-      {/* 6. SECTION: PENERIMAAN SANTRI BARU (PSB 2026/2027)                        */}
+      {/* 6. SECTION: PENERIMAAN SANTRI BARU (PSB)                                  */}
       {/* ========================================================================= */}
       <section id="psb" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="rounded-[32px] sm:rounded-[40px] bg-[#0B52E2] text-white p-8 sm:p-12 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8">
@@ -842,24 +963,24 @@ export default function PesantrenTenantHome({
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-[#8CE829] text-xs font-black uppercase tracking-wider">
               <Award className="w-3.5 h-3.5" />
-              <span>PSB Tahun Ajaran 2026/2027 Telah Dibuka</span>
+              <span>PSB Tahun Ajaran {psbTahun} {psbStatus === 'BUKA' ? 'Telah Dibuka' : (psbStatus === 'SEGERA' ? 'Segera Dibuka' : 'Telah Ditutup')}</span>
             </div>
             <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-snug">
-              Penerimaan Santri Baru Pondok Pesantren Darul Rahman
+              Penerimaan Santri Baru {namaLembaga}
             </h3>
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed font-medium">
-              Membuka pendaftaran santri baru untuk program Madrasah Diniyah Salafiyah, Muhafadzoh Nadzom Kitab, serta jenjang formal SMP dan SMA terpadu. Kuota asrama terbatas setiap angkatan.
+              {psbDesc}
             </p>
             <div className="flex items-center gap-4 text-xs font-bold pt-2 flex-wrap text-white/90">
               <span className="flex items-center gap-1">✓ Berkas Administrasi</span>
-              <span className="flex items-center gap-1">✓ Tes Baca Kitab / Al-Qur'an</span>
+              <span className="flex items-center gap-1">✓ Tes Baca Kitab / Nadzoman</span>
               <span className="flex items-center gap-1">✓ Wawancara Wali & Santri</span>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row lg:flex-col gap-3 flex-shrink-0 w-full lg:w-auto">
             <a
-              href={`https://wa.me/${noWa.replace(/[^0-9]/g, '')}?text=Assalamu'alaikum%20Panitia%20PSB%20Darul%20Rahman%2C%20mohon%20informasi%20pendaftaran%20santri%20baru`}
+              href={`https://wa.me/${psbWhatsapp.replace(/[^0-9]/g, '')}?text=Assalamu'alaikum%20Panitia%20PSB%20${encodeURIComponent(namaLembaga)}%2C%20mohon%20informasi%20pendaftaran%20santri%20baru`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3.5 rounded-full bg-[#8CE829] hover:bg-[#7BD420] text-slate-950 font-black text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
@@ -1013,6 +1134,57 @@ export default function PesantrenTenantHome({
           </div>
         </div>
       </footer>
+
+      {/* ========================================================================= */}
+      {/* 9. MOBILE BOTTOM QUICK ACTION BAR (HANYA MUNCUL DI SMARTPHONE)             */}
+      {/* ========================================================================= */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-md border-t border-stone-200 py-1.5 px-3 flex items-center justify-around shadow-2xl safe-area-inset-bottom">
+        <a
+          href="#"
+          className="flex flex-col items-center justify-center text-slate-600 hover:text-[#0B52E2] py-1 px-2 transition-colors cursor-pointer"
+        >
+          <Building2 className="w-4 h-4" />
+          <span className="text-[9px] font-bold mt-0.5">Beranda</span>
+        </a>
+
+        <button
+          onClick={() => onOpenPortalWali('')}
+          className="flex flex-col items-center justify-center text-[#0B52E2] py-1 px-2 font-bold cursor-pointer"
+        >
+          <UserCheck className="w-4 h-4" />
+          <span className="text-[9px] font-bold mt-0.5">Portal Wali</span>
+        </button>
+
+        {isNfcEnabled && (
+          <button
+            onClick={onOpenNfcScanner}
+            className="flex flex-col items-center justify-center text-emerald-700 py-1 px-2 font-bold cursor-pointer"
+          >
+            <Radio className="w-4 h-4 text-emerald-600" />
+            <span className="text-[9px] font-bold mt-0.5">Scan KTSD</span>
+          </button>
+        )}
+
+        <a
+          href={`https://wa.me/${psbWhatsapp.replace(/[^0-9]/g, '')}?text=Assalamu'alaikum%20Panitia%20PSB%20${encodeURIComponent(namaLembaga)}%2C%20mohon%20informasi%20pendaftaran%20santri%20baru`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center text-emerald-600 py-1 px-2 cursor-pointer"
+        >
+          <Phone className="w-4 h-4" />
+          <span className="text-[9px] font-bold mt-0.5">Chat PSB</span>
+        </a>
+
+        <button
+          onClick={onLoginPetugas}
+          className="flex flex-col items-center justify-center text-slate-900 py-1 px-2 cursor-pointer"
+        >
+          <div className="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center text-[#8CE829]">
+            <Lock className="w-3 h-3" />
+          </div>
+          <span className="text-[9px] font-bold mt-0.5">Login</span>
+        </button>
+      </div>
 
     </div>
   );

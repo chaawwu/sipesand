@@ -428,7 +428,10 @@ export const saveSystemSettings = (data) =>
     () => api.post('/settings', data),
     () => {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sipesand_settings', JSON.stringify(data));
+        const saved = localStorage.getItem('sipesand_settings');
+        const prev = saved ? JSON.parse(saved) : {};
+        const merged = { ...prev, ...data };
+        localStorage.setItem('sipesand_settings', JSON.stringify(merged));
       }
       return { success: true, message: 'Pengaturan berhasil disimpan' };
     }
