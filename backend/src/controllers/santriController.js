@@ -1,8 +1,13 @@
-const prisma = require('../config/prisma');
+const masterPrisma = require('../config/prisma');
+
+function getDb(req) {
+  return req.prisma || masterPrisma;
+}
 
 // Mendapatkan semua santri dengan search & filter
 exports.getAllSantri = async (req, res) => {
   try {
+    const db = getDb(req);
     const { search, kelas, status } = req.query;
     const where = {};
 
@@ -25,7 +30,7 @@ exports.getAllSantri = async (req, res) => {
       where.status = status;
     }
 
-    const santriList = await prisma.santri.findMany({
+    const santriList = await db.santri.findMany({
       where,
       orderBy: { nama: 'asc' },
       include: {
@@ -54,8 +59,9 @@ exports.getAllSantri = async (req, res) => {
 // Detail Santri berdasarkan ID beserta seluruh relasi lengkap
 exports.getSantriById = async (req, res) => {
   try {
+    const db = getDb(req);
     const id = parseInt(req.params.id);
-    const santri = await prisma.santri.findUnique({
+    const santri = await db.santri.findUnique({
       where: { id },
       include: {
         pocketTxs: {
@@ -93,8 +99,9 @@ exports.getSantriById = async (req, res) => {
 // Scan / Lookup Santri via NFC UID
 exports.getSantriByNfc = async (req, res) => {
   try {
+    const db = getDb(req);
     const { nfcUid } = req.params;
-    const santri = await prisma.santri.findUnique({
+    const santri = await db.santri.findUnique({
       where: { nfcUid },
       include: {
         pocketTxs: {
@@ -125,6 +132,7 @@ exports.getSantriByNfc = async (req, res) => {
 // Tambah Santri Baru
 exports.createSantri = async (req, res) => {
   try {
+    const db = getDb(req);
     const { nis, nfcUid, nama, gender, kelas, kamar, alamat, namaWali, noHpWali, saldo_saku, status, foto } = req.body;
 
     if (!nama) {
@@ -132,23 +140,23 @@ exports.createSantri = async (req, res) => {
     }
 
     if (nis) {
-      const existingNis = await prisma.santri.findUnique({ where: { nis } });
+      const existingNis = await db.santri.findUnique({ where: { nis } });
       if (existingNis) {
         return res.status(400).json({ success: false, message: 'NIS sudah digunakan' });
       }
     }
 
     if (nfcUid) {
-      const existingNfc = await prisma.santri.findUnique({ where: { nfcUid } });
+      const existingNfc = await db.santri.findUnique({ where: { nfcUid } });
       if (existingNfc) {
         return res.status(400).json({ success: false, message: 'NFC UID sudah terdaftar pada santri lain' });
       }
     }
 
-    const newSantri = await prisma.santri.create({
+    const newSantri = await db.santri.create({
       data: {
         nis: nis || null,
-        nfcUid: nfcUid || null,
+        nfcUid: nfcUid ? nfcUid.trim().toUpperCase() : null,
         nama,
         gender: gender || 'L',
         kelas: kelas || null,
@@ -176,19 +184,20 @@ exports.createSantri = async (req, res) => {
 // Update Santri
 exports.updateSantri = async (req, res) => {
   try {
+    const db = getDb(req);
     const id = parseInt(req.params.id);
     const { nis, nfcUid, nama, gender, kelas, kamar, alamat, namaWali, noHpWali, saldo_saku, status, foto } = req.body;
 
-    const existing = await prisma.santri.findUnique({ where: { id } });
+    const existing = await db.santri.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Santri tidak ditemukan' });
     }
 
-    const updatedSantri = await prisma.santri.update({
+    const updatedSantri = await db.santri.update({
       where: { id },
       data: {
         ...(nis !== undefined && { nis: nis || null }),
-        ...(nfcUid !== undefined && { nfcUid: nfcUid || null }),
+        ...(nfcUid !== undefined && { nfcUid: nfcUid ? nfcUid.trim().toUpperCase() : null }),
         ...(nama && { nama }),
         ...(gender && { gender }),
         ...(kelas !== undefined && { kelas }),
@@ -216,8 +225,9 @@ exports.updateSantri = async (req, res) => {
 // Hapus Santri
 exports.deleteSantri = async (req, res) => {
   try {
+    const db = getDb(req);
     const id = parseInt(req.params.id);
-    await prisma.santri.delete({ where: { id } });
+    await db.santri.delete({ where: { id } });
     res.json({ success: true, message: 'Data santri berhasil dihapus' });
   } catch (error) {
     console.error('Error deleteSantri:', error);
@@ -228,7 +238,8 @@ exports.deleteSantri = async (req, res) => {
 // Transmigrasi / Import Data dari Firebase (JSON Payload)
 exports.importFromFirebase = async (req, res) => {
   try {
-    const { data } = req.body; // Bisa array of santri atau objek map firebase { key1: { nama, nis, ... }, key2: { ... } }
+    const db = getDb(req);
+    const { data } = req.body;
     if (!data) {
       return res.status(400).json({ success: false, message: 'Data JSON Firebase tidak boleh kosong' });
     }
@@ -252,15 +263,15 @@ exports.importFromFirebase = async (req, res) => {
       const nis = item.nis || item.studentId || item.idNumber || null;
       const nfcUid = item.nfcUid || item.rfid || item.cardUid || null;
 
-      // Cek apakah santri dengan NIS atau Nama sudah ada
+      // Cek apakah santri dengan NIS sudah ada
       let existing = null;
       if (nis) {
-        existing = await prisma.santri.findUnique({ where: { nis } });
+        existing = await db.santri.findUnique({ where: { nis } });
       }
 
       if (existing) {
         // Update data yang sudah ada
-        const updated = await prisma.santri.update({
+        const updated = await db.santri.update({
           where: { id: existing.id },
           data: {
             nama,
@@ -276,11 +287,11 @@ exports.importFromFirebase = async (req, res) => {
         successCount++;
       } else {
         // Buat santri baru
-        const created = await prisma.santri.create({
+        const created = await db.santri.create({
           data: {
             nama,
             nis: nis || `2026${Math.floor(10000 + Math.random() * 90000)}`,
-            nfcUid: nfcUid || null,
+            nfcUid: nfcUid ? nfcUid.trim().toUpperCase() : null,
             gender: item.gender === 'P' || item.gender === 'Perempuan' ? 'P' : 'L',
             kelas: item.kelas || item.class || '10 IPA (KMI 4)',
             kamar: item.kamar || item.room || 'Asrama Umar',
@@ -312,7 +323,8 @@ exports.importFromFirebase = async (req, res) => {
 // Export Data Santri (JSON)
 exports.exportSantriData = async (req, res) => {
   try {
-    const santriList = await prisma.santri.findMany({
+    const db = getDb(req);
+    const santriList = await db.santri.findMany({
       include: {
         bills: true,
         academics: true,
@@ -327,5 +339,108 @@ exports.exportSantriData = async (req, res) => {
     res.json(santriList);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal mengekspor data santri', error: error.message });
+  }
+};
+
+// Registrasi Kartu RFID / NFC untuk Santri
+exports.registerRfid = async (req, res) => {
+  try {
+    const db = getDb(req);
+    const { santriId, nfcUid, saldo_saku, status } = req.body;
+
+    if (!santriId) {
+      return res.status(400).json({ success: false, message: 'Santri wajib dipilih' });
+    }
+
+    if (!nfcUid || !nfcUid.trim()) {
+      return res.status(400).json({ success: false, message: 'UID Kartu RFID wajib diisi / di-tap' });
+    }
+
+    const cleanUid = nfcUid.trim().toUpperCase();
+    const id = parseInt(santriId);
+
+    // 1. Cek santri tujuan
+    const targetSantri = await db.santri.findUnique({ where: { id } });
+    if (!targetSantri) {
+      return res.status(404).json({ success: false, message: 'Santri tujuan tidak ditemukan' });
+    }
+
+    // 2. Cek apakah UID sudah digunakan santri lain
+    const existingWithUid = await db.santri.findFirst({
+      where: {
+        nfcUid: cleanUid,
+        id: { not: id },
+      },
+    });
+
+    if (existingWithUid) {
+      return res.status(400).json({
+        success: false,
+        message: `Kartu RFID UID "${cleanUid}" sudah terdaftar pada santri lain: ${existingWithUid.nama} (NIS: ${existingWithUid.nis || '-'}). Silakan gunakan kartu lain atau lepas kartu dari santri tersebut.`
+      });
+    }
+
+    // 3. Update Santri
+    const updateData = {
+      nfcUid: cleanUid,
+      updatedAt: new Date(),
+    };
+
+    if (status) {
+      updateData.status = status;
+    }
+
+    if (saldo_saku !== undefined && saldo_saku !== null && saldo_saku !== '') {
+      updateData.saldo_saku = parseFloat(saldo_saku);
+    }
+
+    const updatedSantri = await db.santri.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({
+      success: true,
+      message: `Kartu RFID (${cleanUid}) berhasil didaftarkan untuk ${updatedSantri.nama}!`,
+      data: updatedSantri,
+    });
+  } catch (error) {
+    console.error('Error registerRfid:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mendaftarkan kartu RFID',
+      error: error.message
+    });
+  }
+};
+
+// Lepas / Cabut Kartu RFID dari Santri
+exports.unregisterRfid = async (req, res) => {
+  try {
+    const db = getDb(req);
+    const id = parseInt(req.body.santriId || req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'ID Santri wajib disertakan' });
+    }
+
+    const santri = await db.santri.findUnique({ where: { id } });
+    if (!santri) {
+      return res.status(404).json({ success: false, message: 'Santri tidak ditemukan' });
+    }
+
+    const updatedSantri = await db.santri.update({
+      where: { id },
+      data: { nfcUid: null },
+    });
+
+    res.json({
+      success: true,
+      message: `Kartu RFID berhasil dicabut dari santri ${updatedSantri.nama}`,
+      data: updatedSantri,
+    });
+  } catch (error) {
+    console.error('Error unregisterRfid:', error);
+    res.status(500).json({ success: false, message: 'Gagal mencabut kartu RFID', error: error.message });
   }
 };

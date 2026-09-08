@@ -11,6 +11,11 @@ exports.getDashboardStats = async (req, res) => {
     // 1. Total Santri & Santri Aktif
     const totalSantri = await db.santri.count();
     const activeSantri = await db.santri.count({ where: { status: 'AKTIF' } });
+    const rfidSantriCount = await db.santri.count({
+      where: {
+        nfcUid: { not: null }
+      }
+    });
 
     // 2. Total Saldo Uang Saku Seluruh Santri
     const pocketAggregate = await db.santri.aggregate({
@@ -97,6 +102,7 @@ exports.getDashboardStats = async (req, res) => {
         stats: {
           totalSantri,
           activeSantri,
+          rfidSantriCount,
           totalPocketBalance,
           ledgerBalance,
           totalIncome,

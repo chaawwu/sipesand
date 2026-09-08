@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { getDashboardStats, createLedgerEntry } from '../services/api';
+import RfidRegistrationModal from '../components/RfidRegistrationModal';
 
 export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
   const [stats, setStats] = useState(null);
@@ -29,6 +30,9 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
   const [pendingBillsList, setPendingBillsList] = useState([]);
   const [recentAcademics, setRecentAcademics] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // RFID Registration Modal
+  const [isRfidRegOpen, setIsRfidRegOpen] = useState(false);
 
   // Quick Kas Manual Modal
   const [isManualKasOpen, setIsManualKasOpen] = useState(false);
@@ -112,6 +116,14 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         {/* Quick Actions in Banner */}
         <div className="flex flex-wrap items-center gap-2.5 relative z-10">
           <button
+            onClick={() => setIsRfidRegOpen(true)}
+            className="px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2"
+          >
+            <CreditCard className="w-4 h-4 text-slate-950" />
+            <span>Daftar Kartu RFID</span>
+          </button>
+
+          <button
             onClick={() => setIsManualKasOpen(true)}
             className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2"
           >
@@ -161,29 +173,50 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
           </button>
         </div>
 
-        {/* Card 2: Total Uang Saku Santri */}
+        {/* Card 2: Total Uang Saku & Kartu RFID Santri */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tabungan Uang Saku</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Uang Saku & Kartu RFID</span>
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <Wallet className="w-5 h-5" />
+              <CreditCard className="w-5 h-5" />
             </div>
           </div>
           <div>
             <div className="text-3xl font-black text-emerald-600 font-mono tracking-tight">
               Rp {(stats?.totalPocketBalance || 0).toLocaleString('id-ID')}
             </div>
-            <div className="text-xs text-slate-500 mt-1">
-              Dari <strong>{stats?.activeSantri || 0} santri aktif</strong> ber-NFC
+            <div className="text-xs text-slate-500 mt-1.5 flex items-center justify-between">
+              <span>
+                <strong>{stats?.rfidSantriCount ?? (stats?.activeSantri || 0)}</strong> dari <strong>{stats?.activeSantri || 0}</strong> santri ber-RFID
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                {stats?.activeSantri ? Math.round(((stats?.rfidSantriCount || 0) / stats.activeSantri) * 100) : 0}% Aktif
+              </span>
+            </div>
+            {/* Mini Progress Bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
+              <div 
+                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${stats?.activeSantri ? Math.min(100, Math.round(((stats?.rfidSantriCount || 0) / stats.activeSantri) * 100)) : 0}%` }}
+              />
             </div>
           </div>
-          <button
-            onClick={() => setActiveTab('pocket-cash')}
-            className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>Kelola Uang Saku & POS</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={() => setIsRfidRegOpen(true)}
+              className="py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Daftar RFID</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('pocket-cash')}
+              className="py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1"
+            >
+              <span>POS & Saku</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Card 3: Total Tunggakan Santri */}
@@ -362,6 +395,30 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
             </div>
           </div>
 
+          {/* Quick Widget Pendaftaran Kartu RFID Super Admin */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 rounded-3xl border border-slate-700/80 p-5 text-white shadow-md relative overflow-hidden flex flex-col justify-between gap-4">
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="space-y-1.5 relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[10px] font-extrabold text-amber-300 border border-white/20">
+                <CreditCard className="w-3 h-3 text-[#8CE829]" />
+                <span>MODUL HARDWARE RFID / NFC</span>
+              </div>
+              <h3 className="font-extrabold text-sm text-white">
+                Pendaftaran & Aktivasi Kartu Santri
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Tautkan kartu fisik baru via tap USB reader atau input manual untuk uang saku digital & absensi mandiri santri.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsRfidRegOpen(true)}
+              className="w-full py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg relative z-10"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Daftarkan Kartu RFID Santri</span>
+            </button>
+          </div>
+
         </div>
 
       </div>
@@ -466,6 +523,13 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
           </div>
         </div>
       )}
+
+      {/* Modal Pendaftaran Kartu RFID Super Admin */}
+      <RfidRegistrationModal
+        isOpen={isRfidRegOpen}
+        onClose={() => setIsRfidRegOpen(false)}
+        onSuccess={() => loadDashboard()}
+      />
 
     </div>
   );

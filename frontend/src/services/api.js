@@ -43,6 +43,8 @@ export const createSantri = (data) => api.post('/santri', data);
 export const updateSantri = (id, data) => api.put(`/santri/${id}`, data);
 export const deleteSantri = (id) => api.delete(`/santri/${id}`);
 export const getSantriByNfc = (uid) => api.get(`/santri/nfc/${uid}`);
+export const registerRfidCard = (data) => api.post('/santri/register-rfid', data);
+export const unregisterRfidCard = (data) => api.post('/santri/unregister-rfid', data);
 export const exportSantriData = () => api.get('/santri/export/all');
 export const importSantriBulk = (data) => api.post('/santri/import/bulk', data);
 export const importFromFirebase = (data) => api.post('/santri/import/firebase', data);
