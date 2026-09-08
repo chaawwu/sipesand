@@ -33,6 +33,7 @@ import {
 import SantriTrackerModal from '../components/SantriTrackerModal';
 import MobileAppInstallModal from '../components/MobileAppInstallModal';
 import DeveloperFooter from '../components/DeveloperFooter';
+import PesantrenTenantHome from '../components/PesantrenTenantHome';
 import { useSettings } from '../context/SettingsContext';
 
 export default function LandingPage({ 
@@ -160,6 +161,45 @@ export default function LandingPage({
     { id: 'KAMTIB', label: 'Keamanan & Perizinan', count: 8 },
     { id: 'SAKU', label: 'Uang Saku POS Cashless', count: 7 }
   ];
+
+  // Jika diakses dalam mode tenant pesantren (misal: darulrahman.sipesand.web.id), tampilkan website profil resmi pesantren
+  if (isTenantInstance) {
+    return (
+      <div className="min-h-screen bg-[#FCFBF7]">
+        <PesantrenTenantHome
+          onLoginPetugas={onLoginPetugas}
+          onOpenPortalWali={onOpenPortalWali}
+          onOpenNfcScanner={onOpenNfcScanner}
+          onExecuteSearch={executeSearch}
+          quickQuery={quickQuery}
+          setQuickQuery={setQuickQuery}
+          loadingSearch={loadingSearch}
+          searchError={searchError}
+        />
+
+        {/* Modal Tracker Santri */}
+        {isTrackerOpen && (
+          <SantriTrackerModal
+            isOpen={isTrackerOpen}
+            onClose={() => setIsTrackerOpen(false)}
+            santriData={trackerSantri}
+            onOpenPortalWali={() => {
+              setIsTrackerOpen(false);
+              onOpenPortalWali(quickQuery);
+            }}
+          />
+        )}
+
+        {/* Modal Aplikasi Mobile */}
+        {isMobileModalOpen && (
+          <MobileAppInstallModal
+            isOpen={isMobileModalOpen}
+            onClose={() => setIsMobileModalOpen(false)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-[#111827] flex flex-col font-sans selection:bg-[#8CE829] selection:text-[#0A1128]">
