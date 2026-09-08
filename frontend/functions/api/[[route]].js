@@ -104,7 +104,7 @@ const MAX_R2_QUOTA_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB = 10,737,418,240 by
 const WARN_R2_QUOTA_BYTES = 9 * 1024 * 1024 * 1024;  // 9 GB warning threshold (90%)
 
 function getR2Bucket(context) {
-  return context.env?.SIPESAND_R2 || context.env?.BUCKET || context.env?.R2_STORAGE || context.env?.R2_BUCKET || null;
+  return context.env?.SIPESAND_R2 || context.env?.SIPESAN_R2 || context.env?.BUCKET || context.env?.R2_STORAGE || context.env?.R2_BUCKET || null;
 }
 
 function formatBytes(bytes) {
