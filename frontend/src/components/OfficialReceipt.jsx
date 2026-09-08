@@ -25,13 +25,13 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
   const [receiptDate, setReceiptDate] = useState(
     defaultData?.date ? new Date(defaultData.date).toISOString().slice(0,10) : new Date().toISOString().slice(0,10)
   );
-  const [santriName, setSantriName] = useState(defaultData?.santriName || 'Muhammad Farhan Al-Fatih');
-  const [waliName, setWaliName] = useState(defaultData?.waliName || 'H. Abdullah Farhan');
-  const [nis, setNis] = useState(defaultData?.nis || '202601001');
-  const [kelas, setKelas] = useState(defaultData?.kelas || '10 IPA 1 (KMI 4)');
+  const [santriName, setSantriName] = useState(defaultData?.santriName || '');
+  const [waliName, setWaliName] = useState(defaultData?.waliName || '');
+  const [nis, setNis] = useState(defaultData?.nis || '');
+  const [kelas, setKelas] = useState(defaultData?.kelas || '');
   const [paymentMethod, setPaymentMethod] = useState(defaultData?.paymentMethod || 'Transfer Bank Syariah (BSI)');
   
-  const bendaharaName = defaultData?.bendaharaName || settings.NAMA_BENDAHARA || 'Ustadz Ridwan, S.E.';
+  const bendaharaName = defaultData?.bendaharaName || settings.NAMA_BENDAHARA || 'Bendahara Pesantren';
   const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)';
   const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Sistem Informasi Manajemen Administrasi, Keuangan & Akademik Pesantren';
   const alamatLembaga = settings.ALAMAT_LEMBAGA || 'Jl. Pesantren Digital No. 01, Kompleks Terpadu';

@@ -43,8 +43,12 @@ import {
   getCloudSantriByNfc,
   getCloudLedgerSummary,
   getCloudMasterBills,
-  uploadCloudPaymentProof
+  uploadCloudPaymentProof,
+  subscribeCloudPocket,
+  clearCloudDemoData
 } from './cloudDatabase';
+
+export { subscribeCloudPocket, clearCloudDemoData };
 
 // Backend Base URL: jika diisi di env atau custom server, gunakan.
 // Default fallback ke relative '/api' dengan timeout pendek agar tidak memblokir UI jika offline.

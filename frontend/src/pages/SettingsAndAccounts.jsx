@@ -33,7 +33,8 @@ import {
   updateUserAccount,
   deleteUserAccount, 
   getBackupData,
-  getSantriList
+  getSantriList,
+  clearCloudDemoData
 } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
 
@@ -136,6 +137,23 @@ export default function SettingsAndAccounts() {
       }
     } catch (err) {
       alert('Gagal menyimpan pengaturan');
+    }
+  };
+
+  const [clearingDemo, setClearingDemo] = useState(false);
+  const handleClearDemo = async () => {
+    if (!window.confirm('PERINGATAN: Seluruh data dummy/demo santri, tagihan demo, kas demo, dan mutasi demo akan dibersihkan permanen agar database siap produksi. Akun login petugas Anda akan tetap aman. Lanjutkan?')) {
+      return;
+    }
+    try {
+      setClearingDemo(true);
+      await clearCloudDemoData();
+      alert('Data demo berhasil dibersihkan! Seluruh modul kini siap produksi dengan database bersih.');
+      window.location.reload();
+    } catch (e) {
+      alert('Gagal membersihkan data demo: ' + e.message);
+    } finally {
+      setClearingDemo(false);
     }
   };
 
@@ -1228,6 +1246,31 @@ export default function SettingsAndAccounts() {
                 <span>Simpan Tautan Spreadsheet</span>
               </button>
             </div>
+          </div>
+
+          {/* Card 3: Kesiapan Produksi & Pembersihan Data Demo */}
+          <div className="p-5 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-3 mt-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="font-black text-sm text-rose-950 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-rose-600" />
+                  <span>Kesiapan Produksi: Bersihkan Seluruh Data Demo</span>
+                </h4>
+                <p className="text-rose-800/80 text-xs mt-1 leading-relaxed">
+                  Menghapus seluruh data santri demo, tagihan demo, riwayat kas demo, dan mutasi uang saku demo dari perangkat ini dan Cloud Firestore. Database pesantren akan bersih (0 santri) dan siap untuk penginputan data santri riil pesantren. Akun login petugas Anda tetap tersimpan aman.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClearDemo}
+              disabled={clearingDemo}
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 text-xs cursor-pointer disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{clearingDemo ? 'Sedang Membersihkan...' : 'Bersihkan Data Demo Sekarang (Siap Produksi)'}</span>
+            </button>
           </div>
         </div>
       )}

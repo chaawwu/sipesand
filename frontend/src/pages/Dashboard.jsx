@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { getDashboardStats, createLedgerEntry } from '../services/api';
+import { subscribeCloudSantri, subscribeCloudLedger } from '../services/cloudDatabase';
 import RfidRegistrationModal from '../components/RfidRegistrationModal';
 import AestheticToast from '../components/AestheticToast';
 
@@ -55,6 +56,15 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         setIsRfidRegOpen(true);
       }
     }
+
+    // Real-Time Multi-Device Sync: Saat data santri atau kas bertambah di perangkat lain, dashboard otomatis refresh
+    const unsubSantri = subscribeCloudSantri(null, () => loadDashboard());
+    const unsubLedger = subscribeCloudLedger(null, () => loadDashboard());
+
+    return () => {
+      if (typeof unsubSantri === 'function') unsubSantri();
+      if (typeof unsubLedger === 'function') unsubLedger();
+    };
   }, []);
 
   const loadDashboard = async () => {

@@ -30,6 +30,7 @@ import {
   deleteSantriBill,
   getSantriList 
 } from '../services/api';
+import { subscribeCloudBills } from '../services/cloudDatabase';
 import OfficialReceipt from '../components/OfficialReceipt';
 import AestheticToast from '../components/AestheticToast';
 
@@ -86,6 +87,28 @@ export default function BillsAndInvoices() {
 
   useEffect(() => {
     loadAllData();
+
+    // Multi-Device Cloud Real-Time Sync: Otomatis sinkronisasi tagihan antar laptop/HP
+    const unsubscribe = subscribeCloudBills(null, (cloudBills) => {
+      if (Array.isArray(cloudBills)) {
+        let filtered = [...cloudBills];
+        if (statusFilter) filtered = filtered.filter(b => b.status === statusFilter);
+        if (monthFilter) filtered = filtered.filter(b => b.hijriMonth === monthFilter);
+        if (search) {
+          const q = search.toLowerCase();
+          filtered = filtered.filter(b => 
+            (b.title && b.title.toLowerCase().includes(q)) || 
+            (b.santri?.nama && b.santri.nama.toLowerCase().includes(q)) ||
+            (b.santri?.nis && b.santri.nis.toLowerCase().includes(q))
+          );
+        }
+        setSantriBills(filtered);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [statusFilter, monthFilter, search]);
 
   const loadAllData = async () => {

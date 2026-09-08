@@ -390,6 +390,24 @@ export async function recordCloudPurchase(nfcUidOrSantriId, amount, description,
   return localRes;
 }
 
+export function subscribeCloudPocket(tenant = null, callback) {
+  try {
+    const colRef = getTenantCol("pocket_txs", tenant);
+    return onSnapshot(colRef, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dbLocal = localDb.getData();
+      dbLocal.pocketTxs = items;
+      localDb.saveData(dbLocal);
+      callback(items);
+    }, (err) => {
+      console.warn("subscribeCloudPocket snapshot error:", err);
+    });
+  } catch (e) {
+    console.warn("Cannot subscribe to pocket:", e);
+    return () => {};
+  }
+}
+
 // -----------------------------------------------------------------------------
 // 5. TAGIHAN SPP & INVOICES (BILLS)
 // -----------------------------------------------------------------------------
@@ -1003,3 +1021,21 @@ export async function uploadCloudPaymentProof({ billId, proofUrl, proofNote }, t
   }
 }
 
+export async function clearCloudDemoData(tenant = null) {
+  const activeTenant = tenant || getCurrentTenant();
+  try {
+    const collectionsToClear = ["santri", "bills", "pocket_txs", "permits", "ledger", "academics", "violations"];
+    for (const colName of collectionsToClear) {
+      const colRef = getTenantCol(colName, activeTenant);
+      const snap = await getDocs(colRef);
+      for (const d of snap.docs) {
+        await deleteDoc(d.ref);
+      }
+      await markTenantInit(colName, activeTenant);
+    }
+  } catch (err) {
+    console.warn("Gagal membersihkan demo dari Cloud Firestore:", err);
+  }
+  localDb.clearDemoData(activeTenant);
+  return { success: true, message: "Seluruh data demo berhasil dibersihkan dari Cloud & Lokal. Database siap produksi!" };
+}

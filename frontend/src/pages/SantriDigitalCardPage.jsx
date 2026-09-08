@@ -24,14 +24,17 @@ import {
   Copy,
   Check,
   ShieldAlert,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getPublicSantriData } from '../services/api';
 import { useSettings } from '../context/SettingsContext';
+import { getCurrentTenant } from '../services/localDatabase';
 
-export default function SantriDigitalCardPage({ initialNis = '', onBackToHome, onOpenPortalWali }) {
-  const { settings, isNfcEnabled } = useSettings();
+export default function SantriDigitalCardPage({ initialNis = '', tenant = null, onBackToHome, onOpenPortalWali }) {
+  const { settings, isNfcEnabled, activeTenantSubdomain } = useSettings();
+  const resolvedTenant = tenant || activeTenantSubdomain || getCurrentTenant();
   
   // Ambil NIS dari parameter URL atau props
   const [nisParam, setNisParam] = useState(() => {
@@ -47,7 +50,7 @@ export default function SantriDigitalCardPage({ initialNis = '', onBackToHome, o
         return decodeURIComponent(parts[1]);
       }
     }
-    return '202601001';
+    return '';
   });
 
   const [loading, setLoading] = useState(true);
@@ -65,126 +68,41 @@ export default function SantriDigitalCardPage({ initialNis = '', onBackToHome, o
   const stempelUrl = settings.STEMPEL_URL;
   const whatsappKamtib = settings.WHATSAPP_CENTER || '085123734342';
 
+  const [errorMessage, setErrorMessage] = useState('');
+
   const loadData = async (queryNis) => {
+    const q = (queryNis || '').trim();
+    if (!q) {
+      setSantriData(null);
+      setPortalRawData(null);
+      setLoading(false);
+      setErrorMessage('Silakan scan QR Code KTSD pada kartu santri atau masukkan NIS santri.');
+      return;
+    }
+
     setLoading(true);
+    setErrorMessage('');
     try {
-      const res = await getPublicSantriData(queryNis);
+      const res = await getPublicSantriData(q, resolvedTenant);
       if (res && res.data && res.data.success && res.data.data) {
         const payload = res.data.data;
         setPortalRawData(payload);
         setSantriData(payload.santri || payload);
         setLastSyncTime(new Date());
-        setLoading(false);
         return;
+      } else {
+        setSantriData(null);
+        setPortalRawData(null);
+        setErrorMessage(`Data santri "${q}" tidak ditemukan di ${namaLembaga}. Pastikan santri terdaftar dan aktif.`);
       }
     } catch (err) {
-      console.warn("Gagal memuat data santri via API, menggunakan fallback dataset:", err);
+      console.warn("Gagal memuat data santri via API:", err);
+      setSantriData(null);
+      setPortalRawData(null);
+      setErrorMessage(`Data santri "${q}" tidak ditemukan di ${namaLembaga}.`);
+    } finally {
+      setLoading(false);
     }
-
-    // Fallback data mandiri yang representatif untuk demo pemindaian QR
-    const q = (queryNis || '').toLowerCase();
-    let nama = 'Muhammad Farhan Al-Fatih';
-    let nis = '202601001';
-    let kelas = '10 IPA 1 (KMI 4)';
-    let kamar = 'Asrama Umar bin Khattab No. 04';
-    let wali = 'H. Abdullah Farhan';
-    let noHpWali = '081234567890';
-    let saldo = 175000;
-    let gender = 'L';
-    let nfcUid = 'NFC-8A3F129B';
-
-    if (q.includes('aisyah') || q.includes('202601002')) {
-      nama = 'Aisyah Nur Ramadhani';
-      nis = '202601002';
-      kelas = '11 Keagamaan (KMI 5)';
-      kamar = 'Asrama Siti Khadijah No. 12';
-      wali = 'Dr. Hendra Gunawan';
-      noHpWali = '081298765432';
-      saldo = 250000;
-      gender = 'P';
-      nfcUid = 'NFC-B76E2101';
-    } else if (q.includes('zaki') || q.includes('202601003')) {
-      nama = 'Ahmad Zaki Mubarak';
-      nis = '202601003';
-      kelas = '12 IPS (KMI 6)';
-      kamar = 'Asrama Abu Bakar No. 07';
-      wali = 'Drs. Supriyadi';
-      noHpWali = '081345678901';
-      saldo = 85000;
-      gender = 'L';
-      nfcUid = 'NFC-C91D4455';
-    } else if (q && !q.includes('202601001') && !q.includes('farhan')) {
-      nama = queryNis;
-      nis = queryNis.toUpperCase();
-    }
-
-    const fallbackPayload = {
-      santri: {
-        id: 1,
-        nama,
-        nis,
-        nfcUid,
-        gender,
-        kelas,
-        kamar,
-        alamat: settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur',
-        namaWali: wali,
-        noHpWali,
-        saldo_saku: saldo,
-        status: 'AKTIF',
-      },
-      permits: [
-        {
-          id: 401,
-          permitCode: 'IZIN-20260901-01',
-          type: 'SAMBANGAN',
-          reason: 'Kunjungan Wali Santri Bulanan',
-          departureTime: '2026-09-01T09:00:00Z',
-          returnTime: '2026-09-01T17:00:00Z',
-          status: 'RETURNED',
-          approvedBy: 'Ustadz Danang (Kamtib)'
-        }
-      ],
-      pocketTxs: [
-        {
-          id: 201,
-          txCode: 'TX-20260907-01',
-          type: 'WITHDRAW',
-          amount: 15000,
-          balanceAfter: saldo,
-          description: 'Belanja Alat Tulis Koperasi Santri',
-          createdAt: '2026-09-07T10:15:00Z'
-        },
-        {
-          id: 202,
-          txCode: 'TX-20260905-02',
-          type: 'TOPUP',
-          amount: 100000,
-          balanceAfter: saldo + 15000,
-          description: 'Setoran Uang Saku via Virtual Account BSI',
-          createdAt: '2026-09-05T14:30:00Z'
-        },
-        {
-          id: 203,
-          txCode: 'TX-20260903-03',
-          type: 'WITHDRAW',
-          amount: 25000,
-          balanceAfter: saldo - 85000,
-          description: 'Camilan & Minuman di Kantin Santri Utama',
-          createdAt: '2026-09-03T16:45:00Z'
-        }
-      ],
-      academics: [
-        { id: 301, subject: 'Muhafadzoh Nadzom Imrithi', score: 95, date: '2026-09-04', notes: 'Setoran hafalan 100 bait mutqin & lancar (Mumtaz)' },
-        { id: 302, subject: 'Pengajian Fathul Qorib', score: 90, date: '2026-09-03', notes: 'Paham makna gandul & tarkib bab Thaharah' },
-        { id: 303, subject: 'Muhafadzoh Alfiyah Ibnu Malik', score: 88, date: '2026-09-02', notes: 'Lancar setoran bait 1-100 bab Kalam' }
-      ]
-    };
-
-    setPortalRawData(fallbackPayload);
-    setSantriData(fallbackPayload.santri);
-    setLastSyncTime(new Date());
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -255,7 +173,32 @@ export default function SantriDigitalCardPage({ initialNis = '', onBackToHome, o
     );
   }
 
-  const s = santriData || {};
+  if (!santriData) {
+    return (
+      <div className="min-h-screen bg-[#090D16] flex flex-col items-center justify-center p-6 text-white font-sans text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-lg">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2 max-w-sm">
+          <h2 className="text-lg font-black tracking-tight text-white">Data Santri Tidak Ditemukan</h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            {errorMessage || `Kartu Tanda Santri Digital dengan NIS "${nisParam}" tidak terdaftar pada basis data ${namaLembaga}.`}
+          </p>
+        </div>
+        <div className="pt-2 flex items-center gap-3">
+          <button
+            onClick={onBackToHome || (() => window.history.back())}
+            className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Kembali</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const s = santriData;
   const pocketTxs = portalRawData?.pocketTxs || [];
   const academics = portalRawData?.academics || [];
 

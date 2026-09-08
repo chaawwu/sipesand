@@ -1075,7 +1075,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                         <div className={`text-[9.5px] font-mono font-bold ${
                           isLight ? 'text-blue-700' : 'text-amber-300'
                         }`}>
-                          NIS: {santri.nis || '202601001'}
+                          NIS: {santri.nis || '-'}
                         </div>
                       )}
                       <div className={`text-[8.5px] space-y-0.5 pt-0.5 ${
@@ -1125,7 +1125,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                         <div className={`text-[9px] font-mono font-bold ${
                           isLight ? 'text-blue-700' : 'text-amber-300'
                         }`}>
-                          NIS: {santri.nis || '202601001'}
+                          NIS: {santri.nis || '-'}
                         </div>
                       )}
                       {layoutCustom.showKelasKamar && (

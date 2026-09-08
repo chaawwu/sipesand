@@ -22,6 +22,7 @@ import {
   createDivisionFund, 
   updateDivisionFundStatus 
 } from '../services/api';
+import { subscribeCloudBills } from '../services/cloudDatabase';
 import OfficialReceipt from '../components/OfficialReceipt';
 
 export default function Approvals() {
@@ -54,6 +55,18 @@ export default function Approvals() {
 
   useEffect(() => {
     loadData();
+
+    // Real-Time Multi-Device Sync: Notifikasi tagihan pending langsung masuk ke bendahara
+    const unsubscribe = subscribeCloudBills(null, (cloudBills) => {
+      if (Array.isArray(cloudBills)) {
+        const pending = cloudBills.filter(b => b.status === 'PENDING_VERIFICATION');
+        setPendingPayments(pending);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [activeTab]);
 
   const loadData = async () => {

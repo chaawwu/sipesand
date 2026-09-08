@@ -105,99 +105,7 @@ function buildInitialDatabase(tenant) {
   const isDarulRahman = tenant === 'darulrahman';
   const now = new Date();
 
-  const santri = [
-    {
-      id: 1,
-      nis: '202601001',
-      nfcUid: 'NFC-8A3F129B',
-      nama: isDarulRahman ? 'Muhammad Azzam Al-Fatih' : 'Muhammad Farhan Al-Fatih',
-      gender: 'L',
-      kelas: '10 IPA (KMI 4)',
-      kamar: 'Asrama Umar bin Khattab No. 04',
-      alamat: isDarulRahman ? 'Sumbersari, Kencong, Kediri, Jawa Timur' : 'Jl. Malioboro No. 45, Kota Yogyakarta',
-      namaWali: 'H. Marzuqi Ahmad',
-      noHpWali: '087713871356',
-      saldo_saku: 175000,
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 30 * 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      nis: '202601002',
-      nfcUid: 'NFC-4B7C91D3',
-      nama: 'Aisyah Nur Ramadhani',
-      gender: 'P',
-      kelas: '11 Keagamaan (KMI 5)',
-      kamar: 'Asrama Siti Khadijah No. 12',
-      alamat: 'Perumahan Griya Indah C2, Sleman, D.I. Yogyakarta',
-      namaWali: 'Dr. Hendra Gunawan',
-      noHpWali: '081298765432',
-      saldo_saku: 250000,
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 25 * 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      nis: '202601003',
-      nfcUid: 'NFC-9E2A5501',
-      nama: 'Ahmad Zaki Mubarak',
-      gender: 'L',
-      kelas: '12 IPS (KMI 6)',
-      kamar: 'Asrama Abu Bakar No. 07',
-      alamat: 'Jl. Slamet Riyadi No. 102, Surakarta, Jawa Tengah',
-      namaWali: 'Drs. Supriyadi',
-      noHpWali: '081377889900',
-      saldo_saku: -25000, // Status minus / talangan darurat
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 20 * 86400000).toISOString(),
-    },
-    {
-      id: 4,
-      nis: '202601004',
-      nfcUid: 'NFC-1C3D88AA',
-      nama: 'Fathimah Azzahra',
-      gender: 'P',
-      kelas: '10 IPA (KMI 4)',
-      kamar: 'Asrama Aisyah No. 03',
-      alamat: 'Kompleks Pesona Candi No. 18, Magelang, Jawa Tengah',
-      namaWali: 'Rahmat Hidayat, M.Pd.',
-      noHpWali: '081566778899',
-      saldo_saku: 320000,
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 15 * 86400000).toISOString(),
-    },
-    {
-      id: 5,
-      nis: '202601005',
-      nfcUid: 'NFC-7F88BB42',
-      nama: 'Bilal Habasyi Rizqullah',
-      gender: 'L',
-      kelas: '11 IPA (KMI 5)',
-      kamar: 'Asrama Ali bin Abi Thalib No. 02',
-      alamat: 'Jl. Veteran No. 88, Semarang, Jawa Tengah',
-      namaWali: 'H. Lukman Hakim',
-      noHpWali: '081911223344',
-      saldo_saku: 85000,
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
-    },
-    {
-      id: 6,
-      nis: '202601006',
-      nfcUid: null, // Belum punya kartu RFID
-      nama: 'Zaid bin Tsabit',
-      gender: 'L',
-      kelas: '1 Tsanawiyah',
-      kamar: 'Asrama Utsman bin Affan No. 01',
-      alamat: 'Jl. Raya Kencong No. 12, Kediri, Jawa Timur',
-      namaWali: 'H. Muhsin',
-      noHpWali: '085233445566',
-      saldo_saku: 50000,
-      status: 'AKTIF',
-      createdAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
-    },
-  ];
-
+  // Template Kategori Tagihan Master Standar Pesantren (Siap digunakan tanpa santri dummy)
   const masterBills = [
     {
       id: 1,
@@ -230,256 +138,16 @@ function buildInitialDatabase(tenant) {
     },
   ];
 
-  const santriBills = [
-    {
-      id: 1,
-      santriId: 1,
-      masterBillId: 1,
-      title: 'SPP Syahriyah Pesantren - Shafar 1448 H',
-      amount: 1200000,
-      hijriMonth: 'Shafar',
-      hijriYear: '1448 H',
-      status: 'PAID',
-      paidAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
-      paymentMethod: 'TRANSFER_BSI',
-      createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      santriId: 2,
-      masterBillId: 1,
-      title: 'SPP Syahriyah Pesantren - Shafar 1448 H',
-      amount: 1200000,
-      hijriMonth: 'Shafar',
-      hijriYear: '1448 H',
-      status: 'PAID',
-      paidAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
-      paymentMethod: 'QRIS_PORTAL',
-      createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      santriId: 3,
-      masterBillId: 1,
-      title: 'SPP Syahriyah Pesantren - Shafar 1448 H',
-      amount: 1200000,
-      hijriMonth: 'Shafar',
-      hijriYear: '1448 H',
-      status: 'UNPAID',
-      paidAt: null,
-      createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
-    },
-    {
-      id: 4,
-      santriId: 4,
-      masterBillId: 2,
-      title: 'Biaya Konsumsi Dapur Santri - Shafar 1448 H',
-      amount: 650000,
-      hijriMonth: 'Shafar',
-      hijriYear: '1448 H',
-      status: 'PENDING_VERIFICATION',
-      proofUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600',
-      proofNote: 'Transfer BSI a.n. Rahmat Hidayat',
-      createdAt: new Date(now.getTime() - 2 * 86400000).toISOString(),
-    },
-  ];
-
-  const generalLedger = [
-    {
-      id: 1,
-      code: 'KAS-20260901-1001',
-      date: new Date(now.getTime() - 7 * 86400000).toISOString(),
-      type: 'INCOME',
-      category: 'SPP',
-      amount: 18500000,
-      description: 'Penerimaan SPP Syahriyah Santri Gelombang 1',
-      reference: 'BSI-VA-0901',
-    },
-    {
-      id: 2,
-      code: 'KAS-20260902-1002',
-      date: new Date(now.getTime() - 6 * 86400000).toISOString(),
-      type: 'INCOME',
-      category: 'Donasi',
-      amount: 5000000,
-      description: 'Infaq & Wakaf Pembangunan Asrama dari Wali Santri',
-      reference: 'DONASI-WALI-02',
-    },
-    {
-      id: 3,
-      code: 'KAS-20260903-1003',
-      date: new Date(now.getTime() - 5 * 86400000).toISOString(),
-      type: 'EXPENSE',
-      category: 'Konsumsi Dapur Santri',
-      amount: 4200000,
-      description: 'Belanja beras dan bahan dapur santri mingguan',
-      reference: 'NOTA-PASAR-03',
-    },
-    {
-      id: 4,
-      code: 'KAS-20260904-1004',
-      date: new Date(now.getTime() - 4 * 86400000).toISOString(),
-      type: 'EXPENSE',
-      category: 'Operasional Listrik & Air',
-      amount: 1750000,
-      description: 'Pembayaran Tagihan PLN Kompleks Asrama',
-      reference: 'PLN-202609',
-    },
-    {
-      id: 5,
-      code: 'KAS-20260905-1005',
-      date: new Date(now.getTime() - 3 * 86400000).toISOString(),
-      type: 'EXPENSE',
-      category: 'Gaji & Honor Asatidz',
-      amount: 4500000,
-      description: 'Honor Asatidz Pengampu Diniyah & Muhafadzoh',
-      reference: 'HONOR-0905',
-    },
-  ];
-
-  const pocketTxs = [
-    {
-      id: 1,
-      santriId: 1,
-      type: 'TOPUP',
-      amount: 200000,
-      currentBalance: 175000,
-      description: 'Top-Up Uang Saku via Transfer BSI Wali',
-      createdAt: new Date(now.getTime() - 4 * 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      santriId: 1,
-      type: 'PURCHASE',
-      amount: 25000,
-      currentBalance: 175000,
-      description: 'Belanja di Koperasi/Kantin Smart POS NFC',
-      createdAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      santriId: 2,
-      type: 'TOPUP',
-      amount: 300000,
-      currentBalance: 250000,
-      description: 'Top-Up Uang Saku via Portal Wali',
-      createdAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 4,
-      santriId: 3,
-      type: 'WITHDRAW',
-      amount: 50000,
-      currentBalance: -25000,
-      description: 'Penarikan Kebutuhan Obat Darurat Poliklinik (Talangan)',
-      createdAt: new Date(now.getTime() - 2 * 86400000).toISOString(),
-    },
-  ];
-
-  const permits = [
-    {
-      id: 1,
-      santriId: 1,
-      reason: 'Pemeriksaan Gigi ke Rumah Sakit Umum',
-      destination: 'RSUD Kabupaten Kediri',
-      departureTime: new Date(now.getTime() - 6 * 3600000).toISOString(),
-      returnTime: new Date(now.getTime() + 2 * 3600000).toISOString(),
-      actualReturnTime: null,
-      status: 'ACTIVE',
-      approverName: 'Ustadz Keamanan Kamtib',
-      createdAt: new Date(now.getTime() - 6 * 3600000).toISOString(),
-    },
-    {
-      id: 2,
-      santriId: 2,
-      reason: 'Menghadiri Pernikahan Kakak Kandung',
-      destination: 'Sleman, Yogyakarta',
-      departureTime: new Date(now.getTime() - 48 * 3600000).toISOString(),
-      returnTime: new Date(now.getTime() - 12 * 3600000).toISOString(),
-      actualReturnTime: new Date(now.getTime() - 14 * 3600000).toISOString(),
-      status: 'RETURNED',
-      approverName: 'Ustadz Keamanan Kamtib',
-      createdAt: new Date(now.getTime() - 50 * 3600000).toISOString(),
-    },
-  ];
-
-  const academics = [
-    {
-      id: 1,
-      santriId: 1,
-      subject: isDarulRahman ? 'Muhafadzoh Alfiyah Ibnu Malik' : 'Tahfidz Al-Qur\'an',
-      score: 92,
-      grade: 'A',
-      notes: isDarulRahman ? 'Lancar setoran 50 bait bab Kalam & I\'rob, makhraj fasih' : 'Juz 1-3 mutqin',
-      date: new Date(now.getTime() - 3 * 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      santriId: 1,
-      subject: 'Kajian Fathul Qorib',
-      score: 90,
-      grade: 'A',
-      notes: 'Pemahaman Bab Thaharah & Shalat sangat memuaskan',
-      date: new Date(now.getTime() - 5 * 86400000).toISOString(),
-    },
-    {
-      id: 3,
-      santriId: 2,
-      subject: isDarulRahman ? 'Muhafadzoh Nadzom Imrithi' : 'Tahfidz Al-Qur\'an',
-      score: 95,
-      grade: 'A',
-      notes: 'Mumtaz, hafalan 100 bait lancar sekali',
-      date: new Date(now.getTime() - 2 * 86400000).toISOString(),
-    },
-  ];
-
-  const violations = [
-    {
-      id: 1,
-      santriId: 3,
-      violationType: 'KETERLAMBATAN',
-      description: 'Terlambat kembali ke asrama setelah shalat Isya',
-      sanction: 'Takziran membaca 50 bait Nadzom Alfiyah di serambi',
-      status: 'COMPLETED',
-      date: new Date(now.getTime() - 4 * 86400000).toISOString(),
-    }
-  ];
-
-  const divisionFunds = [
-    {
-      id: 1,
-      division: 'KAMTIB_PENGASUHAN',
-      applicantName: 'Ustadz Hasan Basri',
-      title: 'Pengadaan Kartu RFID Smart NFC & Scanner',
-      amount: 1500000,
-      status: 'APPROVED',
-      approvedAmount: 1500000,
-      description: 'Penyediaan 100 kartu KTSD baru untuk santri mukim',
-      createdAt: new Date(now.getTime() - 5 * 86400000).toISOString(),
-    },
-    {
-      id: 2,
-      division: 'PENDIDIKAN_SALAF',
-      applicantName: 'Ustadz M. Syukron',
-      title: 'Konsumsi & Sertifikat Bahtsul Masa\'il Santri',
-      amount: 750000,
-      status: 'PENDING',
-      approvedAmount: null,
-      description: 'Kegiatan musyawarah bahtsul masa\'il fikih santri bulanan',
-      createdAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
-    }
-  ];
-
   return {
-    santri,
+    santri: [],
     masterBills,
-    santriBills,
-    generalLedger,
-    pocketTxs,
-    permits,
-    academics,
-    violations,
-    divisionFunds,
+    santriBills: [],
+    generalLedger: [],
+    pocketTxs: [],
+    permits: [],
+    academics: [],
+    violations: [],
+    divisionFunds: [],
   };
 }
 
@@ -510,11 +178,40 @@ export class LocalDatabase {
         this.saveData(initial, activeT);
         return initial;
       }
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Auto-purge legacy demo data (NIS 202601001 - 202601006) jika belum dibersihkan
+      const purgeKey = `sipesand_demo_purged_${activeT}_v3`;
+      if (!localStorage.getItem(purgeKey)) {
+        localStorage.setItem(purgeKey, 'true');
+        const DEMO_NIS = ['202601001', '202601002', '202601003', '202601004', '202601005', '202601006'];
+        if (parsed.santri && parsed.santri.length > 0 && parsed.santri.every(s => DEMO_NIS.includes(String(s.nis)))) {
+          parsed.santri = [];
+          parsed.santriBills = [];
+          parsed.generalLedger = [];
+          parsed.pocketTxs = [];
+          parsed.permits = [];
+          parsed.academics = [];
+          parsed.violations = [];
+          parsed.divisionFunds = [];
+          this.saveData(parsed, activeT);
+          return parsed;
+        }
+      }
+      return parsed;
     } catch (e) {
       console.warn('[LocalDatabase] Fallback parsing database error:', e);
       return buildInitialDatabase(activeT);
     }
+  }
+
+  clearDemoData(tenant = null) {
+    const activeT = tenant || this.tenant;
+    const cleanDb = buildInitialDatabase(activeT);
+    this.saveData(cleanDb, activeT);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`sipesand_demo_purged_${activeT}_v3`, 'true');
+    }
+    return { success: true, message: 'Seluruh data demo berhasil dibersihkan! Database kini siap produksi.' };
   }
 
   saveData(data, tenant = null) {

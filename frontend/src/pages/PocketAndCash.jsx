@@ -29,6 +29,7 @@ import {
   getPocketTransactions, 
   getSantriBills 
 } from '../services/api';
+import { subscribeCloudPocket, subscribeCloudSantri } from '../services/cloudDatabase';
 import SantriIdCard from '../components/SantriIdCard';
 import OfficialReceipt from '../components/OfficialReceipt';
 import { useSettings } from '../context/SettingsContext';
@@ -67,6 +68,31 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
 
   useEffect(() => {
     loadPageData();
+
+    // Multi-Device Cloud Real-Time Listener untuk mutasi saku dan saldo santri
+    const unsubPocket = subscribeCloudPocket(null, (cloudTxs) => {
+      if (Array.isArray(cloudTxs)) setRecentDeductions(cloudTxs);
+    });
+
+    const unsubSantri = subscribeCloudSantri(null, (cloudSantri) => {
+      if (Array.isArray(cloudSantri)) {
+        setAllSantriList(cloudSantri);
+        let filtered = cloudSantri;
+        if (userRole === 'PENGURUS_SAKU' && Array.isArray(managedIds) && managedIds.length > 0) {
+          filtered = cloudSantri.filter(s => managedIds.includes(s.id));
+        }
+        setSantriList(filtered);
+        if (selectedSantri) {
+          const updated = cloudSantri.find(s => s.id === selectedSantri.id);
+          if (updated) setSelectedSantri(updated);
+        }
+      }
+    });
+
+    return () => {
+      if (typeof unsubPocket === 'function') unsubPocket();
+      if (typeof unsubSantri === 'function') unsubSantri();
+    };
   }, [currentUser]);
 
   useEffect(() => {

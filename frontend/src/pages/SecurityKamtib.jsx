@@ -27,6 +27,7 @@ import {
   updatePermitStatus,
   getSantriList 
 } from '../services/api';
+import { subscribeCloudPermits } from '../services/cloudDatabase';
 
 export default function SecurityKamtib({ onOpenNfcModal }) {
   const [subTab, setSubTab] = useState('permits'); // 'permits' | 'violations' | 'rules'
@@ -63,6 +64,17 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
 
   useEffect(() => {
     loadData();
+
+    // Real-Time Multi-Device Sync: Monitoring perizinan santri langsung update antar pos keamanan
+    const unsubscribe = subscribeCloudPermits(null, (cloudPermits) => {
+      if (Array.isArray(cloudPermits)) {
+        setPermits(cloudPermits);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [subTab]);
 
   const loadData = async () => {
