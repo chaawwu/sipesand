@@ -22,25 +22,30 @@ import {
   ChevronRight,
   UserCheck,
   Radio,
-  Building
+  Building,
+  Lock
 } from 'lucide-react';
 import { 
   getPublicSantriData, 
   getPublicSantriBills, 
   uploadPaymentProof 
 } from '../services/api';
+import { getCurrentTenant } from '../services/localDatabase';
+import { getCloudSettings } from '../services/cloudDatabase';
 import OfficialReceipt from '../components/OfficialReceipt';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
 import { useSettings } from '../context/SettingsContext';
 
-export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome, onNavigateLegal }) {
+export default function PortalWaliPublic({ initialQuery = '', tenant = null, onBackToHome, onNavigateLegal }) {
   const { settings, isNfcEnabled } = useSettings();
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const resolvedTenant = tenant || getCurrentTenant();
+  const [tenantSettings, setTenantSettings] = useState(settings);
+  const [searchQuery, setSearchQuery] = useState(initialQuery || '');
   const [portalRawData, setPortalRawData] = useState(null);
   const [santriData, setSantriData] = useState(null);
   const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Selection & Payment Flow States
@@ -68,33 +73,60 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [activeReceiptData, setActiveReceiptData] = useState(null);
 
-  const logoPondok = settings.LOGO_PONDOK_URL;
-  const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand Terpadu';
-  const bankName = settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)';
-  const bankAccountNo = settings.BANK_ACCOUNT_NO || '7192837465';
-  const bankAccountHolder = settings.BANK_ACCOUNT_HOLDER || 'YAYASAN SIPESAND TERPADU';
-  const qrisUrl = settings.QRIS_PAYMENT_URL || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80';
+  // Load specific tenant settings from Cloud Firestore to display the correct institution
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSettingsForTenant() {
+      try {
+        const res = await getCloudSettings(resolvedTenant);
+        if (isMounted && res && res.data && Object.keys(res.data).length > 0) {
+          setTenantSettings(prev => ({ ...prev, ...res.data }));
+        }
+      } catch (err) {
+        console.warn('Gagal memuat setting tenant:', err);
+      }
+    }
+    loadSettingsForTenant();
+    return () => { isMounted = false; };
+  }, [resolvedTenant]);
+
+  const logoPondok = tenantSettings.LOGO_PONDOK_URL || settings.LOGO_PONDOK_URL || "/logo.png";
+  const namaLembaga = tenantSettings.NAMA_LEMBAGA || settings.NAMA_LEMBAGA || 'SiPesand Terpadu';
+  const bankName = tenantSettings.BANK_NAME || settings.BANK_NAME || 'Bank Syariah Indonesia (BSI)';
+  const bankAccountNo = tenantSettings.BANK_ACCOUNT_NO || settings.BANK_ACCOUNT_NO || '7192837465';
+  const bankAccountHolder = tenantSettings.BANK_ACCOUNT_HOLDER || settings.BANK_ACCOUNT_HOLDER || `YAYASAN ${namaLembaga.toUpperCase()}`;
+  const qrisUrl = tenantSettings.QRIS_PAYMENT_URL || settings.QRIS_PAYMENT_URL || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80';
   
   // King Digital Payment Gateway Active State
-  const isKingDigitalPgActive = settings.KING_DIGITAL_PG_ENABLED === 'true';
-  const disbursementBank = settings.DISBURSEMENT_BANK || 'Bank Syariah Indonesia (BSI)';
-  const disbursementAccountNo = settings.DISBURSEMENT_ACCOUNT_NO || '7192837465';
-  const disbursementHolder = settings.DISBURSEMENT_ACCOUNT_HOLDER || `YAYASAN ${namaLembaga.toUpperCase()}`;
+  const isKingDigitalPgActive = tenantSettings.KING_DIGITAL_PG_ENABLED === 'true';
+  const disbursementBank = tenantSettings.DISBURSEMENT_BANK || 'Bank Syariah Indonesia (BSI)';
+  const disbursementAccountNo = tenantSettings.DISBURSEMENT_ACCOUNT_NO || '7192837465';
+  const disbursementHolder = tenantSettings.DISBURSEMENT_ACCOUNT_HOLDER || `YAYASAN ${namaLembaga.toUpperCase()}`;
 
   useEffect(() => {
-    if (searchQuery) {
-      loadSantriData(searchQuery);
+    if (initialQuery && initialQuery.trim()) {
+      setSearchQuery(initialQuery.trim());
+      loadSantriData(initialQuery.trim());
     }
-  }, []);
+  }, [initialQuery, resolvedTenant]);
 
   const loadSantriData = async (query) => {
+    const q = (query || '').trim();
+    if (!q) {
+      setSantriData(null);
+      setPortalRawData(null);
+      setBills([]);
+      setError('Silakan masukkan NIS atau Nama Santri untuk mencari data.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
-      const res = await getPublicSantriData(query);
+      const res = await getPublicSantriData(q, resolvedTenant);
 
-      if (res.data?.success && res.data?.data) {
+      if (res && res.data && res.data.success && res.data.data) {
         const payload = res.data.data;
         setPortalRawData(payload);
         setSantriData(payload.santri || payload);
@@ -103,161 +135,22 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
         setBills(extractedBills);
         setLoading(false);
         return;
+      } else {
+        const notFoundMsg = res?.data?.message || `Data santri "${q}" tidak ditemukan di ${namaLembaga}. Pastikan ejaan nama atau nomor induk santri (NIS) sudah sesuai.`;
+        setError(notFoundMsg);
+        setSantriData(null);
+        setPortalRawData(null);
+        setBills([]);
       }
     } catch (err) {
-      console.warn('API Portal Wali offline, menggunakan dataset mandiri terverifikasi:', err);
+      console.warn('API Portal Wali error:', err);
+      setError(`Data santri "${q}" tidak ditemukan di ${namaLembaga}. Mohon periksa kembali ejaan nama atau NIS putra/putri Anda.`);
+      setSantriData(null);
+      setPortalRawData(null);
+      setBills([]);
+    } finally {
+      setLoading(false);
     }
-
-    // Fallback Data Santri Mandiri Khusus Darul Rahman (Memastikan 100% selalu berfungsi)
-    const lowerQ = (query || '').toLowerCase();
-    let nama = 'Muhammad Farhan Al-Fatih';
-    let nis = '202601001';
-    let kelas = '10 IPA 1 (KMI 4)';
-    let kamar = 'Asrama Umar bin Khattab No. 04';
-    let wali = 'H. Abdullah Farhan';
-    let saldo = 175000;
-    let gender = 'L';
-
-    if (lowerQ.includes('aisyah')) {
-      nama = 'Aisyah Nur Ramadhani';
-      nis = '202601002';
-      kelas = '11 Keagamaan (KMI 5)';
-      kamar = 'Asrama Siti Khadijah No. 12';
-      wali = 'Dr. Hendra Gunawan';
-      saldo = 250000;
-      gender = 'P';
-    } else if (lowerQ.includes('zaki')) {
-      nama = 'Ahmad Zaki Mubarak';
-      nis = '202601003';
-      kelas = '12 IPS (KMI 6)';
-      kamar = 'Asrama Abu Bakar No. 07';
-      wali = 'Drs. Supriyadi';
-      saldo = 85000;
-      gender = 'L';
-    } else if (lowerQ.includes('fatimah') || lowerQ.includes('fathimah')) {
-      nama = 'Fathimah Azzahra';
-      nis = '202601004';
-      kelas = '10 IPA 2 (KMI 4)';
-      kamar = 'Asrama Aisyah No. 03';
-      wali = 'Rahmat Hidayat, M.Pd.';
-      saldo = 320000;
-      gender = 'P';
-    } else if (lowerQ.includes('bilal')) {
-      nama = 'Bilal Habasyi Rizqullah';
-      nis = '202601005';
-      kelas = '11 IPA (KMI 5)';
-      kamar = 'Asrama Ali bin Abi Thalib No. 02';
-      wali = 'H. Lukman Hakim';
-      saldo = 85000;
-      gender = 'L';
-    } else if (query && !lowerQ.includes('farhan')) {
-      nama = query.trim();
-      wali = 'Wali Santri (' + query.trim() + ')';
-    }
-
-    const fallbackBills = [
-      {
-        id: 101,
-        code: 'INV-202609-001',
-        title: 'SPP Syahriyah Shafar 1448 H',
-        amount: 1200000,
-        status: 'UNPAID',
-        month: 'Shafar 1448 H / September 2026',
-        createdAt: '2026-09-01T08:00:00Z',
-        masterBill: { name: 'SPP Syahriyah Bulanan' }
-      },
-      {
-        id: 102,
-        code: 'INV-202608-002',
-        title: 'Uang Makan & Konsumsi Muharram',
-        amount: 600000,
-        status: 'PAID',
-        month: 'Muharram 1448 H / Agustus 2026',
-        paidAt: '2026-08-15T10:30:00Z',
-        masterBill: { name: 'Uang Makan & Konsumsi Dapur' }
-      },
-      {
-        id: 103,
-        code: 'INV-202608-001',
-        title: 'SPP Syahriyah Muharram 1448 H',
-        amount: 1200000,
-        status: 'PAID',
-        month: 'Muharram 1448 H / Agustus 2026',
-        paidAt: '2026-08-10T14:20:00Z',
-        masterBill: { name: 'SPP Syahriyah Bulanan' }
-      }
-    ];
-
-    const fallbackPayload = {
-      santri: {
-        id: 1,
-        nama,
-        nis,
-        nfcUid: 'NFC-8A3F129B',
-        gender,
-        kelas,
-        kamar,
-        alamat: settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur',
-        namaWali: wali,
-        noHpWali: settings.WHATSAPP_CENTER || '085123734342',
-        saldo_saku: saldo,
-        status: 'AKTIF',
-      },
-      locationStatus: 'DI_PESANTREN',
-      locationLabel: 'Berada di Asrama Pondok',
-      isOverdue: false,
-      financial: {
-        pocketBalance: saldo,
-        totalUnpaid: 1200000,
-        totalPaid: 1800000,
-        unpaidCount: 1,
-        paidCount: 2,
-        bills: fallbackBills,
-      },
-      bills: fallbackBills,
-      recentPocketTxs: [
-        {
-          id: 201,
-          txCode: 'TX-20260907-01',
-          type: 'WITHDRAW',
-          amount: 15000,
-          balanceAfter: saldo,
-          description: 'Belanja Alat Tulis Koperasi Santri',
-          createdAt: '2026-09-07T10:15:00Z'
-        },
-        {
-          id: 202,
-          txCode: 'TX-20260905-02',
-          type: 'TOPUP',
-          amount: 100000,
-          balanceAfter: saldo + 15000,
-          description: 'Setoran Uang Saku via Virtual Account BSI',
-          createdAt: '2026-09-05T14:30:00Z'
-        }
-      ],
-      academics: [
-        { id: 301, subject: 'Muhafadzoh Nadzom Imrithi', score: 95, date: '2026-09-04', notes: 'Setoran hafalan 100 bait mutqin & lancar (Mumtaz)' },
-        { id: 302, subject: 'Pengajian Fathul Qorib', score: 90, date: '2026-09-03', notes: 'Paham makna gandul & tarkib bab Thaharah' },
-        { id: 303, subject: 'Muhafadzoh Alfiyah Ibnu Malik', score: 88, date: '2026-09-02', notes: 'Lancar setoran bait 1-100 bab Kalam' }
-      ],
-      permits: [
-        {
-          id: 401,
-          permitCode: 'IZIN-20260901-01',
-          type: 'SAMBANGAN',
-          reason: 'Kunjungan Wali Santri Bulanan',
-          departureTime: '2026-09-01T09:00:00Z',
-          returnTime: '2026-09-01T17:00:00Z',
-          status: 'RETURNED',
-          approvedBy: 'Ustadz Danang (Kamtib)'
-        }
-      ]
-    };
-
-    setPortalRawData(fallbackPayload);
-    setSantriData(fallbackPayload.santri);
-    setBills(fallbackBills);
-    setLoading(false);
   };
 
   const handleSearch = (e) => {
@@ -343,7 +236,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
         notes: notes || `Pembayaran transfer oleh wali santri ${santriData?.namaWali || ''}`,
       };
 
-      const res = await uploadPaymentProof(payload);
+      const res = await uploadPaymentProof(payload, resolvedTenant);
       if (res.data.success) {
         if (paymentMethod === 'KING_DIGITAL_PG') {
           setPaymentSuccessMsg(`Pembayaran diproses sukses oleh King Digital Payment Gateway! Dana sebesar Rp ${totalPaymentAmount.toLocaleString('id-ID')} otomatis diteruskan ke rekening penampungan ${disbursementBank} (${disbursementAccountNo}) a.n ${disbursementHolder}. Kwitansi resmi telah terbit.`);
@@ -448,10 +341,12 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#8CE829]/15 border border-[#8CE829]/30 text-[11px] font-bold text-slate-900">
-              <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
-              <span>Layanan Mandiri Aktif</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Lembaga Terverifikasi:</span>
+              <span>{namaLembaga}</span>
+              <span className="text-[9px] bg-emerald-200/80 px-1.5 py-0.5 rounded text-emerald-900 font-black uppercase tracking-wider">Terkunci</span>
             </div>
           </div>
 
@@ -466,7 +361,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
           <div className="max-w-3xl mx-auto text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/20 border border-white/30 text-xs font-bold text-white">
               <span className="w-2 h-2 rounded-full bg-[#8CE829]" />
-              <span>Transparansi Santri Real-Time</span>
+              <span>Transparansi Santri Real-Time • {namaLembaga}</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
@@ -482,7 +377,7 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
                 <Search className="w-5 h-5 text-stone-400 flex-shrink-0" />
                 <input
                   type="text"
-                  placeholder="Ketik NIS atau Nama Santri (contoh: Farhan)..."
+                  placeholder={`Ketik NIS atau Nama Santri di ${namaLembaga}... (contoh: Fulan)`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-xs sm:text-sm font-medium text-slate-900 placeholder:text-stone-400 focus:outline-none"
@@ -742,7 +637,23 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
             </div>
 
           </div>
-        ) : null}
+        ) : (
+          <div className="p-12 sm:p-16 text-center bg-white rounded-[32px] border border-stone-200/90 shadow-sm space-y-4 max-w-xl mx-auto">
+            <div className="w-16 h-16 bg-blue-50 text-[#0B52E2] rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+              <Search className="w-8 h-8" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900">Cari Data Santri</h3>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Silakan ketik <strong>NIS</strong> atau <strong>Nama Lengkap Santri</strong> pada kolom pencarian di atas untuk melihat status keberadaan, saldo uang saku NFC, serta rincian tagihan syahriyah di <strong>{namaLembaga}</strong>.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-[11px] font-medium text-stone-600">
+              <Lock className="w-3.5 h-3.5 text-stone-500" />
+              <span>Data terisolasi aman khusus santri terdaftar di {namaLembaga}</span>
+            </div>
+          </div>
+        )}
 
       </main>
 

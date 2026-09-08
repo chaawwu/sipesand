@@ -78,84 +78,29 @@ export default function LandingPage({
       setLoadingSearch(true);
       setSearchError('');
       
-      const res = await getPublicSantriData(q);
+      const currentTenant = activeTenantSubdomain || null;
+      const res = await getPublicSantriData(q, currentTenant);
       const result = res.data;
       
       if (result && result.success && result.data) {
         const pData = result.data.santri || result.data;
         setTrackerSantri({
           ...pData,
-          saldoSaku: pData.saldo_saku || 0,
+          saldoSaku: pData.saldo_saku || pData.saldoSaku || 0,
           permits: result.data.permits || [],
           bills: result.data.bills || []
         });
         setIsTrackerOpen(true);
         return;
+      } else {
+        setSearchError(`Data santri "${q}" tidak ditemukan di ${namaLembaga}. Pastikan NIS atau Nama sesuai data pesantren.`);
       }
     } catch (err) {
-      console.warn('API santri fallback ke dataset santri mandiri:', err);
+      console.warn('API santri search error:', err);
+      setSearchError(`Data santri "${q}" tidak ditemukan di ${namaLembaga}. Pastikan NIS atau Nama sesuai data santri terdaftar.`);
     } finally {
       setLoadingSearch(false);
     }
-
-    // Fallback Demo Santri Terverifikasi Khusus Darul Rahman
-    const lowerQ = q.toLowerCase();
-    let fallbackName = q;
-    let fallbackNis = '202601001';
-    let fallbackKelas = '10 IPA 1 (KMI 4)';
-    let fallbackAsrama = 'Asrama Umar bin Khattab No. 04';
-    let fallbackSaldo = 175000;
-
-    if (lowerQ.includes('farhan')) {
-      fallbackName = 'Muhammad Farhan Al-Fatih';
-      fallbackNis = '202601001';
-      fallbackKelas = '10 IPA 1 (KMI 4)';
-      fallbackAsrama = 'Asrama Umar bin Khattab No. 04';
-      fallbackSaldo = 175000;
-    } else if (lowerQ.includes('aisyah')) {
-      fallbackName = 'Aisyah Nur Ramadhani';
-      fallbackNis = '202601002';
-      fallbackKelas = '11 Keagamaan (KMI 5)';
-      fallbackAsrama = 'Asrama Siti Khadijah No. 12';
-      fallbackSaldo = 250000;
-    } else if (lowerQ.includes('zaki')) {
-      fallbackName = 'Ahmad Zaki Mubarak';
-      fallbackNis = '202601003';
-      fallbackKelas = '12 IPS (KMI 6)';
-      fallbackAsrama = 'Asrama Abu Bakar No. 07';
-      fallbackSaldo = 85000;
-    } else if (lowerQ.includes('fatimah') || lowerQ.includes('fathimah')) {
-      fallbackName = 'Fathimah Azzahra';
-      fallbackNis = '202601004';
-      fallbackKelas = '10 IPA 2 (KMI 4)';
-      fallbackAsrama = 'Asrama Aisyah No. 03';
-      fallbackSaldo = 320000;
-    } else if (lowerQ.includes('bilal')) {
-      fallbackName = 'Bilal Habasyi Rizqullah';
-      fallbackNis = '202601005';
-      fallbackKelas = '11 IPA (KMI 5)';
-      fallbackAsrama = 'Asrama Ali bin Abi Thalib No. 02';
-      fallbackSaldo = 85000;
-    }
-
-    setTrackerSantri({
-      id: 'demo-1',
-      nama: fallbackName,
-      nis: fallbackNis,
-      kelas: fallbackKelas,
-      kamar: fallbackAsrama,
-      waliNama: 'Wali Santri (' + fallbackName + ')',
-      saldoSaku: fallbackSaldo,
-      dailyLimit: 20000,
-      permits: [
-        { id: 'p1', reason: 'Izin Sambangan Keluarga & Kepulangan Bulanan', returnDate: '08-09-2026 17:00', status: 'ACTIVE' }
-      ],
-      bills: [
-        { id: 'b1', title: 'Syahriyah Shafar 1448 H', amount: 350000, status: 'PAID' },
-        { id: 'b2', title: 'Uang Makan & Konsumsi Dapur', amount: 600000, status: 'PAID' }
-      ]
-    });
-    setIsTrackerOpen(true);
   };
 
   const categories = [
@@ -190,7 +135,7 @@ export default function LandingPage({
             santriData={trackerSantri}
             onOpenPortalWali={() => {
               setIsTrackerOpen(false);
-              onOpenPortalWali(quickQuery);
+              onOpenPortalWali(trackerSantri?.nis || trackerSantri?.nama || quickQuery);
             }}
           />
         )}
@@ -838,7 +783,7 @@ export default function LandingPage({
           santriData={trackerSantri}
           onOpenPortalWali={() => {
             setIsTrackerOpen(false);
-            onOpenPortalWali(quickQuery);
+            onOpenPortalWali(trackerSantri?.nis || trackerSantri?.nama || quickQuery);
           }}
         />
       )}

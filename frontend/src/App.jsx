@@ -103,7 +103,7 @@ function resolveInitialView() {
 function MainAppContent() {
   // Current View: 'landing' | 'landing-saas' | 'developer-dashboard' | 'portal-wali' | 'app-gateway' | 'app' | 'faq' | 'refund-policy' | 'terms-and-conditions' | 'kontak' | 'seo-pillar' | 'blog'
   const [currentView, setCurrentView] = useState(resolveInitialView);
-  const [portalWaliQuery, setPortalWaliQuery] = useState('Farhan');
+  const [portalWaliQuery, setPortalWaliQuery] = useState('');
 
   // SEO Pillar & Blog Navigation State
   const [currentPillarSlug, setCurrentPillarSlug] = useState(() => {
@@ -341,7 +341,7 @@ function MainAppContent() {
     setIsMobileSidebarOpen(false);
   };
 
-  const handleOpenPortalWali = (query = 'Farhan') => {
+  const handleOpenPortalWali = (query = '') => {
     setPortalWaliQuery(query);
     setCurrentView('portal-wali');
   };
@@ -584,6 +584,7 @@ function MainAppContent() {
       <div className="min-h-screen bg-[#F8FAFC]">
         <PortalWaliPublic
           initialQuery={portalWaliQuery}
+          tenant={activeTenantSubdomain || getCurrentTenant()}
           onBackToHome={() => setCurrentView('landing')}
           onNavigateLegal={(path) => setCurrentView(path)}
         />

@@ -59,7 +59,7 @@ const api = axios.create({
 // Request Interceptor: Otomatis kirim X-Tenant-Subdomain ke Backend
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const tenant = getCurrentTenant();
+    const tenant = config.params?.tenant || getCurrentTenant();
     if (tenant && tenant !== 'default') {
       config.headers['X-Tenant-Subdomain'] = tenant;
     }
@@ -481,19 +481,25 @@ export const getBackupData = () =>
   );
 
 // =============================================================================
-// 11. PORTAL WALI (PUBLIK)
+// 11. PORTAL WALI (PUBLIK DENGAN ISOLASI TENANT KETAT)
 // =============================================================================
-export const getPortalWaliData = (query) => 
-  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => getCloudPortalWaliData(query));
-
-export const getPublicSantriData = (query) => 
-  runHybrid(() => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`), () => getCloudPortalWaliData(query));
-
-export const getPublicSantriBills = (query) => 
+export const getPortalWaliData = (query, tenant = null) => 
   runHybrid(
-    () => api.get(`/portal-wali/bills/${encodeURIComponent(query)}`),
+    () => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`, { params: { tenant } }), 
+    () => getCloudPortalWaliData(query, tenant)
+  );
+
+export const getPublicSantriData = (query, tenant = null) => 
+  runHybrid(
+    () => api.get(`/portal-wali/santri/${encodeURIComponent(query)}`, { params: { tenant } }), 
+    () => getCloudPortalWaliData(query, tenant)
+  );
+
+export const getPublicSantriBills = (query, tenant = null) => 
+  runHybrid(
+    () => api.get(`/portal-wali/bills/${encodeURIComponent(query)}`, { params: { tenant } }),
     async () => {
-      const res = await getCloudPortalWaliData(query);
+      const res = await getCloudPortalWaliData(query, tenant);
       if (res.success && res.data) {
         return { success: true, data: res.data.bills || [] };
       }
@@ -501,8 +507,11 @@ export const getPublicSantriBills = (query) =>
     }
   );
 
-export const uploadPaymentProof = (data) => 
-  runHybrid(() => api.post('/bills/pay-online', data), () => uploadCloudPaymentProof(data));
+export const uploadPaymentProof = (data, tenant = null) => 
+  runHybrid(
+    () => api.post('/bills/pay-online', data, { params: tenant ? { tenant } : {}, headers: tenant ? { 'X-Tenant-Subdomain': tenant } : {} }), 
+    () => uploadCloudPaymentProof(data, tenant)
+  );
 
 // =============================================================================
 // 12. MITRA / SAAS PLATFORM

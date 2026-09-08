@@ -68,6 +68,24 @@ export function getCurrentTenant() {
 export function setCurrentTenant(tenant) {
   if (typeof window !== 'undefined' && tenant) {
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
+      const hostname = window.location.hostname.toLowerCase();
+      const ignored = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'];
+      
+      // If the current environment is strictly bound to a tenant URL or subdomain, prevent switching
+      if (tenantQuery && !ignored.includes(tenantQuery.toLowerCase().trim())) {
+        return;
+      }
+      if (hostname.includes('.sipesand.web.id')) {
+        const parts = hostname.replace('.sipesand.web.id', '').split('.');
+        if (parts[0] && !ignored.includes(parts[0].trim())) return;
+      }
+      if (hostname.endsWith('.localhost')) {
+        const parts = hostname.replace('.localhost', '').split('.');
+        if (parts[0] && !ignored.includes(parts[0].trim())) return;
+      }
+
       localStorage.setItem('sipesand_active_tenant', tenant.toLowerCase().trim());
     } catch (e) {}
   }
@@ -1354,21 +1372,25 @@ export class LocalDatabase {
   }
 
   // ---------------------------------------------------------------------------
-  // 10. PORTAL WALI (PUBLIC ACCESS)
+  // 10. PORTAL WALI (PUBLIC ACCESS WITH STRICT TENANT ISOLATION)
   // ---------------------------------------------------------------------------
-  getPortalWaliData(query) {
-    const db = this.getData();
-    if (!query) return { success: false, message: 'NIS atau Kode Kartu santri wajib dimasukkan' };
-    const q = query.trim().toUpperCase();
+  getPortalWaliData(query, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    if (!query) return { success: false, message: 'NIS atau Nama santri wajib dimasukkan' };
+    const q = query.trim().toLowerCase();
 
     const santri = (db.santri || []).find(s => 
-      (s.nis && s.nis.toUpperCase() === q) || 
-      (s.nfcUid && s.nfcUid.toUpperCase() === q) ||
-      (s.nama && s.nama.toUpperCase().includes(q))
+      (s.nis && String(s.nis).trim().toLowerCase() === q) || 
+      (s.nfcUid && String(s.nfcUid).trim().toLowerCase() === q) ||
+      (s.nama && String(s.nama).trim().toLowerCase().includes(q))
     );
 
     if (!santri) {
-      return { success: false, message: 'Data santri tidak ditemukan. Pastikan NIS atau nomor kartu santri sudah sesuai.' };
+      return { 
+        success: false, 
+        message: `Data santri "${query}" tidak ditemukan pada database ${activeT}. Pastikan nama atau nomor induk santri (NIS) sudah sesuai.` 
+      };
     }
 
     const bills = (db.santriBills || []).filter(b => String(b.santriId) === String(santri.id));
@@ -1376,20 +1398,56 @@ export class LocalDatabase {
     const permits = (db.permits || []).filter(p => String(p.santriId) === String(santri.id)).slice(0, 5);
     const academics = (db.academics || []).filter(a => String(a.santriId) === String(santri.id));
 
+    const activePermit = permits.find(p => p.status === 'ACTIVE');
+    const now = new Date();
+    const isOverdue = activePermit && new Date(activePermit.returnTime) < now;
+
+    let locationStatus = 'DI_PESANTREN';
+    let locationLabel = 'Berada di Asrama Pondok';
+    if (isOverdue) {
+      locationStatus = 'OVERDUE';
+      locationLabel = 'Terlambat Kembali (Overdue)';
+    } else if (activePermit) {
+      locationStatus = 'IZIN_KELUAR';
+      locationLabel = 'Sedang Izin Keluar Resmi';
+    }
+
+    const unpaidBills = bills.filter(b => b.status !== 'PAID');
+    const paidBills = bills.filter(b => b.status === 'PAID');
+
     return {
       success: true,
       data: {
         santri,
+        location: {
+          status: locationStatus,
+          label: locationLabel,
+          isOverdue,
+          activePermit: activePermit || null
+        },
+        locationStatus,
+        locationLabel,
+        isOverdue,
         bills,
+        financial: {
+          pocketBalance: santri.saldo_saku || 0,
+          totalUnpaid: unpaidBills.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0),
+          totalPaid: paidBills.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0),
+          unpaidCount: unpaidBills.length,
+          paidCount: paidBills.length,
+          bills
+        },
         pocketTxs,
         permits,
-        academics
+        academics,
+        tenant: activeT
       }
     };
   }
 
-  uploadPaymentProof({ billId, proofUrl, proofNote }) {
-    const db = this.getData();
+  uploadPaymentProof({ billId, proofUrl, proofNote }, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
     const bill = (db.santriBills || []).find(b => String(b.id) === String(billId));
     if (!bill) return { success: false, message: 'Tagihan tidak ditemukan' };
 
@@ -1398,7 +1456,7 @@ export class LocalDatabase {
     bill.proofNote = proofNote || 'Upload Bukti Pembayaran Portal Wali';
     bill.updatedAt = new Date().toISOString();
 
-    this.saveData(db);
+    this.saveData(db, activeT);
     return { success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' };
   }
 }

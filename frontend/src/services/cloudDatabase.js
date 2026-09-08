@@ -813,30 +813,36 @@ export async function getCloudDashboardStats(tenant = null) {
 }
 
 // -----------------------------------------------------------------------------
-// 10. PORTAL WALI LIVE CLOUD LOOKUP
+// 10. PORTAL WALI LIVE CLOUD LOOKUP (STRICT TENANT ISOLATION)
 // -----------------------------------------------------------------------------
 export async function getCloudPortalWaliData(query, tenant = null) {
-  if (!query) return { success: false, message: 'NIS atau Kode Kartu santri wajib dimasukkan' };
-  try {
-    const santriRes = await getCloudSantriList(tenant);
-    const santriList = santriRes.data || [];
-    const q = query.trim().toUpperCase();
+  if (!query) return { success: false, message: 'NIS atau Nama santri wajib dimasukkan' };
+  const targetTenant = tenant || getCurrentTenant();
 
+  try {
+    const santriRes = await getCloudSantriList(targetTenant);
+    const santriList = santriRes.data || [];
+    const q = query.trim().toLowerCase();
+
+    // Match exact NIS, exact NFC UID, or Nama contains substring (case-insensitive)
     const santri = santriList.find(s => 
-      (s.nis && s.nis.toUpperCase() === q) ||
-      (s.nfcUid && s.nfcUid.toUpperCase() === q) ||
-      (s.nama && s.nama.toUpperCase().includes(q))
+      (s.nis && String(s.nis).trim().toLowerCase() === q) ||
+      (s.nfcUid && String(s.nfcUid).trim().toLowerCase() === q) ||
+      (s.nama && String(s.nama).trim().toLowerCase().includes(q))
     );
 
     if (!santri) {
-      return { success: false, message: 'Data santri tidak ditemukan. Pastikan NIS atau nama santri sudah sesuai.' };
+      return { 
+        success: false, 
+        message: `Data santri "${query}" tidak ditemukan di database lembaga ${targetTenant}. Pastikan nama atau nomor induk santri (NIS) sudah sesuai.` 
+      };
     }
 
     const [billsRes, pocketRes, permitsRes, academicsRes] = await Promise.all([
-      getCloudBills(tenant),
-      getCloudPocketTransactions(tenant),
-      getCloudPermits(tenant),
-      getCloudAcademicRecords(tenant)
+      getCloudBills(targetTenant),
+      getCloudPocketTransactions(targetTenant),
+      getCloudPermits(targetTenant),
+      getCloudAcademicRecords(targetTenant)
     ]);
 
     const bills = (billsRes.data || []).filter(b => String(b.santriId) === String(santri.id));
@@ -844,19 +850,55 @@ export async function getCloudPortalWaliData(query, tenant = null) {
     const permits = (permitsRes.data || []).filter(p => String(p.santriId) === String(santri.id)).slice(0, 5);
     const academics = (academicsRes.data || []).filter(a => String(a.santriId) === String(santri.id));
 
+    // Calculate location & permit status
+    const activePermit = permits.find(p => p.status === 'ACTIVE');
+    const now = new Date();
+    const isOverdue = activePermit && new Date(activePermit.returnTime) < now;
+
+    let locationStatus = 'DI_PESANTREN';
+    let locationLabel = 'Berada di Asrama Pondok';
+    if (isOverdue) {
+      locationStatus = 'OVERDUE';
+      locationLabel = 'Terlambat Kembali (Overdue)';
+    } else if (activePermit) {
+      locationStatus = 'IZIN_KELUAR';
+      locationLabel = 'Sedang Izin Keluar Resmi';
+    }
+
+    const unpaidBills = bills.filter(b => b.status !== 'PAID');
+    const paidBills = bills.filter(b => b.status === 'PAID');
+
     return {
       success: true,
       data: {
         santri,
+        location: {
+          status: locationStatus,
+          label: locationLabel,
+          isOverdue,
+          activePermit: activePermit || null
+        },
+        locationStatus,
+        locationLabel,
+        isOverdue,
         bills,
+        financial: {
+          pocketBalance: santri.saldo_saku || 0,
+          totalUnpaid: unpaidBills.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0),
+          totalPaid: paidBills.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0),
+          unpaidCount: unpaidBills.length,
+          paidCount: paidBills.length,
+          bills
+        },
         pocketTxs,
         permits,
-        academics
+        academics,
+        tenant: targetTenant
       }
     };
   } catch (err) {
     console.warn("getCloudPortalWaliData fallback local:", err);
-    return localDb.getPortalWaliData(query);
+    return localDb.getPortalWaliData(query, targetTenant);
   }
 }
 

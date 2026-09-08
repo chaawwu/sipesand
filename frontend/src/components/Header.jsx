@@ -7,7 +7,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Menu,
-  Cloud
+  Cloud,
+  Lock
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { getCurrentTenant, setCurrentTenant } from '../services/localDatabase';
@@ -32,7 +33,7 @@ export default function Header({
   onBackToLanding,
   onToggleMobileSidebar
 }) {
-  const { settings, isNfcEnabled } = useSettings();
+  const { settings, isNfcEnabled, isTenantInstance, activeTenantSubdomain } = useSettings();
   const [activeTenant, setActiveTenant] = useState('darulrahman');
   const pageTitle = TAB_TITLES[activeTab] || 'SiPesand Terpadu';
   const logoPondok = settings.LOGO_PONDOK_URL;
@@ -80,23 +81,35 @@ export default function Header({
       {/* Right: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         
-        {/* Tenant Selector & Multi-device Live Sync Indicator */}
-        <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-lg text-slate-700 transition-colors shadow-2xs">
-          <Building2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-          <span className="hidden md:inline text-[10px] font-semibold text-slate-500">Tenant:</span>
-          <select 
-            value={activeTenant} 
-            onChange={(e) => handleTenantChange(e.target.value)}
-            className="bg-transparent font-bold text-[11px] text-slate-900 border-none outline-none cursor-pointer pr-1"
-            title="Pilih Tenant Pesantren (Multi-device)"
-          >
-            <option value="darulrahman">Darul Rahman</option>
-            <option value="alhikmah">Al-Hikmah</option>
-            <option value="nurulhuda">Nurul Huda</option>
-            <option value="master">Pusat / Master</option>
-          </select>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Multi-Device Cloud Real-Time Active" />
-        </div>
+        {/* Tenant Indicator (Locked to prevent cross-tenant switching) */}
+        {isTenantInstance || (activeTenant && activeTenant !== 'master') ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50/90 border border-emerald-200 rounded-lg text-emerald-900 shadow-2xs">
+            <Lock className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+            <span className="hidden md:inline text-[10px] font-semibold text-emerald-700">Tenant:</span>
+            <span className="font-bold text-[11px] text-emerald-950 uppercase">
+              {activeTenantSubdomain || activeTenant}
+            </span>
+            <span className="text-[8px] bg-emerald-200/80 text-emerald-900 px-1 py-0.2 rounded font-black tracking-wider uppercase">Terkunci</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Multi-Device Cloud Real-Time Active" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-lg text-slate-700 transition-colors shadow-2xs">
+            <Building2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+            <span className="hidden md:inline text-[10px] font-semibold text-slate-500">Tenant:</span>
+            <select 
+              value={activeTenant} 
+              onChange={(e) => handleTenantChange(e.target.value)}
+              className="bg-transparent font-bold text-[11px] text-slate-900 border-none outline-none cursor-pointer pr-1"
+              title="Pilih Tenant Pesantren (Multi-device)"
+            >
+              <option value="master">Pusat / Master</option>
+              <option value="darulrahman">Darul Rahman</option>
+              <option value="alhikmah">Al-Hikmah</option>
+              <option value="nurulhuda">Nurul Huda</option>
+            </select>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Multi-Device Cloud Real-Time Active" />
+          </div>
+        )}
 
         {/* NFC Scanner Trigger (If Enabled) */}
         {isNfcEnabled && (
