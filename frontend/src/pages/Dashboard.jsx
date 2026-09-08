@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getDashboardStats, createLedgerEntry } from '../services/api';
 import RfidRegistrationModal from '../components/RfidRegistrationModal';
+import AestheticToast from '../components/AestheticToast';
 
 export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
   const [stats, setStats] = useState(null);
@@ -75,6 +76,8 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
     }
   };
 
+  const [toast, setToast] = useState({ isOpen: false, type: 'success', title: '', message: '' });
+
   const handleSaveKas = async (e) => {
     e.preventDefault();
     if (!kasForm.amount || !kasForm.description) return;
@@ -82,6 +85,8 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
     try {
       setSavingKas(true);
       await createLedgerEntry(kasForm);
+      const recordedType = kasForm.type;
+      const recordedAmount = kasForm.amount;
       setIsManualKasOpen(false);
       setKasForm({
         type: 'INCOME',
@@ -92,8 +97,19 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         date: new Date().toISOString().slice(0, 10),
       });
       loadDashboard();
+      setToast({
+        isOpen: true,
+        type: 'success',
+        title: 'Kas Manual Tersimpan',
+        message: `Transaksi kas ${recordedType === 'INCOME' ? 'masuk' : 'keluar'} sebesar Rp ${parseFloat(recordedAmount).toLocaleString('id-ID')} berhasil dicatat.`
+      });
     } catch (err) {
-      alert('Gagal menyimpan kas manual');
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Menyimpan',
+        message: err.response?.data?.message || err.message || 'Gagal menyimpan kas manual'
+      });
     } finally {
       setSavingKas(false);
     }
@@ -533,6 +549,15 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         onClose={() => setIsRfidRegOpen(false)}
         onSuccess={() => loadDashboard()}
         initialSantriId={typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('santriId') : null}
+      />
+
+      {/* Toast Notification */}
+      <AestheticToast
+        isOpen={toast.isOpen}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+        onClose={() => setToast({ ...toast, isOpen: false })}
       />
 
     </div>
