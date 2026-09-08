@@ -4,7 +4,7 @@ import { getSystemSettings, saveSystemSettings } from '../services/api';
 export const TENANT_PROFILES = {
   darulrahman: {
     NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
-    TAGLINE_LEMBAGA: 'Lembaga Pendidikan Islam & Tahfidzul Qur\'an Darul Rahman Sumbersari',
+    TAGLINE_LEMBAGA: 'Pondok Pesantren Salafiyah Terpadu • Kajian Kitab Kuning & Muhafadzoh Nadzoman',
     ALAMAT_LEMBAGA: 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur',
     NO_TELP: '+62 851-2373-4342',
     WHATSAPP_CENTER: '+6285123734342',

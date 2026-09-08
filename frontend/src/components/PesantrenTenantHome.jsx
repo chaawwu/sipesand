@@ -32,7 +32,9 @@ import {
   Volume2,
   Share2,
   HelpCircle,
-  ArrowDown
+  ArrowDown,
+  MessagesSquare,
+  Repeat
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -52,7 +54,7 @@ export default function PesantrenTenantHome({
 
   const logoPondok = settings.LOGO_PONDOK_URL || '/logo.png';
   const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
-  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Lembaga Pendidikan Islam & Tahfidzul Qur\'an Darul Rahman Sumbersari';
+  const taglineLembaga = settings.TAGLINE_LEMBAGA || 'Pondok Pesantren Salafiyah Terpadu • Kajian Kitab Kuning & Muhafadzoh Nadzoman';
   const alamatLembaga = settings.ALAMAT_LEMBAGA || 'Sumbersari, Kencong, Kepung, Kediri, Jawa Timur';
   const noWa = settings.WHATSAPP_CENTER || '+62 851-2373-4342';
   const emailLembaga = settings.EMAIL_LEMBAGA || 'darulrahmansumbersari@gmail.com';
@@ -82,12 +84,12 @@ export default function PesantrenTenantHome({
 
   const categories = [
     { id: 'ALL', label: 'Semua Program', count: 6 },
-    { id: 'TAHFIDZ', label: 'Tahfidzul Qur\'an 30 Juz', count: 1 },
-    { id: 'DINIYAH', label: 'Madrasah Diniyah Salaf', count: 1 },
-    { id: 'FORMAL', label: 'Sekolah SMP & SMA-IT', count: 1 },
-    { id: 'SAKU', label: 'KTSD & Cashless POS', count: 1 },
-    { id: 'KAMTIB', label: 'Disiplin & Asrama', count: 1 },
-    { id: 'WALI', label: 'Portal Wali Santri', count: 1 },
+    { id: 'MUHAFADZOH', label: 'Muhafadzoh Nadzoman', count: 1 },
+    { id: 'KITAB', label: 'Pengajian Kitab Salaf', count: 1 },
+    { id: 'MUSYAWARAH', label: 'Musyawarah & Takror', count: 1 },
+    { id: 'FORMAL', label: 'Sekolah SMP & SMA Terpadu', count: 1 },
+    { id: 'KTSD', label: 'KTSD Cashless Santri', count: 1 },
+    { id: 'WALI', label: 'Layanan Portal Wali', count: 1 },
   ];
 
   return (
@@ -119,7 +121,7 @@ export default function PesantrenTenantHome({
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 flex-shrink-0">
                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  <span>Pesantren Mandiri</span>
+                  <span>Pesantren Salafiyah</span>
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium leading-none truncate max-w-sm">
@@ -132,7 +134,7 @@ export default function PesantrenTenantHome({
           <nav className="hidden xl:flex items-center gap-6 text-xs font-bold text-slate-600">
             <a href="#profil" className="hover:text-[#0B52E2] transition-colors">Profil Pondok</a>
             <a href="#kalam" className="hover:text-[#0B52E2] transition-colors">Kalam Pengasuh</a>
-            <a href="#program" className="hover:text-[#0B52E2] transition-colors">Program Pendidikan</a>
+            <a href="#program" className="hover:text-[#0B52E2] transition-colors">Kitab & Muhafadzoh</a>
             <a href="#rutinitas" className="hover:text-[#0B52E2] transition-colors">Kegiatan Santri</a>
             <a href="#fasilitas" className="hover:text-[#0B52E2] transition-colors">Fasilitas</a>
             <a href="#psb" className="hover:text-[#0B52E2] transition-colors">PSB 2026</a>
@@ -198,14 +200,14 @@ export default function PesantrenTenantHome({
               </div>
             </div>
 
-            {/* Main Bold Editorial Typography Berisi Tentang Pondok Pesantren */}
+            {/* Main Bold Editorial Typography Berisi Karakter Salafiyah & Muhafadzoh */}
             <div className="space-y-4 my-6 sm:my-8">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12] text-white">
                 Pondok Pesantren <br />
                 Darul Rahman Sumbersari
               </h1>
               <p className="text-white/85 text-xs sm:text-sm font-medium leading-relaxed max-w-lg">
-                Mencetak Generasi Qur'ani yang Berakhlak Mulia, Mutafaqqih Fiddin dalam Tradisi Kitab Kuning (Salafiyah), Tahfidzul Qur'an 30 Juz, serta Berwawasan Global di Kencong, Kediri.
+                Pusat Pengkajian Kitab Kuning (Salafiyah), Muhafadzoh Nadzoman (Alfiyah Ibnu Malik, Imrithi), Musyawarah Fiqih & Bahtsul Masa'il, serta Takror Santri di Kencong, Kediri.
               </p>
             </div>
 
@@ -219,7 +221,7 @@ export default function PesantrenTenantHome({
                       type="text"
                       value={quickQuery}
                       onChange={(e) => setQuickQuery && setQuickQuery(e.target.value)}
-                      placeholder="Cari Data Santri Darul Rahman (Cek Saku, Izin & SPP)..."
+                      placeholder="Cari Data Santri (Cek Saku, Izin, SPP & Nilai Muhafadzoh)..."
                       className="w-full bg-transparent text-slate-900 text-xs sm:text-sm font-semibold placeholder:text-slate-400 focus:outline-hidden"
                     />
                   </div>
@@ -268,13 +270,16 @@ export default function PesantrenTenantHome({
                 #DarulRahmanSumbersari
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #Tahfidz30Juz
+                #KitabKuningSalaf
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #SalafiyahSyafiiyah
+                #MuhafadzohAlfiyah
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
-                #KTSDCashless
+                #MusyawarahFiqih
+              </span>
+              <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
+                #TakrorMalam
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-white/10 border border-white/15">
                 #KencongKediri
@@ -308,19 +313,19 @@ export default function PesantrenTenantHome({
               {/* Floating Pastel Pill Badges around the Squircle */}
               <div className="absolute -top-3 -left-4 px-3 py-1.5 rounded-2xl bg-white shadow-md border border-slate-100 text-[11px] font-extrabold text-slate-800 flex items-center gap-1.5 animate-bounce">
                 <BookOpen className="w-3.5 h-3.5 text-[#0B52E2]" />
-                <span>Tahfidz 30 Juz</span>
+                <span>Muhafadzoh Nadzom</span>
               </div>
 
               <div className="absolute -bottom-3 -right-3 px-3 py-1.5 rounded-2xl bg-[#0A1128] shadow-md text-[11px] font-extrabold text-white flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#8CE829]" />
-                <span>Salafiyah Resmi</span>
+                <MessagesSquare className="w-3.5 h-3.5 text-[#8CE829]" />
+                <span>Musyawarah & Takror</span>
               </div>
             </div>
 
             {/* Sub-label under the App Icon */}
             <div className="text-center mt-6">
               <span className="text-xs font-black tracking-wider uppercase text-slate-900 bg-white/40 px-3 py-1 rounded-full">
-                Pondok Pesantren Terpadu • Kencong, Kediri
+                Pesantren Salafiyah • Kencong, Kediri
               </span>
             </div>
 
@@ -366,7 +371,7 @@ export default function PesantrenTenantHome({
               </div>
 
               <blockquote className="text-base sm:text-lg font-serif italic text-slate-800 leading-relaxed">
-                "Pondok pesantren bukan sekadar tempat menghafal bait-bait nadhom atau menuntaskan kurikulum, melainkan kawah candradimuka pembentukan karakter, penempaan hati dengan keikhlasan, dan pembiasaan adab luhur. Di Darul Rahman, kami mendidik santri agar lisannya akrab dengan Al-Qur'an, ilmunya mengakar pada ajaran salafus shalih, dan amalnya menebar manfaat nyata bagi umat."
+                "Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat."
               </blockquote>
 
               <div className="flex items-center gap-3 pt-2">
@@ -395,12 +400,12 @@ export default function PesantrenTenantHome({
               <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Santri Mukim</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
-              <div className="text-2xl sm:text-3xl font-black text-[#8CE829] bg-slate-900 px-2 py-0.5 rounded-lg inline-block">30 Juz</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Tahfidz Qur'an</div>
+              <div className="text-2xl sm:text-3xl font-black text-[#8CE829] bg-slate-900 px-2 py-0.5 rounded-lg inline-block">1.000 Bait</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Nadzom Alfiyah & Imrithi</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
               <div className="text-2xl sm:text-3xl font-black text-slate-900">18+</div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Asatidz Pembina</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-1">Asatidz Pengampu Salaf</div>
             </div>
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/60">
               <div className="text-2xl sm:text-3xl font-black text-emerald-600">100%</div>
@@ -441,7 +446,7 @@ export default function PesantrenTenantHome({
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-xl">
-              Pilar pendidikan dan kepengurusan santri di Pondok Pesantren Darul Rahman Sumbersari yang terintegrasi dari salafiyah hingga kurikulum formal modern.
+              Pilar pendidikan kepesantrenan salafiyah di Darul Rahman yang menitikberatkan pada penguasaan kitab kuning, muhafadzoh nadzoman, musyawarah ilmiah, dan takror santri.
             </p>
           </div>
 
@@ -468,7 +473,7 @@ export default function PesantrenTenantHome({
           {/* Kolom Kiri: Vertical Category Pills */}
           <div className="lg:col-span-3 space-y-2">
             <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-3 px-3">
-              Kategori Program
+              Kategori Kurikulum
             </div>
             {categories.map((c) => {
               const isActive = activeCategory === c.id;
@@ -496,37 +501,37 @@ export default function PesantrenTenantHome({
             })}
           </div>
 
-          {/* Kolom Kanan: Card Showcase (Termasuk Featured Royal Blue Card SAMA PERSIS) */}
+          {/* Kolom Kanan: Card Showcase (Featured Royal Blue Card SAMA PERSIS) */}
           <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             
-            {/* FEATURED CARD 1: ROYAL BLUE ACCENT CARD (TAHFIDZUL QUR'AN) */}
+            {/* FEATURED CARD 1: ROYAL BLUE ACCENT CARD (MUHAFADZOH NADZOMAN) */}
             <div className="p-6 rounded-[28px] bg-[#0B52E2] text-white shadow-xl flex flex-col justify-between space-y-6 sm:col-span-2 lg:col-span-1 border border-blue-700">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white">
-                    Tahfidz Mutqin
+                    Muhafadzoh Nadzom
                   </span>
                   <span className="text-[10px] font-bold text-[#8CE829]">
-                    30 Juz Bersanad
+                    Lalaran Rutin
                   </span>
                 </div>
                 <h3 className="text-xl font-black tracking-tight text-white leading-snug">
-                  Halaqah Tahfidzul Qur'an 30 Juz
+                  Hafalan Nadzom Kitab Kuning
                 </h3>
                 <p className="text-xs text-white/80 font-medium leading-relaxed">
-                  Bimbingan hafalan Al-Qur'an terpadu dengan setoran ziyadah pagi bakda Subuh, muraja'ah sore, tasmi' berkala, dan sanad talaqqi para hafidz.
+                  Program hafalan kaidah keilmuan salaf secara bertahap: Nadzom Aqidatul Awam, Al-Amtsilah At-Tashrifiyyah, Nadzom Imrithi, hingga 1.000 Bait Nadzom Alfiyah Ibnu Malik dengan tradisi lalaran bersama setiap hari.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-white/15 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] text-white/70">Target Hafalan</div>
-                  <div className="text-base font-extrabold text-[#8CE829]">1-3 Juz / Tahun</div>
+                  <div className="text-[10px] text-white/70">Kurikulum Nadzoman</div>
+                  <div className="text-base font-extrabold text-[#8CE829]">Alfiyah & Imrithi</div>
                 </div>
                 <button
                   onClick={() => onOpenPortalWali('')}
                   className="p-2.5 rounded-full bg-white text-[#0B52E2] hover:bg-[#8CE829] hover:text-slate-900 transition-colors shadow-md cursor-pointer"
-                  title="Lihat Progres Tahfidz Santri"
+                  title="Lihat Progres Muhafadzoh Santri"
                 >
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -545,16 +550,16 @@ export default function PesantrenTenantHome({
                   </span>
                 </div>
                 <h3 className="text-lg font-black tracking-tight text-slate-900">
-                  Madrasah Diniyah Salafiyah
+                  Pengajian Kitab Kuning Klasik
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Pengkajian mendalam gramatika bahasa Arab (Nahwu-Shorof) serta literatur Fiqih (Fathul Qorib, Fathul Mu'in), Hadits, dan Akhlaq Ta'lim Muta'allim.
+                  Metode sorogan & bandongan memaknai gandul kitab Fiqih (Safinah, Taqrib/Fathul Qorib, Fathul Mu'in), Ushul Fiqih (Al-Waraqat), Hadits Riyadhus Shalihin, dan Akhlaq Ta'lim Muta'allim.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] text-slate-400 font-bold">Metode Pengajaran</div>
+                  <div className="text-[10px] text-slate-400 font-bold">Metode Pengajian</div>
                   <div className="text-xs font-black text-slate-800">Sorogan & Bandongan</div>
                 </div>
                 <a
@@ -566,7 +571,73 @@ export default function PesantrenTenantHome({
               </div>
             </div>
 
-            {/* CARD 3: SEKOLAH FORMAL TERPADU */}
+            {/* CARD 3: MUSYAWARAH FIQIH & BAHTSUL MASA'IL */}
+            <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-100">
+                    Musyawarah Fiqih
+                  </span>
+                  <span className="text-[10px] font-bold text-purple-700">
+                    Bahtsul Masa'il
+                  </span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">
+                  Musyawarah & Bedah Ibroh Kitab
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Forum ilmiah mingguan santri untuk membedah ibarat teks kitab kuning, mempertajam nalar logika hukum syari'at, serta mendiskusikan persoalan fikih waqi'iyyah kekinian.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold">Forum Ilmiah</div>
+                  <div className="text-xs font-black text-purple-700">Bahtsul Masa'il Santri</div>
+                </div>
+                <a
+                  href="#rutinitas"
+                  className="p-2.5 rounded-full bg-stone-100 hover:bg-[#0B52E2] hover:text-white text-slate-700 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* CARD 4: TAKROR & MUTALA'AH MALAM */}
+            <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
+                    Takror Malam
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    Mutala'ah Rutin
+                  </span>
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-slate-900">
+                  Takror & Mudzakarah Pelajaran
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Kegiatan mengulang materi pelajaran kitab secara intensif bersama teman sebaya (mutala'ah) setiap malam bakda Isya untuk memastikan seluruh bait nadzom dan kaidah nahwu terserap sempurna.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] text-slate-400 font-bold">Jadwal Takror</div>
+                  <div className="text-xs font-black text-emerald-700">Setiap Malam Bakda Isya</div>
+                </div>
+                <a
+                  href="#rutinitas"
+                  className="p-2.5 rounded-full bg-stone-100 hover:bg-[#0B52E2] hover:text-white text-slate-700 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* CARD 5: PENDIDIKAN FORMAL SMP & SMA-IT TERPADU */}
             <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -578,86 +649,20 @@ export default function PesantrenTenantHome({
                   </span>
                 </div>
                 <h3 className="text-lg font-black tracking-tight text-slate-900">
-                  SMP-IT & SMA-IT / KMI Terpadu
+                  SMP & SMA-IT / KMI Terpadu
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Integrasi kurikulum Kemendikbudristek dan muatan pesantren unggul, laboratorium komputer, serta pembiasaan bahasa Arab dan Inggris aktif.
+                  Pendidikan formal terakreditasi resmi pemerintah yang memadukan kurikulum nasional, laboratorium komputer, serta pembiasaan bahasa Arab dan Inggris secara aktif.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] text-slate-400 font-bold">Kelulusan</div>
-                  <div className="text-xs font-black text-slate-800">Ijazah Resmi Negara</div>
+                  <div className="text-[10px] text-slate-400 font-bold">Ijazah Kelulusan</div>
+                  <div className="text-xs font-black text-slate-800">Resmi Kemendikbudristek</div>
                 </div>
                 <a
                   href="#psb"
-                  className="p-2.5 rounded-full bg-stone-100 hover:bg-[#0B52E2] hover:text-white text-slate-700 transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-
-            {/* CARD 4: DOMPET CASHLESS KTSD SANTRI */}
-            <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
-                    KTSD Cashless
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-600">
-                    RFID 13.56MHz
-                  </span>
-                </div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">
-                  Dompet Saku Non-Tunai Santri
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Santri jajan di kantin & koperasi menggunakan tap kartu fisik KTSD dengan limit harian anti-boros, aman dari resiko kehilangan uang fisik.
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] text-slate-400 font-bold">Limit Saku Harian</div>
-                  <div className="text-xs font-black text-emerald-700">Rp 20.000 / Hari</div>
-                </div>
-                <button
-                  onClick={() => onOpenPortalWali('')}
-                  className="p-2.5 rounded-full bg-stone-100 hover:bg-[#0B52E2] hover:text-white text-slate-700 transition-colors cursor-pointer"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* CARD 5: KAMTIB & KEDISIPLINAN ASRAMA */}
-            <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-100">
-                    Keamanan Santri
-                  </span>
-                  <span className="text-[10px] font-bold text-rose-600">
-                    Posko Kamtib
-                  </span>
-                </div>
-                <h3 className="text-lg font-black tracking-tight text-slate-900">
-                  Ketertiban & Perizinan Keluar
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Pengawasan perizinan keluar pondok, surat izin pulang resmi, pemantauan batas waktu kembali, serta absensi asrama oleh asatidz mukim 24 jam.
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] text-slate-400 font-bold">Pengawasan</div>
-                  <div className="text-xs font-black text-rose-700">Asatidz Mukim 24 Jam</div>
-                </div>
-                <a
-                  href="#rutinitas"
                   className="p-2.5 rounded-full bg-stone-100 hover:bg-[#0B52E2] hover:text-white text-slate-700 transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -669,7 +674,7 @@ export default function PesantrenTenantHome({
             <div className="p-6 rounded-[28px] bg-white text-slate-900 shadow-xs border border-stone-200/90 flex flex-col justify-between space-y-6 hover:shadow-md transition-all">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-100">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-100">
                     Wali Santri
                   </span>
                   <span className="text-[10px] font-bold text-[#0B52E2]">
@@ -677,17 +682,17 @@ export default function PesantrenTenantHome({
                   </span>
                 </div>
                 <h3 className="text-lg font-black tracking-tight text-slate-900">
-                  Portal Monitoring Mandiri
+                  Portal Monitoring Wali Santri
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  Orang tua dapat memantau mutasi belanja kantin, riwayat izin pulang santri, nilai tahfidz, dan mengecek kwitansi syahriyah dari ponsel.
+                  Orang tua dapat memantau capaian setoran muhafadzoh nadzom santri, mutasi saku non-tunai di kantin (KTSD), surat izin kepulangan Kamtib, dan kwitansi syahriyah dari ponsel.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-slate-400 font-bold">Akses Wali</div>
-                  <div className="text-xs font-black text-blue-700">Nama / NIS Santri</div>
+                  <div className="text-xs font-black text-rose-700">Cari Nama / NIS Santri</div>
                 </div>
                 <button
                   onClick={() => onOpenPortalWali('')}
@@ -706,7 +711,7 @@ export default function PesantrenTenantHome({
       </section>
 
       {/* ========================================================================= */}
-      {/* 5. SECTION: RUTINITAS SANTRI & FASILITAS PESANTREN                        */}
+      {/* 5. SECTION: RUTINITAS SANTRI (LALARAN, KITAB, MUSYAWARAH & TAKROR)        */}
       {/* ========================================================================= */}
       <section id="rutinitas" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         
@@ -715,13 +720,13 @@ export default function PesantrenTenantHome({
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-stone-100">
             <div>
               <span className="text-xs font-extrabold uppercase tracking-wider text-[#0B52E2] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                Kedisiplinan 24 Jam
+                Kedisiplinan & Barakah Waktu
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-2">
-                Jadwal Rutinitas Santri Darul Rahman
+                Jadwal Rutinitas Santri Salafiyah Darul Rahman
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                Setiap detik waktu santri dibimbing dalam bingkai ibadah, tholabul 'ilmi, dan pembentukan akhlaqul karimah.
+                Kombinasi ibadah berjamaah, setoran muhafadzoh nadzoman, sekolah formal, pengajian kitab kuning, takror, dan musyawarah fiqih malam.
               </p>
             </div>
             <div className="text-xs font-bold text-slate-400">
@@ -741,9 +746,9 @@ export default function PesantrenTenantHome({
 
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
               <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">05.00 - 06.30</span>
-              <h4 className="font-bold text-xs text-slate-900">Halaqah Tahfidz Pagi</h4>
+              <h4 className="font-bold text-xs text-slate-900">Lalaran & Setoran Muhafadzoh</h4>
               <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                Setoran hafalan baru (ziyadah) Al-Qur'an kepada ustadz pengampu halaqah asrama.
+                Lalaran bait nadhom bersama dilanjutkan setoran hafalan Alfiyah Ibnu Malik / Imrithi kepada ustadz pembina.
               </p>
             </div>
 
@@ -765,33 +770,33 @@ export default function PesantrenTenantHome({
 
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
               <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">15.30 - 17.00</span>
-              <h4 className="font-bold text-xs text-slate-900">Ashar & Pengajian Kitab</h4>
+              <h4 className="font-bold text-xs text-slate-900">Pengajian Kitab Kuning Sore</h4>
               <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                Shalat Ashar berjamaah dilanjutkan pengajian wetonan Kitab Fiqih bersama Asatidz.
+                Shalat Ashar berjamaah dilanjutkan pengajian wetonan Kitab Fiqih / Hadits bersama Pengasuh dan Asatidz.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
-              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">17.30 - 19.30</span>
-              <h4 className="font-bold text-xs text-slate-900">Maghrib & Muraja'ah Tahfidz</h4>
+              <span className="text-[10px] font-black text-purple-800 bg-purple-100 px-2 py-0.5 rounded-md">17.30 - 19.30</span>
+              <h4 className="font-bold text-xs text-slate-900">Maghrib, Sorogan & Takror</h4>
               <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                Shalat Maghrib berjamaah, tilawah surat Waqi'ah, dan muroja'ah hafalan Qur'an berpasangan.
+                Shalat Maghrib berjamaah, sorogan kitab privat per santri, dan pengulangan (takror) materi kitab kuning.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
-              <span className="text-[10px] font-black text-purple-800 bg-purple-100 px-2 py-0.5 rounded-md">19.30 - 21.00</span>
-              <h4 className="font-bold text-xs text-slate-900">Isya & Madrasah Diniyah</h4>
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">19.30 - 21.00</span>
+              <h4 className="font-bold text-xs text-slate-900">Madrasah Diniyah Salafiyah</h4>
               <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                Shalat Isya berjamaah, masuk kelas Diniyah Salafiyah (Nahwu, Shorof, Fiqih, Akhlaq).
+                Shalat Isya berjamaah, masuk kelas Madrasah Diniyah (Nahwu, Shorof, Fiqih, Akhlaq, Tarikh).
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
-              <span className="text-[10px] font-black text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md">21.00 - 22.00</span>
-              <h4 className="font-bold text-xs text-slate-900">Mudzakarah & Istirahat</h4>
+              <span className="text-[10px] font-black text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md">21.00 - 22.30</span>
+              <h4 className="font-bold text-xs text-slate-900">Musyawarah Fiqih & Istirahat</h4>
               <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                Belajar mandiri mudzakarah persiapan pelajaran esok hari, absen malam, dan istirahat tidur.
+                Forum musyawarah / bahtsul masa'il santri, mutala'ah mandiri persiapan esok hari, dan istirahat tidur.
               </p>
             </div>
 
@@ -816,7 +821,7 @@ export default function PesantrenTenantHome({
                 </div>
                 <div className="font-bold text-slate-900 text-sm">Masjid Jami' Pusat Ibadah</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Masjid luas dan sejuk untuk shalat berjamaah 5 waktu, pengajian kitab akbar, dan halaqah tahfidz.
+                  Masjid luas dan sejuk untuk shalat berjamaah 5 waktu, pengajian kitab akbar, dan lalaran nadzoman.
                 </p>
               </div>
 
@@ -826,7 +831,7 @@ export default function PesantrenTenantHome({
                 </div>
                 <div className="font-bold text-slate-900 text-sm">Asrama Santri Putra & Putri</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Kompleks asrama terpisah dengan sirkulasi udara baik, lemari standar, dan asatidz pembina kamar.
+                  Kompleks asrama terpisah dengan sirkulasi udara baik, lemari standar, dan asatidz pembina kamar mukim 24 jam.
                 </p>
               </div>
 
@@ -836,7 +841,7 @@ export default function PesantrenTenantHome({
                 </div>
                 <div className="font-bold text-slate-900 text-sm">Perpustakaan & Maktabah Salaf</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Koleksi kitab kuning klasik berbagai fan ilmu Islam, buku referensi umum, dan ruang baca hening.
+                  Koleksi kitab kuning klasik berbagai fan ilmu Islam (Fathul Mu'in, Ihya, Tafsir), kamus Arab, dan ruang musyawarah.
                 </p>
               </div>
 
@@ -846,7 +851,7 @@ export default function PesantrenTenantHome({
                 </div>
                 <div className="font-bold text-slate-900 text-sm">Kantin & Koperasi Cashless (KTSD)</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Kebutuhan santri higienis dan belanja non-tunai (kartu KTSD RFID) agar santri terbiasa hemat.
+                  Kebutuhan santri higienis dan belanja non-tunai (kartu KTSD RFID) agar santri terbiasa hemat dan tertib.
                 </p>
               </div>
 
@@ -854,9 +859,9 @@ export default function PesantrenTenantHome({
                 <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700">
                   <Award className="w-5 h-5" />
                 </div>
-                <div className="font-bold text-slate-900 text-sm">Lapangan Olahraga & Ekstrakurikuler</div>
+                <div className="font-bold text-slate-900 text-sm">Lapangan Olahraga & Seni Bela Diri</div>
                 <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Futsal, voli, bulutangkis, dan area latihan seni bela diri pencak silat Pagar Nusa santri.
+                  Futsal, voli, bulutangkis, dan area latihan seni bela diri pencak silat Pagar Nusa santri di sore hari.
                 </p>
               </div>
 
@@ -889,14 +894,14 @@ export default function PesantrenTenantHome({
               <span>PSB Tahun Ajaran 2026/2027 Telah Dibuka</span>
             </div>
             <h3 className="text-2xl sm:text-3xl font-black tracking-tight leading-snug">
-              Daftarkan Putra-Putri Anda di Pondok Pesantren Darul Rahman
+              Penerimaan Santri Baru Pondok Pesantren Darul Rahman
             </h3>
             <p className="text-xs sm:text-sm text-white/85 leading-relaxed font-medium">
-              Tersedia jenjang program Tahfidzul Qur'an 30 Juz, Madrasah Diniyah Salafiyah, serta pendidikan formal SMP-IT dan SMA-IT / KMI terpadu. Kuota asrama terbatas setiap angkatan.
+              Membuka pendaftaran santri baru untuk program Madrasah Diniyah Salafiyah, Muhafadzoh Nadzom Kitab, serta jenjang formal SMP dan SMA terpadu. Kuota asrama terbatas setiap angkatan.
             </p>
             <div className="flex items-center gap-4 text-xs font-bold pt-2 flex-wrap text-white/90">
               <span className="flex items-center gap-1">✓ Berkas Administrasi</span>
-              <span className="flex items-center gap-1">✓ Tes Baca Al-Qur'an</span>
+              <span className="flex items-center gap-1">✓ Tes Baca Kitab / Al-Qur'an</span>
               <span className="flex items-center gap-1">✓ Wawancara Wali & Santri</span>
             </div>
           </div>
@@ -1043,7 +1048,7 @@ export default function PesantrenTenantHome({
             <div className="font-black text-slate-900 text-xs flex items-center justify-center sm:justify-start gap-2">
               <span>{namaLembaga}</span>
               <span className="text-slate-300">•</span>
-              <span className="text-emerald-700 font-bold">Portal Mandiri Resmi</span>
+              <span className="text-emerald-700 font-bold">Portal Salafiyah Mandiri</span>
             </div>
             <p className="text-[10.5px] text-slate-500 mt-0.5">
               {alamatLembaga} • WA: {noWa}

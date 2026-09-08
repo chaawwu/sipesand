@@ -236,8 +236,9 @@ export default function PortalWaliPublic({ initialQuery = 'Farhan', onBackToHome
         }
       ],
       academics: [
-        { id: 301, subject: 'Tahfidz Juz 30', score: 95, date: '2026-09-04', notes: 'Setoran hafalan sangat lancar & makharijul huruf fasih (Mumtaz)' },
-        { id: 302, subject: 'Nahwu Jurumiyyah', score: 88, date: '2026-09-02', notes: 'Faham bab I\'rob dan Tarkib Kalam' }
+        { id: 301, subject: 'Muhafadzoh Nadzom Imrithi', score: 95, date: '2026-09-04', notes: 'Setoran hafalan 100 bait mutqin & lancar (Mumtaz)' },
+        { id: 302, subject: 'Pengajian Fathul Qorib', score: 90, date: '2026-09-03', notes: 'Paham makna gandul & tarkib bab Thaharah' },
+        { id: 303, subject: 'Muhafadzoh Alfiyah Ibnu Malik', score: 88, date: '2026-09-02', notes: 'Lancar setoran bait 1-100 bab Kalam' }
       ],
       permits: [
         {
