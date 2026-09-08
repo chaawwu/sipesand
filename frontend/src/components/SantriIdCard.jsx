@@ -18,7 +18,8 @@ import {
   ExternalLink,
   Download,
   Scissors,
-  Eye
+  Eye,
+  MessageSquare
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
@@ -146,6 +147,19 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
   });
 
   const isLight = currentTheme.type === 'light' && !customFrontBg;
+
+  const handleSendKtsdToWa = () => {
+    if (!santri.noHpWali) {
+      alert('Nomor WhatsApp wali santri belum terdaftar di database.');
+      return;
+    }
+    let phone = santri.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nBerikut adalah informasi Kartu Tanda Santri Digital (KTSD RFID) resmi ananda di *${namaLembaga}*:\n- Nama: *${santri.nama}*\n- NIS: ${santri.nis}\n- Kelas/Diniyah: ${santri.kelas}\n- Kamar Asrama: ${santri.kamar}\n- UID Smart Card: *${santri.nfcUid || 'TERHUBUNG KTSD'}*\n- Status Kartu: *AKTIF (Presensi Sholat, Diniyah, & Belanja Kantin Cashless)*\n\nBapak/Ibu dapat memantau saldo saku harian dan mutaba'ah ananda secara mandiri melalui Portal Wali:\nhttps://sipesand.web.id/wali-santri\n\nJazakumullah Khairan Katsiran.\n_Sekretariat & IT ${namaLembaga}_`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
 
   // =========================================================================
   // PRINT HANDLER DENGAN SELF-CONTAINED CSS (100% WYSIWYG & ANTI-BLANK)
@@ -338,11 +352,19 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-1.5 text-xs"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-1.5 text-xs cursor-pointer"
               title="Cetak Sesuai Tampilan Layar (WYSIWYG)"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak KTSD</span>
+            </button>
+            <button
+              onClick={handleSendKtsdToWa}
+              className="px-3.5 py-2 bg-[#25D366] hover:bg-emerald-600 text-slate-950 hover:text-white font-bold rounded-xl shadow transition-all flex items-center gap-1.5 text-xs cursor-pointer"
+              title="Kirim Informasi Kartu Santri ke WhatsApp Wali"
+            >
+              <MessageSquare className="w-4 h-4 fill-current" />
+              <span className="hidden sm:inline">Kirim ke Wali</span>
             </button>
             <button
               onClick={onClose}

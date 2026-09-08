@@ -14,7 +14,8 @@ import {
   Radio, 
   BookOpen,
   Calendar,
-  UserCheck
+  UserCheck,
+  MessageSquare
 } from 'lucide-react';
 import { 
   getViolations, 
@@ -132,6 +133,37 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
     } catch (err) {
       alert('Gagal memperbarui status takziran');
     }
+  };
+
+  const handleSendPermitWa = (p) => {
+    const santri = santriList.find(s => s.id === p.santriId) || p.santri;
+    if (!santri || !santri.noHpWali) {
+      alert(`Nomor WhatsApp wali untuk ${santri?.nama || 'santri ini'} belum terdaftar di database.`);
+      return;
+    }
+    let phone = santri.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const departureStr = new Date(p.departureTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+    const returnStr = new Date(p.returnTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+
+    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nPemberitahuan Resmi Divisi Keamanan & Kamtib Pesantren:\nAnanda memiliki Surat Izin Keluar:\n- Jenis Izin: *${p.type}*\n- Keperluan: *${p.reason}*\n- Tujuan: *${p.destination || 'Dalam Kota'}*\n- Waktu Keluar: ${departureStr}\n- Batas Waktu Kembali: *${returnStr}*\n- Status Saat Ini: *${p.status === 'RETURNED' ? 'SUDAH KEMBALI ASRAMA' : p.status}*\n\nBapak/Ibu dapat memantau perizinan dan presensi ananda secara mandiri melalui Portal Wali:\nhttps://sipesand.web.id/wali-santri\n\nJazakumullah Khairan Katsiran.\n_Divisi Keamanan & Ketertiban (Kamtib) Pesantren_`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const handleSendViolationWa = (v) => {
+    const santri = santriList.find(s => s.id === v.santriId) || v.santri;
+    if (!santri || !santri.noHpWali) {
+      alert(`Nomor WhatsApp wali untuk ${santri?.nama || 'santri ini'} belum terdaftar di database.`);
+      return;
+    }
+    let phone = santri.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nPemberitahuan Disiplin & Pengasuhan Pesantren:\nAnanda tercatat melakukan pelanggaran kedisiplinan asrama:\n- Pelanggaran: *${v.violation}*\n- Kategori: *${v.category}*\n- Ta'zir Edukatif: *${v.takziran || 'Peringatan & Istighfar'}*\n- Status Ta'zir: *${v.status === 'DONE' ? 'SUDAH DIKERJAKAN' : 'SEDANG DALAM PROSES'}*\n- Petugas Pengampu: ${v.officer || 'Divisi Keamanan'}\n\nPemberitahuan ini bertujuan untuk kerja sama pembinaan adab dan kedisiplinan santri bersama orang tua.\n\nJazakumullah Khairan Katsiran.\n_Divisi Keamanan & Pengasuhan Pesantren_`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleDeleteViolation = async (id) => {
@@ -270,23 +302,32 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          {p.status === 'ACTIVE' || isLate ? (
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
-                              onClick={() => handleUpdatePermit(p.id, 'RETURNED')}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-colors"
+                              onClick={() => handleSendPermitWa(p)}
+                              className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                              title="Kirim Notifikasi Izin ke WhatsApp Wali"
                             >
-                              Check-In Kembali
+                              <MessageSquare className="w-3.5 h-3.5 fill-emerald-100" />
                             </button>
-                          ) : p.status === 'PENDING' ? (
-                            <button
-                              onClick={() => handleUpdatePermit(p.id, 'APPROVED')}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-colors"
-                            >
-                              ACC Izin
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 font-semibold">Sudah kembali</span>
-                          )}
+                            {p.status === 'ACTIVE' || isLate ? (
+                              <button
+                                onClick={() => handleUpdatePermit(p.id, 'RETURNED')}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-colors"
+                              >
+                                Check-In Kembali
+                              </button>
+                            ) : p.status === 'PENDING' ? (
+                              <button
+                                onClick={() => handleUpdatePermit(p.id, 'APPROVED')}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold shadow-sm transition-colors"
+                              >
+                                ACC Izin
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-semibold">Sudah kembali</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -349,6 +390,13 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleSendViolationWa(v)}
+                          className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Kirim Catatan Pelanggaran ke WhatsApp Wali"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 fill-emerald-100" />
+                        </button>
                         {v.status === 'PROSES' && (
                           <button
                             onClick={() => handleUpdateViolationStatus(v.id, 'SELESAI')}

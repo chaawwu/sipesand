@@ -260,6 +260,21 @@ export default function AcademicMuhafadzoh() {
     setIsModalOpen(true);
   };
 
+  const handleSendWaReport = (rec) => {
+    const santri = santriList.find(s => s.id === rec.santriId) || rec.santri;
+    if (!santri || !santri.noHpWali) {
+      alert(`Nomor WhatsApp wali untuk ${santri?.nama || 'santri ini'} belum terdaftar di database.`);
+      return;
+    }
+    let phone = santri.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const categoryLabel = RECORD_TYPES.find(t => t.id === rec.type)?.label || rec.type;
+    const message = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${santri.nama}* (NIS: ${santri.nis || '-'}).\n\nAlhamdulillah, kami dari Pengasuhan Pesantren menginformasikan laporan mutaba'ah ananda:\n- Kategori: *${categoryLabel}*\n- Materi / Kitab: *${rec.title}*\n- Capaian / Hafalan: *${rec.achievement}*\n- Predikat: *${rec.grade || 'Mumtaz'}* ${rec.score ? `(Nilai: ${rec.score})` : ''}\n- Catatan Asatidz: _"${rec.notes || 'Istiqomah dan terus ditingkatkan'}"_\n- Penguji: ${rec.assessedBy}\n\nBapak/Ibu dapat memantau riwayat muhafadzoh dan kehadiran ananda secara mandiri melalui Portal Wali:\nhttps://sipesand.web.id/wali-santri\n\nJazakumullah Khairan Katsiran.\n_Sekretariat Pengasuhan Pesantren_`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -443,6 +458,13 @@ export default function AcademicMuhafadzoh() {
                         {RECORD_TYPES.find(t => t.id === rec.type)?.label || rec.type}
                       </span>
                       <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleSendWaReport(rec)} 
+                          className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                          title="Kirim Laporan Mutaba'ah ke WhatsApp Wali"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 fill-emerald-100" />
+                        </button>
                         <button onClick={() => handleOpenEdit(rec)} className="p-1 text-slate-400 hover:text-blue-600 rounded">
                           <Edit className="w-3.5 h-3.5" />
                         </button>
