@@ -109,14 +109,17 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       setLoading(false);
     }
 
-    // Fallback Autentikasi Mandiri (Memastikan 100% selalu berhasil login saat offline / static preview)
+    // Fallback Autentikasi Mandiri (Memastikan login berhasil saat offline / static preview)
     const matchingDemo = demoAccounts.find(d => d.user === username.trim().toLowerCase());
+    const isReadOnlyUser = username.trim().toLowerCase() === 'demo';
+
     if (matchingDemo && (password === matchingDemo.pass || password === 'admin123' || password === 'password123')) {
       onLoginSuccess({
         id: `tenant-${username}`,
         username: matchingDemo.user,
         name: matchingDemo.name,
         role: matchingDemo.role,
+        isReadOnly: isReadOnlyUser,
         division: matchingDemo.div,
         tenant: activeTenantSubdomain || 'darulrahman'
       });
@@ -125,14 +128,15 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
       onLoginSuccess({
         id: `tenant-${username}`,
         username: username.trim(),
-        name: `Pengurus ${namaLembaga}`,
-        role: 'SUPER_ADMIN',
+        name: isReadOnlyUser ? 'Tamu Demo (Read Only)' : `Pengurus ${namaLembaga}`,
+        role: isReadOnlyUser ? 'DEMO_READONLY' : 'SUPER_ADMIN',
+        isReadOnly: isReadOnlyUser,
         division: 'PUSAT',
         tenant: activeTenantSubdomain || 'darulrahman'
       });
       onClose();
     } else {
-      setErrorMsg('Username atau password salah. Silakan periksa kembali atau gunakan tombol akses cepat.');
+      setErrorMsg('Username atau password sandi tidak sesuai. Silakan periksa kembali.');
     }
   };
 
@@ -168,31 +172,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           </button>
         </div>
 
-        {/* Quick Demo Selector Chips */}
-        <div className="bg-slate-50 border-b border-slate-200 p-3">
-          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Akses Cepat 1-Klik (Demo):</span>
-            <span className="text-emerald-700 font-semibold">Siap Digunakan</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {demoAccounts.map((acc) => (
-              <button
-                key={acc.user}
-                type="button"
-                onClick={() => handleSelectDemo(acc)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
-                  username === acc.user
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'
-                }`}
-              >
-                <span>{acc.icon}</span>
-                <span>{acc.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Body Form */}
         <form onSubmit={handleLogin} className="p-6 space-y-4">
           
@@ -221,7 +200,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block font-bold text-slate-700">Password Sandi *</label>
-              <span className="text-[10px] text-slate-400 font-mono">Default: admin123</span>
             </div>
             <div className="relative">
               <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

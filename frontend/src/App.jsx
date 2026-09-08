@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import NfcScannerModal from './components/NfcScannerModal';
@@ -566,6 +566,24 @@ function MainAppContent() {
           >
             <span>Keluar & Kembali ke Developer Panel</span>
             <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </aside>
+      )}
+
+      {/* Read-Only Demo Notice Banner */}
+      {currentUser?.isReadOnly && (
+        <aside aria-label="Notifikasi Mode Tamu Demo" className="bg-amber-400 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between border-b border-amber-500 z-50 sticky top-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-slate-950 flex-shrink-0" />
+            <span>
+              Mode Tamu Demo (Hanya Baca / Read-Only): Seluruh data dapat ditinjau secara transparan. Fitur penambahan atau mutasi data dinonaktifkan.
+            </span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 bg-slate-950 hover:bg-black text-white rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer flex-shrink-0"
+          >
+            Keluar Sesi Demo
           </button>
         </aside>
       )}

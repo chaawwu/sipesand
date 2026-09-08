@@ -2,6 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { initSecurityProtection } from './utils/securityProtection'
+
+// Inisialisasi proteksi keamanan anti-inspect & devtools blocker
+initSecurityProtection()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

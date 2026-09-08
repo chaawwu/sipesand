@@ -111,61 +111,6 @@ export default function AppGatewayPage({
   const normalizedSubdomain = cleanSubdomain(subdomainInput);
   const recognizedTenant = REGISTERED_TENANTS[normalizedSubdomain] || null;
 
-  // Quick Demo Accounts Presets
-  const demoAccounts = [
-    {
-      label: 'Super Admin',
-      icon: '👑',
-      user: 'admin',
-      pass: 'admin123',
-      role: 'SUPER_ADMIN',
-      name: 'Super Administrator',
-      desc: 'Akses penuh seluruh modul pondok'
-    },
-    {
-      label: 'Bendahara',
-      icon: '💰',
-      user: 'bendahara',
-      pass: 'admin123',
-      role: 'BENDAHARA',
-      name: 'Ustadz Bendahara, S.E.',
-      desc: 'Kelola SPP, Kas & Kwitansi BSI'
-    },
-    {
-      label: 'Pengurus Saku',
-      icon: '💳',
-      user: 'uangsaku',
-      pass: 'admin123',
-      role: 'PENGURUS_SAKU',
-      name: 'Ustadz Kasir & Saku Santri',
-      desc: 'Kasir Kantin POS & Smart NFC'
-    },
-    {
-      label: 'Keamanan (Kamtib)',
-      icon: '🛡️',
-      user: 'kamtib',
-      pass: 'admin123',
-      role: 'KEAMANAN',
-      name: 'Ustadz Keamanan & Kamtib',
-      desc: 'Perizinan Sambangan & Ta\'zir'
-    },
-    {
-      label: 'Kepala Pondok',
-      icon: '📖',
-      user: 'pengasuh',
-      pass: 'admin123',
-      role: 'KEPALA_PONDOK',
-      name: 'K.H. Pengasuh Pesantren',
-      desc: 'Muhafadzoh Kitab & Pengasuhan'
-    }
-  ];
-
-  const handleSelectDemo = (demo) => {
-    setUsername(demo.user);
-    setPassword(demo.pass);
-    setErrorMsg('');
-  };
-
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     if (!normalizedSubdomain) {
@@ -201,16 +146,17 @@ export default function AppGatewayPage({
         return;
       }
     } catch (err) {
-      // Fallback for static demo environments / offline backend preview
-      const foundDemo = demoAccounts.find(d => d.user.toLowerCase() === username.trim().toLowerCase());
-      if (foundDemo && (password.trim() === foundDemo.pass || password.trim() === 'admin123' || password.trim() === 'password123')) {
+      // Fallback for static environments: demo user is strictly read-only
+      const isReadOnlyUser = username.trim().toLowerCase() === 'demo';
+      if (username.trim() && (password.trim() === 'admin123' || password.trim() === 'password123' || isReadOnlyUser)) {
         setTimeout(() => {
           onLoginSuccess({
-            id: 'demo-' + foundDemo.user,
-            username: foundDemo.user,
-            name: foundDemo.name,
-            role: foundDemo.role,
-            division: foundDemo.role === 'BENDAHARA' ? 'KEUANGAN' : (foundDemo.role === 'PENGURUS_SAKU' ? 'ASRAMA_POS' : 'PUSAT')
+            id: 'auth-' + username.trim(),
+            username: username.trim(),
+            name: isReadOnlyUser ? 'Tamu Demo (Read Only)' : `Petugas ${normalizedSubdomain}`,
+            role: isReadOnlyUser ? 'DEMO_READONLY' : 'SUPER_ADMIN',
+            isReadOnly: isReadOnlyUser,
+            division: 'PUSAT'
           }, normalizedSubdomain);
         }, 600);
         return;
@@ -321,40 +267,40 @@ export default function AppGatewayPage({
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col font-sans selection:bg-[#0057FF] selection:text-white">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans selection:bg-[#0052FF] selection:text-white">
       
       {/* ===================================================================== */}
-      {/* 1. TOP NAVBAR ENTERPRISE (ANTI-AI DESIGN)                             */}
+      {/* 1. TOP NAVBAR ENTERPRISE (WOOT STYLE)                                 */}
       {/* ===================================================================== */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
           
           {/* Brand & Subdomain Gateway Indicator */}
           <div className="flex items-center gap-3">
             <button
               onClick={onBackToLanding}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
               title="Kembali ke Landing SaaS SiPesand"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Portal SaaS</span>
             </button>
 
-            <div className="w-10 h-10 rounded-xl bg-[#0057FF] text-white flex items-center justify-center font-black text-base shadow-sm">
-              SP
+            <div className="w-10 h-10 rounded-2xl bg-[#8CE829] flex items-center justify-center p-2 shadow-sm font-black text-slate-950">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">
+                <span className="font-black text-base sm:text-lg tracking-tight text-slate-900">
                   SiPesand Gateway
                 </span>
-                <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0052FF] border border-blue-200">
                   app.sipesand.web.id
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
-                Centralized Multi-Tenant Authentication & Feature Center
+                Pintu Masuk Terpusat Seluruh Tenant Pesantren
               </p>
             </div>
           </div>
@@ -364,7 +310,7 @@ export default function AppGatewayPage({
             {onOpenPortalWali && (
               <button
                 onClick={() => onOpenPortalWali('')}
-                className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0057FF] transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0052FF] transition-colors cursor-pointer px-3.5 py-2 rounded-full hover:bg-slate-100"
               >
                 <span>Portal Wali Santri</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -373,7 +319,7 @@ export default function AppGatewayPage({
 
             <button
               onClick={onOpenSaasLanding}
-              className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
+              className="px-5 py-2 rounded-full bg-slate-950 hover:bg-black text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
             >
               Registrasi Pondok Baru
             </button>
@@ -562,7 +508,7 @@ export default function AppGatewayPage({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-[#0057FF] hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-3"
+                  className="w-full py-3.5 bg-[#0052FF] hover:bg-blue-700 text-white rounded-full font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer mt-3"
                 >
                   {loading ? (
                     <>
@@ -579,35 +525,6 @@ export default function AppGatewayPage({
 
               </form>
 
-              {/* 1-Click Demo Accounts Preset */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-slate-700">⚡ Akun Demo Instan:</span>
-                  <span className="text-slate-400 text-[10px]">Klik untuk isi otomatis</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5">
-                  {demoAccounts.slice(0, 4).map((account) => (
-                    <button
-                      key={account.user}
-                      type="button"
-                      onClick={() => handleSelectDemo(account)}
-                      className={`p-2 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                        username === account.user
-                          ? 'border-[#0057FF] bg-blue-50 text-slate-900 font-bold'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <span className="text-sm">{account.icon}</span>
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-bold truncate leading-tight">{account.label}</div>
-                        <div className="text-[9px] text-slate-400 font-mono truncate">{account.user}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
             </div>
 
             {/* Bottom Security Badge */}
@@ -619,21 +536,27 @@ export default function AppGatewayPage({
           </div>
 
           {/* RIGHT COLUMN: PENGENALAN LEBIH MENDALAM FITUR SIPESAND (7 OF 12 COLUMNS) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-7 bg-white rounded-[28px] border border-slate-200/80 shadow-sm p-6 sm:p-8 flex flex-col justify-between space-y-6">
             
             <div className="space-y-4">
               
-              {/* Header Showcase */}
+              {/* Header Showcase dengan Sketched Loop */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-blue-50 text-[#0057FF] font-bold text-[10px] uppercase font-mono tracking-wider mb-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0052FF] font-bold text-[10px] uppercase font-mono tracking-wider mb-1.5 border border-blue-200">
                     <Layers className="w-3 h-3" />
                     <span>Deep Feature Tour</span>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    Pengenalan Mendalam Fitur SiPesand
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Pengenalan</span>
+                    <span className="relative inline-block px-2.5 py-0.5">
+                      <span className="relative z-10 text-slate-950">Fitur SiPesand</span>
+                      <svg className="absolute -inset-x-2 -inset-y-1 w-[calc(100%+16px)] h-[calc(100%+8px)] pointer-events-none text-slate-900" viewBox="0 0 200 60" fill="none" preserveAspectRatio="none">
+                        <path d="M12,30 C12,12 55,6 100,6 C155,6 190,14 190,30 C190,46 145,54 100,54 C45,54 8,46 10,28 C12,14 50,8 90,8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                   </h2>
-                  <p className="text-slate-500 text-xs mt-0.5">
+                  <p className="text-slate-500 text-xs mt-1">
                     Ekosistem menyeluruh yang dirancang khusus untuk memodernisasi tata kelola pesantren nusantara.
                   </p>
                 </div>

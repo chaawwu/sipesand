@@ -143,19 +143,6 @@ export default function DeveloperLoginModal({ isOpen, onClose, onLoginSuccess })
             {loading ? 'Memverifikasi Kunci Root...' : 'Buka Developer Control Panel'}
             <ArrowRight className="w-4 h-4" />
           </button>
-
-          {/* Quick Demo 1-Click Access */}
-          <div className="pt-2 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={handleQuickDemo}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-[11px]"
-            >
-              <Key className="w-3.5 h-3.5 text-blue-600" />
-              <span>⚡ Akses Cepat 1-Klik Superadmin Demo (dev123)</span>
-            </button>
-          </div>
-
         </form>
 
       </div>

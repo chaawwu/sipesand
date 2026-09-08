@@ -24,7 +24,7 @@ export default function FaqPage({ onBackToHome }) {
     },
     {
       q: 'Bagaimana cara mendaftar sebagai mitra pesantren baru?',
-      a: 'Anda dapat mendaftar melalui halaman https://sipesand.web.id atau https://mitra.sipesand.web.id, mengisi data identitas lembaga dan memilih subdomain yang diinginkan (contoh: nurulhuda.sipesand.web.id), kemudian menyelesaikan pembayaran lisensi melalui QRIS atau Virtual Account.'
+      a: 'Anda dapat mendaftar langsung melalui halaman resmi https://sipesand.web.id, mengisi data identitas lembaga dan memilih subdomain yang diinginkan (contoh: nurulhuda.sipesand.web.id), kemudian menyelesaikan pembayaran lisensi melalui QRIS atau Virtual Account.'
     },
     {
       q: 'Bagaimana alur aktivasi setelah pembayaran lisensi selesai?',

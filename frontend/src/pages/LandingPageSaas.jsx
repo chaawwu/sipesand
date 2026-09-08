@@ -34,7 +34,8 @@ import {
   ChevronUp,
   RefreshCw,
   Search,
-  Sliders
+  Sliders,
+  Database
 } from 'lucide-react';
 import { registerMitraTenant, checkSubdomainAvailability } from '../services/api';
 import PaymentCheckout from '../components/PaymentCheckout';
@@ -234,257 +235,165 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
   // LANDING PAGE UTAMA PEMBELIAN LISENSI SAAS SIPESAND (ILUSTRATIF & ELEGAN)
   // =========================================================================
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex flex-col font-sans text-xs selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col font-sans text-xs selection:bg-[#0052FF] selection:text-white">
       
-      {/* 1. TOP NAVIGATION HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      {/* 1. TOP NAVIGATION HEADER (WOOT STYLE) */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#8CE829] flex items-center justify-center p-1.5 shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-[#8CE829] flex items-center justify-center p-2 shadow-sm">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="font-extrabold text-sm text-slate-900 tracking-tight flex items-center gap-1.5">
-                <span>SiPesand SaaS Platform</span>
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] rounded-md font-bold border border-blue-200">Mitra Resmi</span>
+              <h1 className="font-black text-sm text-slate-900 tracking-tight flex items-center gap-1.5">
+                <span>SiPesand</span>
+                <span className="px-2.5 py-0.5 bg-blue-50 text-[#0052FF] text-[10px] rounded-full font-bold border border-blue-200">Platform SaaS</span>
               </h1>
-              <p className="text-[10px] text-slate-500 font-medium">Pengembang: King Digital Dev (kingdigitalpremium.my.id)</p>
+              <p className="text-[10px] text-slate-500 font-medium">Ekosistem Pesantren Digital Generasi Baru</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Quick Anchor Navigation */}
+          <nav className="hidden md:flex items-center gap-6 font-bold text-slate-600 text-xs">
+            <a href="#fitur" className="hover:text-[#0052FF] transition-colors">Pilihan Modul</a>
+            <a href="#daftar-lisensi" className="hover:text-[#0052FF] transition-colors">Paket Lisensi</a>
+            <a href="#faq" className="hover:text-[#0052FF] transition-colors">Tanya Jawab</a>
+          </nav>
+
+          <div className="flex items-center gap-2.5">
             {/* Tombol Masuk Portal Tenant (app.sipesand.web.id) */}
             <button
               onClick={onGoToAppGateway}
-              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
+              className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold transition-colors flex items-center gap-1.5 text-xs cursor-pointer border border-slate-200"
               title="Gateway Masuk Tenant Pesantren (app.sipesand.web.id)"
             >
-              <User className="w-3.5 h-3.5 text-blue-700" />
+              <User className="w-3.5 h-3.5 text-[#0052FF]" />
               <span className="hidden sm:inline">Masuk Tenant (app)</span>
-              <span className="sm:hidden">Login</span>
-            </button>
-
-            {/* Tombol Balik ke Demo Pesantren */}
-            <button
-              onClick={onBackToPesantrenDemo}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold border border-slate-300 transition-colors flex items-center gap-1.5 shadow-sm"
-              title="Lihat Tampilan Demo Aplikasi Pesantren (darulrahman.sipesand.web.id)"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline">Demo Santri</span>
-              <span className="sm:hidden">Demo</span>
-            </button>
-
-            {/* Tombol Developer / Superadmin Portal */}
-            <button
-              onClick={onOpenDeveloperPortal}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition-all flex items-center gap-1.5 shadow-sm text-xs cursor-pointer"
-              title="Akses Superadmin & Developer Control Panel (mitra.sipesand.web.id)"
-            >
-              <Server className="w-3.5 h-3.5 text-[#8CE829]" />
-              <span className="hidden sm:inline">Mitra Dev</span>
-              <span className="sm:hidden">Dev</span>
+              <span className="sm:hidden">Masuk</span>
             </button>
 
             {/* Tombol CTA Pembelian */}
             <button
               onClick={handleScrollToForm}
-              className="px-3.5 py-1.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="px-5 py-2 rounded-full bg-slate-950 hover:bg-black text-white font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer text-xs"
             >
-              <CreditCard className="w-3.5 h-3.5 text-amber-300" />
               <span>Beli Lisensi</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
         </div>
       </header>
 
-      {/* 2. HERO SECTION DENGAN ILUSTRASI ARSITEKTUR PESANTREN DIGITAL */}
-      <section className="relative overflow-hidden pt-12 pb-16 border-b border-slate-200 bg-gradient-to-b from-slate-50 via-white to-slate-50/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      {/* 2. HERO SECTION (SPLIT DUAL-TONE: ROYAL BLUE #0052FF & LIME GREEN #8CE829) */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-12 w-full">
+        <div className="rounded-[32px] overflow-hidden shadow-sm grid grid-cols-1 lg:grid-cols-12 border border-slate-200/80">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          {/* SISI KIRI (7/12): ROYAL BLUE BLOCK */}
+          <div className="lg:col-span-7 bg-[#0052FF] p-8 sm:p-12 text-white flex flex-col justify-between relative overflow-hidden">
             
-            {/* Kolom Kiri (7/12): Deskripsi & Live Subdomain Validator */}
-            <div className="lg:col-span-7 space-y-5 text-left">
+            <div className="space-y-6 relative z-10">
               
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 font-bold text-[11px]">
-                <Server className="w-3.5 h-3.5 text-blue-700" />
-                <span>Tata Kelola Lembaga Pesantren Multi-Tenant Cloud</span>
+              <div className="space-y-3 text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold text-[11px]">
+                  <Server className="w-3.5 h-3.5 text-[#8CE829]" />
+                  <span>Sistem Pesantren Multi-Tenant Cloud</span>
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.12]">
+                  Tata Kelola Pesantren <br />
+                  <span className="text-white">Terpadu Tanpa Batas</span>
+                </h1>
+
+                <p className="text-blue-100 text-xs sm:text-sm font-medium leading-relaxed max-w-xl">
+                  Miliki sistem informasi pesantren mandiri dengan subdomain khusus lembaga, KTSD Smart NFC Cashless, Penagihan 1 Hijriyah, dan auto-disbursement langsung ke rekening yayasan.
+                </p>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Miliki Sistem Pesantren Terpadu dengan <span className="text-[#1E3A8A]">Subdomain Khusus</span> & Database Mandiri
-              </h1>
+              {/* Floating Pill Search & Subdomain Checker Bar */}
+              <div className="bg-white rounded-full p-2 pl-5 shadow-2xl flex items-center gap-2 max-w-xl text-slate-900">
+                <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Cek subdomain pondok..."
+                  value={formData.subdomain}
+                  onChange={handleSubdomainChange}
+                  className="w-full bg-transparent border-none text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                />
+                <span className="hidden sm:inline-block px-3 py-1.5 bg-slate-100 rounded-full text-slate-600 font-mono text-[11px] font-bold flex-shrink-0">
+                  .sipesand.web.id
+                </span>
+                <button
+                  onClick={handleScrollToForm}
+                  disabled={subdomainStatus.checked && !subdomainStatus.available}
+                  className="px-5 py-2.5 bg-[#8CE829] hover:bg-[#7ed321] text-slate-950 font-black rounded-full transition-all flex items-center gap-2 text-xs flex-shrink-0 cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  <span>Pesan</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
 
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl">
-                Solusi manajemen lengkap untuk pondok pesantren: Kartu Santri Digital (KTSD Smart NFC), Penagihan Syahriyah Hijriyah, Portal Wali Mandiri, dan <strong>King Digital Payment Gateway (Auto-Disbursement Langsung ke Rekening Yayasan)</strong>.
-              </p>
-
-              {/* Interactive Subdomain Real-Time Validator Form */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-300 shadow-sm space-y-2.5 max-w-lg">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-slate-800 text-xs">Cek Ketersediaan Subdomain Lembaga Anda:</label>
-                  {subdomainStatus.checking && (
-                    <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      <span>Mengecek ketersediaan...</span>
-                    </span>
+              {/* Subdomain Status Feedback Message */}
+              {subdomainStatus.checked && (
+                <div className="text-left">
+                  {subdomainStatus.available ? (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-100 border border-emerald-400/40 text-[11px] font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                      <span>Subdomain <strong>{formData.subdomain}.sipesand.web.id</strong> tersedia untuk didaftarkan!</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 text-rose-100 border border-rose-400/40 text-[11px] font-medium">
+                      <XCircle className="w-4 h-4 text-rose-300" />
+                      <span>{subdomainStatus.message}</span>
+                    </div>
                   )}
                 </div>
-
-                <div className="flex items-center">
-                  <div className="relative flex-1">
-                    <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="contoh: darululum"
-                      value={formData.subdomain}
-                      onChange={handleSubdomainChange}
-                      className={`w-full pl-9 pr-2 py-2 border border-r-0 rounded-l-xl focus:outline-none text-xs font-mono font-bold ${
-                        subdomainStatus.checked && !subdomainStatus.available
-                          ? 'border-rose-400 bg-rose-50/40 text-rose-700'
-                          : subdomainStatus.checked && subdomainStatus.available
-                          ? 'border-emerald-400 bg-emerald-50/40 text-emerald-800'
-                          : 'border-slate-300 focus:ring-1 focus:ring-blue-600 text-[#1E3A8A]'
-                      }`}
-                    />
-                  </div>
-                  <span className="px-3 py-2 bg-slate-100 border border-slate-300 text-slate-600 font-mono font-bold text-xs">
-                    .sipesand.web.id
-                  </span>
-                  <button
-                    onClick={handleScrollToForm}
-                    disabled={subdomainStatus.checked && !subdomainStatus.available}
-                    className="px-4 py-2 bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold rounded-r-xl transition-colors flex items-center gap-1.5 shadow-sm text-xs disabled:opacity-50"
-                  >
-                    <span>Pesan</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Subdomain Status Feedback Message */}
-                {subdomainStatus.checked && (
-                  <div>
-                    {subdomainStatus.available ? (
-                      <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[11px] font-medium flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                        <span>Subdomain <strong>https://{formData.subdomain}.sipesand.web.id</strong> tersedia untuk didaftarkan!</span>
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-[11px] font-medium flex items-center gap-1.5">
-                        <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                        <span>{subdomainStatus.message}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Gateway Login Link */}
-                <div className="pt-2 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100">
-                  <span>Sudah berlangganan & punya akun?</span>
-                  <button
-                    type="button"
-                    onClick={onGoToAppGateway}
-                    className="font-bold text-[#1E3A8A] hover:text-blue-900 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Masuk ke Gateway (app)</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 3 Key Trust Highlights */}
-              <div className="grid grid-cols-3 gap-3 pt-2 max-w-lg text-[11px]">
-                <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200">
-                  <div className="font-bold text-slate-900">Database Mandiri</div>
-                  <div className="text-slate-500 text-[10px]">100% Data Privat Terisolasi</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200">
-                  <div className="font-bold text-slate-900">Auto-Disbursement</div>
-                  <div className="text-slate-500 text-[10px]">Langsung ke Rekening Pondok</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200">
-                  <div className="font-bold text-slate-900">Aplikasi Mobile</div>
-                  <div className="text-slate-500 text-[10px]">PWA Siap Pasang di Ponsel</div>
-                </div>
-              </div>
+              )}
 
             </div>
 
-            {/* Kolom Kanan (5/12): Ilustrasi Vektor Arsitektur Terpadu */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                
-                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-blue-700" />
-                    <span className="font-extrabold text-slate-900 text-xs">Arsitektur Ekosistem Pesantren Digital</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono">v2.0</span>
-                </div>
-
-                {/* SVG Visual Diagram */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                  
-                  {/* Central Node */}
-                  <div className="p-3 bg-[#1E3A8A] text-white rounded-xl text-center shadow-sm">
-                    <div className="font-bold text-xs flex items-center justify-center gap-1.5">
-                      <Building2 className="w-4 h-4 text-amber-300" />
-                      <span>{formData.namaPondok || 'Pondok Pesantren Anda'}</span>
-                    </div>
-                    <div className="text-[10px] font-mono text-blue-200 mt-0.5">
-                      https://{formData.subdomain || 'nama-pesantren'}.sipesand.web.id
-                    </div>
-                  </div>
-
-                  {/* 4 Connected Modules Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-[10px]">
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                      <Radio className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-slate-900">KTSD Smart NFC</div>
-                        <div className="text-slate-400 text-[9px]">Belanja & Presensi</div>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-slate-900">Tagihan 1 Hijriyah</div>
-                        <div className="text-slate-400 text-[9px]">Kwitansi Berstempel</div>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-slate-900">Pos Kamtib</div>
-                        <div className="text-slate-400 text-[9px]">Perizinan Real-Time</div>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-slate-900">Auto-Disburse PG</div>
-                        <div className="text-slate-400 text-[9px]">Rekening Yayasan</div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-900">
-                  <span className="font-bold">Status Server Cloud:</span>
-                  <span className="font-bold text-emerald-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Tersedia & Siap Digunakan</span>
-                  </span>
-                </div>
-
+            {/* Bottom 3 Feature Pills */}
+            <div className="flex items-center gap-2 flex-wrap pt-8 relative z-10 text-[11px]">
+              <div className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-[#8CE829]" />
+                <span>KTSD Smart NFC</span>
               </div>
+              <div className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-[#8CE829]" />
+                <span>1 Hijriyah Auto-Syahriyah</span>
+              </div>
+              <div className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-[#8CE829]" />
+                <span>100% Data Privat Terisolasi</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* SISI KANAN (5/12): LIME GREEN BLOCK DENGAN SQUIRCLE CARD */}
+          <div className="lg:col-span-5 bg-[#8CE829] p-8 sm:p-12 flex flex-col items-center justify-center relative min-h-[380px]">
+            
+            {/* Centerpiece Squircle Blue Card */}
+            <div className="w-56 h-56 rounded-[36px] bg-[#0052FF] shadow-2xl flex flex-col items-center justify-center p-6 text-white text-center transform hover:scale-105 transition-transform duration-300 relative border-4 border-white/20">
+              <div className="w-20 h-20 rounded-2xl bg-white/15 flex items-center justify-center mb-3 p-3">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain brightness-0 invert" />
+              </div>
+              <div className="font-black text-xl tracking-tight">SiPesand</div>
+              <div className="text-[10px] font-mono tracking-widest uppercase text-blue-200 mt-0.5">SaaS Platform</div>
+              <div className="mt-2 px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] font-bold">
+                Cloud v2.0
+              </div>
+            </div>
+
+            {/* Circular Scroll Down Badge */}
+            <div 
+              onClick={handleScrollToForm}
+              className="absolute top-6 right-6 w-14 h-14 rounded-full bg-slate-950 text-[#8CE829] flex flex-col items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform"
+              title="Gulir ke formulir pendaftaran"
+            >
+              <div className="text-[7px] font-mono font-bold tracking-tighter uppercase">SCROLL</div>
+              <ArrowRight className="w-3.5 h-3.5 rotate-90" />
             </div>
 
           </div>
@@ -492,201 +401,256 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
         </div>
       </section>
 
-      {/* 3. SHOWCASE 4 MODUL UTAMA DENGAN TAB INTERAKTIF */}
-      <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-12 space-y-8">
+      {/* 3. PILIHAN MODUL TERPADU (REFERENSI WOOT: SKETCHED LOOP, SIDEBAR FILTER, & ROUNDED CARDS) */}
+      <section id="fitur" className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-10 space-y-8">
         
-        <div className="text-center max-w-xl mx-auto space-y-1">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Modul Lengkap Terintegrasi Satu Atap
-          </h2>
-          <p className="text-slate-500 text-xs">
-            Dirancang khusus sesuai alur operasional dan tata tertib pesantren salafiyah maupun modern
-          </p>
-        </div>
+        {/* Section Header dengan Sketched Loop Accent */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+              <span>Pilihan</span>
+              <span className="relative inline-block px-3 py-1">
+                <span className="relative z-10 text-slate-950">Modul Terpadu</span>
+                {/* Hand-Drawn Sketched Double Oval Loop */}
+                <svg className="absolute -inset-x-2 -inset-y-1 w-[calc(100%+16px)] h-[calc(100%+10px)] pointer-events-none text-slate-900" viewBox="0 0 200 60" fill="none" preserveAspectRatio="none">
+                  <path d="M12,30 C12,12 55,6 100,6 C155,6 190,14 190,30 C190,46 145,54 100,54 C45,54 8,46 10,28 C12,14 50,8 90,8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </h2>
+            <p className="text-slate-500 text-xs mt-1">
+              Pilar arsitektur digital terintegrasi sesuai alur operasional pesantren modern dan salafiyah.
+            </p>
+          </div>
 
-        {/* Tab Buttons */}
-        <div className="flex justify-center">
-          <div className="bg-slate-200/80 p-1 rounded-2xl flex items-center gap-1 flex-wrap justify-center">
-            <button
-              onClick={() => setActiveIllustrationTab('ktsd')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
-                activeIllustrationTab === 'ktsd' ? 'bg-white text-[#1E3A8A] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
+          {/* Controls: Circular Navigation Buttons */}
+          <div className="flex items-center gap-2">
+            <button 
+              type="button" 
+              onClick={() => setActiveIllustrationTab(prev => prev === 'ktsd' ? 'payment' : prev === 'hijri' ? 'ktsd' : prev === 'kamtib' ? 'hijri' : 'kamtib')}
+              className="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-colors cursor-pointer shadow-xs"
             >
-              <Radio className="w-3.5 h-3.5" />
-              <span>KTSD Smart NFC & POS</span>
+              <ArrowLeft className="w-4 h-4" />
             </button>
-
-            <button
-              onClick={() => setActiveIllustrationTab('hijri')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
-                activeIllustrationTab === 'hijri' ? 'bg-white text-[#1E3A8A] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
+            <button 
+              type="button" 
+              onClick={() => setActiveIllustrationTab(prev => prev === 'ktsd' ? 'hijri' : prev === 'hijri' ? 'kamtib' : prev === 'kamtib' ? 'payment' : 'ktsd')}
+              className="w-10 h-10 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs"
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Tagihan 1 Hijriyah & Portal Wali</span>
-            </button>
-
-            <button
-              onClick={() => setActiveIllustrationTab('kamtib')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
-                activeIllustrationTab === 'kamtib' ? 'bg-white text-[#1E3A8A] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Kamtib & Muhafadzoh</span>
-            </button>
-
-            <button
-              onClick={() => setActiveIllustrationTab('payment')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
-                activeIllustrationTab === 'payment' ? 'bg-white text-[#1E3A8A] shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Payment Gateway & Auto-Disburse</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Tab Content Display */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+        {/* Content Layout: Left Category Menu + Right Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {activeIllustrationTab === 'ktsd' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 font-bold text-[10px] uppercase">
-                  Modul Smart Cashless
+          {/* Kolom Kiri (3/12): Kategori Modul dengan Count Pill Badges */}
+          <div className="lg:col-span-3 space-y-2">
+            
+            <button
+              onClick={() => setActiveIllustrationTab('ktsd')}
+              className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                activeIllustrationTab === 'ktsd'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80'
+              }`}
+            >
+              <span>KTSD Smart NFC</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeIllustrationTab === 'ktsd' ? 'bg-[#8CE829] text-slate-950' : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                100%
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveIllustrationTab('hijri')}
+              className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                activeIllustrationTab === 'hijri'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80'
+              }`}
+            >
+              <span>Keuangan Syahriyah</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeIllustrationTab === 'hijri' ? 'bg-[#8CE829] text-slate-950' : 'bg-blue-100 text-blue-800'
+              }`}>
+                Realtime
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveIllustrationTab('kamtib')}
+              className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                activeIllustrationTab === 'kamtib'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80'
+              }`}
+            >
+              <span>Kamtib & Perizinan</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeIllustrationTab === 'kamtib' ? 'bg-[#8CE829] text-slate-950' : 'bg-amber-100 text-amber-800'
+              }`}>
+                24 Jam
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveIllustrationTab('payment')}
+              className={`w-full p-3 rounded-2xl text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                activeIllustrationTab === 'payment'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80'
+              }`}
+            >
+              <span>Payment Gateway</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeIllustrationTab === 'payment' ? 'bg-[#8CE829] text-slate-950' : 'bg-purple-100 text-purple-800'
+              }`}>
+                Auto-PG
+              </span>
+            </button>
+
+          </div>
+
+          {/* Kolom Kanan (9/12): Grid Kartu Modul Rounded-3xl (Woot Style) */}
+          <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-5">
+            
+            {/* KARTU 1: FEATURED CARD (ROYAL BLUE #0052FF) */}
+            <div className="rounded-[28px] bg-[#0052FF] text-white p-7 shadow-xl flex flex-col justify-between space-y-6 relative overflow-hidden border border-blue-500">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-white/15 text-white text-[10px] font-bold">Multi-Tenant</span>
+                  <span className="px-3 py-1 rounded-full bg-white/15 text-white text-[10px] font-bold">Smart NFC</span>
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900">Kartu Santri Digital (KTSD) & Kasbon Kantin</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Santri dapat bertransaksi belanja kantin, koperasi, dan fotokopi tanpa memegang uang tunai secara fisik. Cukup tap kartu NFC pada terminal kasir pengurus. Studio cetak kartu siap mencetak kartu standar ISO CR-80 dengan 4 tema resmi atau upload template custom dari Canva.
-                </p>
-                <div className="space-y-2 pt-1 text-[11px] text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Batas limit belanja harian santri dapat diatur oleh wali</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Pemetaan uang saku per asatidz pembina asrama</span>
-                  </div>
+
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-white leading-snug">
+                    KTSD Smart RFID & NFC Card
+                  </h3>
+                  <p className="text-blue-100 text-xs mt-1 leading-relaxed">
+                    Santri berbelanja di kantin, koperasi, dan presensi gerbang cukup tap kartu KTSD tanpa uang tunai fisik.
+                  </p>
+                </div>
+
+                <div className="font-mono text-2xl font-black text-[#8CE829]">
+                  100% Cashless
                 </div>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-sm">
-                  <Radio className="w-6 h-6" />
+              <div className="pt-4 border-t border-white/15 flex items-center justify-between text-[11px] text-blue-100">
+                <div className="flex items-center gap-2 font-bold">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px]">
+                    DR
+                  </div>
+                  <span>Pesantren Terpadu</span>
                 </div>
-                <div className="font-extrabold text-slate-900 text-sm">Tap Terminal Scanner NFC Aktif</div>
-                <p className="text-slate-500 text-[11px] max-w-xs mx-auto">
-                  Dukungan RFID Card 13.56MHz Mifare / NFC Phone Reader langsung di peramban tanpa instalasi driver tambahan.
-                </p>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#8CE829] text-slate-950 font-bold text-[10px]">
+                  Real-Time
+                </span>
               </div>
             </div>
-          )}
 
-          {activeIllustrationTab === 'hijri' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-50 text-blue-800 font-bold text-[10px] uppercase">
-                  Modul Keuangan Syar'i
+            {/* KARTU 2: KEUANGAN SYAHRIYAH (WHITE CARD) */}
+            <div className="rounded-[28px] bg-white border border-slate-200/80 p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">1 Hijriyah</span>
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Auto-Disburse</span>
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900">Auto-Tagihan 1 Hijriyah & Portal Wali Mandiri</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Penerbitan tagihan Syahriyah bulanan otomatis setiap tanggal 1 pada kalender Hijriyah (Muharram hingga Dzulhijjah). Wali santri dapat mengecek rincian tagihan, melunasi online, dan mengunduh kwitansi resmi berstempel dan bertanda tangan sah secara mandiri tanpa harus login akun.
-                </p>
-                <div className="space-y-2 pt-1 text-[11px] text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                    <span>Anti-duplikasi tagihan pada periode bulan Hijriyah yang sama</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                    <span>Kwitansi sah otomatis terbit setelah verifikasi bendahara / PG</span>
-                  </div>
+
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900 leading-snug">
+                    Penagihan Syahriyah Hijriyah
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                    Terbit massal otomatis setiap awal bulan kalender Hijriyah dengan verifikasi QRIS dinamis & VA BSI.
+                  </p>
+                </div>
+
+                <div className="font-mono text-2xl font-black text-slate-900">
+                  Auto-Reconciled
                 </div>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-sm">
-                  <Receipt className="w-6 h-6" />
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 font-bold text-slate-700">
+                  <Receipt className="w-4 h-4 text-[#0052FF]" />
+                  <span>Kwitansi Berstempel Sah</span>
                 </div>
-                <div className="font-extrabold text-slate-900 text-sm">Portal Terbuka Tanpa Registrasi</div>
-                <p className="text-slate-500 text-[11px] max-w-xs mx-auto">
-                  Orang tua cukup memasukkan NIS atau Nama Santri untuk melihat seluruh riwayat pembayaran dan status izin keluar.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {activeIllustrationTab === 'kamtib' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-50 text-amber-800 font-bold text-[10px] uppercase">
-                  Modul Disiplin & Akademik
-                </div>
-                <h3 className="text-lg font-extrabold text-slate-900">Pos Keamanan Kamtib & Evaluasi Muhafadzoh</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Pos pemeriksaan satpam di gerbang utama untuk memverifikasi surat izin keluar santri, mencatat jam kembali, dan mendeteksi keterlambatan (*overdue*). Dilengkapi pula dengan buku evaluasi hafalan Al-Qur'an dan mutaba'ah yaumiyah santri.
-                </p>
-                <div className="space-y-2 pt-1 text-[11px] text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                    <span>Status lokasi santri terpantau real-time (Di Asrama / Izin / Overdue)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                    <span>Catatan takziran edukatif dan buku pelanggaran santri</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center mx-auto shadow-sm">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div className="font-extrabold text-slate-900 text-sm">Deteksi Cepat Keberadaan Santri</div>
-                <p className="text-slate-500 text-[11px] max-w-xs mx-auto">
-                  Asatidz dan satpam dapat memeriksa status izin hanya dengan mengetik nama atau scan kartu KTSD di gerbang pondok.
-                </p>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
+                  PSAK 109
+                </span>
               </div>
             </div>
-          )}
 
-          {activeIllustrationTab === 'payment' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-purple-50 text-purple-800 font-bold text-[10px] uppercase">
-                  Modul Pembayaran Otomatis
+            {/* KARTU 3: AKADEMIK & MUHAFADZOH (WHITE CARD) */}
+            <div className="rounded-[28px] bg-white border border-slate-200/80 p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Salafiyah</span>
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Takror Malam</span>
                 </div>
-                <h3 className="text-lg font-extrabold text-slate-900">King Digital Payment Gateway (Auto-Disbursement)</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Pesantren dapat mengaktifkan Payment Gateway terintegrasi. Saat wali santri membayar via QRIS dinamis atau Virtual Account bank syariah, dana secara otomatis diteruskan (*auto-disburse*) ke nomor rekening bank resmi yayasan pondok Anda tanpa perlu verifikasi manual oleh bendahara.
-                </p>
-                <div className="space-y-2 pt-1 text-[11px] text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-600" />
-                    <span>Pilihan rekening penampungan: BSI, BCA, Mandiri, BRI, BNI, Muamalat</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-purple-600" />
-                    <span>Dapat diaktifkan atau dinonaktifkan kapan saja di menu Pengaturan</span>
-                  </div>
+
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900 leading-snug">
+                    Akademik Kitab Salaf & Nadzoman
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                    Setoran hafalan nadzom (Imrithi & Alfiyah Ibnu Malik), musyawarah bahtsul masail, dan takror harian santri.
+                  </p>
+                </div>
+
+                <div className="font-mono text-2xl font-black text-slate-900">
+                  1.000+ Bait Nadzom
                 </div>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#1E3A8A] text-white flex items-center justify-center mx-auto shadow-sm">
-                  <CreditCard className="w-6 h-6 text-amber-300" />
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 font-bold text-slate-700">
+                  <BookOpen className="w-4 h-4 text-emerald-600" />
+                  <span>Dewan Asatidz Pengampu</span>
                 </div>
-                <div className="font-extrabold text-slate-900 text-sm">Settlement Instan Real-Time</div>
-                <p className="text-slate-500 text-[11px] max-w-xs mx-auto">
-                  Semua transaksi langsung tercatat pada Buku Kas Umum (Ledger) dan kwitansi berstempel digital langsung diterbitkan.
-                </p>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
+                  Rapor Salaf
+                </span>
               </div>
             </div>
-          )}
+
+            {/* KARTU 4: KAMTIB & PERIZINAN GERBANG (WHITE CARD) */}
+            <div className="rounded-[28px] bg-white border border-slate-200/80 p-7 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Gate Scanner</span>
+                  <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">Notifikasi WA</span>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900 leading-snug">
+                    Keamanan Kamtib & Perizinan
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+                    Verifikasi surat izin kepulangan/sambangan santri di pos satpam dengan scanner KTSD anti-overdue.
+                  </p>
+                </div>
+
+                <div className="font-mono text-2xl font-black text-slate-900">
+                  24 Jam Real-Time
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 font-bold text-slate-700">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  <span>Pos Kamtib Gerbang</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
+                  Zero Anomaly
+                </span>
+              </div>
+            </div>
+
+          </div>
 
         </div>
 
@@ -855,15 +819,15 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
                     onClick={() => setFormData({ ...formData, packageType: 'TAHUNAN' })}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                       formData.packageType === 'TAHUNAN'
-                        ? 'border-[#1E3A8A] bg-blue-50/50 shadow-sm'
+                        ? 'border-[#0052FF] bg-blue-50/50 shadow-sm'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-extrabold text-slate-900 text-xs">Lisensi Tahunan</span>
-                      <span className="px-2 py-0.5 bg-[#1E3A8A] text-white rounded font-bold text-[9px]">Pilihan Populer</span>
+                      <span className="px-2 py-0.5 bg-[#0052FF] text-white rounded-full font-bold text-[9px]">Pilihan Populer</span>
                     </div>
-                    <div className="font-black text-base text-[#1E3A8A] font-mono">
+                    <div className="font-black text-base text-[#0052FF] font-mono">
                       Rp 1.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Database mandiri, hingga 1.000 santri, King Digital PG Ready, & Update 1 tahun.</p>
@@ -874,13 +838,13 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
                     onClick={() => setFormData({ ...formData, packageType: 'LIFETIME' })}
                     className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                       formData.packageType === 'LIFETIME'
-                        ? 'border-[#1E3A8A] bg-blue-50/50 shadow-sm'
+                        ? 'border-[#0052FF] bg-blue-50/50 shadow-sm'
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-extrabold text-slate-900 text-xs">Lisensi Lifetime</span>
-                      <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded font-bold text-[9px]">Hemat Permanen</span>
+                      <span className="px-2 py-0.5 bg-[#8CE829] text-slate-950 rounded-full font-bold text-[9px]">Hemat Permanen</span>
                     </div>
                     <div className="font-black text-base text-slate-900 font-mono">
                       Rp 3.500.000 <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span>
@@ -895,7 +859,7 @@ export default function LandingPageSaas({ onBackToPesantrenDemo, onGoToAppGatewa
               <button
                 type="submit"
                 disabled={loading || (subdomainStatus.checked && !subdomainStatus.available)}
-                className="w-full py-3 bg-[#1E3A8A] hover:bg-blue-900 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs mt-4"
+                className="w-full py-3.5 bg-[#0052FF] hover:bg-blue-700 text-white font-bold rounded-full shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs mt-4 cursor-pointer"
               >
                 {loading ? 'Membuat Invoice Pembayaran...' : 'Lanjut ke Pembayaran QRIS / Virtual Account'}
                 <ArrowRight className="w-4 h-4" />
