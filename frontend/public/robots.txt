@@ -17,6 +17,26 @@ Allow: /faq
 Allow: /refund-policy
 Allow: /terms-and-conditions
 Allow: /kontak
+Allow: /llms.txt
+
+# Explicit Access for AI Search & LLM Engines
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
 
 # Disallow private developer console & API endpoints
 Disallow: /api/
