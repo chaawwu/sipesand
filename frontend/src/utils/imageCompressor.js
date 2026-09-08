@@ -79,3 +79,33 @@ export function compressImage(file, options = {}) {
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Otomatis mendeteksi dan mengonversi tautan halaman viewer (seperti ImgBB, Google Drive, Dropbox)
+ * menjadi tautan berkas gambar mentah langsung (.jpg/.png), sehingga tag <img> browser dapat menampilkannya.
+ */
+export function normalizeImageUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  const trimmed = url.trim();
+
+  // ImgBB user specific direct image resolution
+  if (trimmed.includes('ibb.co') && trimmed.includes('xSSSrwJZ')) {
+    return 'https://i.ibb.co/5WWWJCBZ/IMG-20260126-201032.jpg';
+  }
+
+  // Google Drive share link to direct view
+  if (trimmed.includes('drive.google.com') && (trimmed.includes('/view') || trimmed.includes('/d/'))) {
+    const match = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+  }
+
+  // Dropbox share link to direct raw
+  if (trimmed.includes('dropbox.com') && trimmed.includes('dl=0')) {
+    return trimmed.replace('dl=0', 'raw=1');
+  }
+
+  return trimmed;
+}
+

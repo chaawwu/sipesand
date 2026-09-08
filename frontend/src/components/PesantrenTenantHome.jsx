@@ -44,7 +44,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
-import { compressImage } from '../utils/imageCompressor';
+import { compressImage, normalizeImageUrl } from '../utils/imageCompressor';
 
 export default function PesantrenTenantHome({
   onLoginPetugas,
@@ -79,7 +79,7 @@ export default function PesantrenTenantHome({
       NAMA_KEPALA_PONDOK: settings.NAMA_KEPALA_PONDOK || 'K.H. Amir Hasan',
       JABATAN_PENGASUH: settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman',
       LOKASI_PENGASUH: settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri',
-      FOTO_PENGASUH_URL: settings.FOTO_PENGASUH_URL || DEFAULT_PENGASUH_AVATAR,
+      FOTO_PENGASUH_URL: normalizeImageUrl(settings.FOTO_PENGASUH_URL) || DEFAULT_PENGASUH_AVATAR,
       KALAM_PENGASUH: settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.',
     });
     setIsEditPengasuhOpen(true);
@@ -134,7 +134,7 @@ export default function PesantrenTenantHome({
   const namaPengasuh = settings.NAMA_KEPALA_PONDOK || 'K.H. Amir Hasan';
   const jabatanPengasuh = settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman';
   const lokasiPengasuh = settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri';
-  const fotoPengasuh = settings.FOTO_PENGASUH_URL || DEFAULT_PENGASUH_AVATAR;
+  const fotoPengasuh = normalizeImageUrl(settings.FOTO_PENGASUH_URL) || DEFAULT_PENGASUH_AVATAR;
   const kalamPengasuh = settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.';
   const stat1Number = settings.STAT_1_NUMBER || '500+';
   const stat1Label = settings.STAT_1_LABEL || 'Santri Mukim';

@@ -37,7 +37,7 @@ import {
   clearCloudDemoData
 } from '../services/api';
 import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
-import { compressImage } from '../utils/imageCompressor';
+import { compressImage, normalizeImageUrl } from '../utils/imageCompressor';
 
 const DIVISION_ROLES = [
   { 
@@ -685,7 +685,7 @@ export default function SettingsAndAccounts() {
                     </div>
                   ) : formSettings.FOTO_PENGASUH_URL ? (
                     <img 
-                      src={formSettings.FOTO_PENGASUH_URL} 
+                      src={normalizeImageUrl(formSettings.FOTO_PENGASUH_URL)} 
                       alt="Foto Pengasuh" 
                       className="w-full h-full object-cover object-top"
                       onError={(e) => {
