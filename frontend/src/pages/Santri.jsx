@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, 
   Search, 
@@ -17,7 +17,11 @@ import {
   Printer,
   Download,
   Database,
-  MapPin
+  MapPin,
+  Camera,
+  UploadCloud,
+  RefreshCw,
+  Image as ImageIcon
 } from 'lucide-react';
 import { 
   getSantriList, 
@@ -25,9 +29,12 @@ import {
   createSantri, 
   updateSantri, 
   deleteSantri,
-  exportSantriData 
+  exportSantriData,
+  uploadFileToR2 
 } from '../services/api';
 import { subscribeCloudSantri } from '../services/cloudDatabase';
+import { compressImage } from '../utils/imageCompressor';
+import { getCurrentTenant } from '../services/localDatabase';
 import SantriIdCard from '../components/SantriIdCard';
 import FirebaseMigratorModal from '../components/FirebaseMigratorModal';
 import AestheticToast from '../components/AestheticToast';
@@ -56,6 +63,10 @@ export default function Santri({ onOpenNfcModal }) {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Photo Upload State
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Form inputs
   const [formData, setFormData] = useState({
     nis: '',
@@ -69,6 +80,7 @@ export default function Santri({ onOpenNfcModal }) {
     noHpWali: '',
     saldo_saku: 0,
     status: 'AKTIF',
+    foto: null,
   });
 
   useEffect(() => {
@@ -116,8 +128,10 @@ export default function Santri({ onOpenNfcModal }) {
       noHpWali: '',
       saldo_saku: 50000,
       status: 'AKTIF',
+      foto: null,
     });
     setFormError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setIsFormOpen(true);
   };
 
@@ -136,9 +150,69 @@ export default function Santri({ onOpenNfcModal }) {
       noHpWali: santri.noHpWali || '',
       saldo_saku: santri.saldo_saku || 0,
       status: santri.status || 'AKTIF',
+      foto: santri.foto || null,
     });
     setFormError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setIsFormOpen(true);
+  };
+
+  // Handler Upload & Kompresi Pas Foto Santri (KTSD / ID Card)
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingPhoto(true);
+
+      // 1. Kompresi gambar client-side (maks 500x600 px, kualitas 0.85)
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 500,
+        maxHeight: 600,
+        quality: 0.85
+      });
+
+      // 2. Coba upload ke Cloudflare R2 jika backend live
+      let finalPhotoUrl = compressedBase64;
+      try {
+        const cleanSub = getCurrentTenant() || 'darulrahman';
+        const fileExt = file.type === 'image/png' ? 'png' : 'jpg';
+        const r2Res = await uploadFileToR2({
+          fileName: `foto_santri_${formData.nis || Date.now()}_${Date.now()}.${fileExt}`,
+          fileBase64: compressedBase64,
+          folder: `tenants/${cleanSub}/santri_photos`,
+          mimeType: file.type || 'image/jpeg'
+        }, cleanSub);
+
+        if (r2Res?.success && r2Res?.url) {
+          finalPhotoUrl = r2Res.url;
+        }
+      } catch (r2Err) {
+        console.info('Menggunakan Data URL terkompresi:', r2Err);
+      }
+
+      setFormData(prev => ({ ...prev, foto: finalPhotoUrl }));
+      setToast({
+        isOpen: true,
+        type: 'success',
+        title: 'Pas Foto Terpasang',
+        message: 'Foto santri siap dicetak pada Kartu Tanda Santri Digital (KTSD).'
+      });
+    } catch (err) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Memproses Foto',
+        message: err.message || 'Format gambar tidak didukung.'
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData(prev => ({ ...prev, foto: null }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleOpenDetail = async (id) => {
@@ -333,9 +407,17 @@ export default function Santri({ onOpenNfcModal }) {
                     {/* Santri Name & NIS */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
-                          {santri.nama.charAt(0)}
-                        </div>
+                        {santri.foto ? (
+                          <img 
+                            src={santri.foto} 
+                            alt={santri.nama} 
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" 
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200">
+                            {santri.nama.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <div className="font-bold text-slate-900">{santri.nama}</div>
                           <div className="text-[11px] text-slate-400 font-mono">
@@ -457,6 +539,91 @@ export default function Santri({ onOpenNfcModal }) {
                   {formError}
                 </div>
               )}
+
+              {/* SECTION: PAS FOTO ID CARD SANTRI (KTSD) */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
+                {/* Photo Frame / Preview */}
+                <div className="relative group shrink-0">
+                  <div className="w-24 h-32 rounded-xl bg-white border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center shadow-inner relative">
+                    {formData.foto ? (
+                      <img 
+                        src={formData.foto} 
+                        alt="Pas Foto Santri" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="text-center p-2 text-slate-400 space-y-1">
+                        <Camera className="w-7 h-7 mx-auto text-slate-400" />
+                        <span className="text-[10px] font-bold block leading-tight text-slate-500">Pas Foto 3x4</span>
+                        <span className="text-[9px] text-slate-400 block">KTSD & ID Card</span>
+                      </div>
+                    )}
+
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-slate-900/70 flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1.5 backdrop-blur-xs">
+                        <RefreshCw className="w-5 h-5 animate-spin text-amber-300" />
+                        <span>Mengompresi...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.foto && !isUploadingPhoto && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+                      title="Hapus Foto"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Info & Upload Button */}
+                <div className="flex-1 text-center sm:text-left space-y-1.5">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <h4 className="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-blue-600" />
+                      <span>Pas Foto ID Card Santri (KTSD)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                      Rasio 3:4
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Unggah pas foto formal santri. Foto ini akan otomatis dicetak di Kartu Tanda Santri Digital (KTSD RFID), profil wali santri, dan sistem kasir kantin.
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                      id="santri-photo-upload-input"
+                      disabled={isUploadingPhoto}
+                    />
+                    <label
+                      htmlFor="santri-photo-upload-input"
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 text-blue-200" />
+                      <span>{formData.foto ? 'Ganti Pas Foto' : 'Pilih / Jepret Foto'}</span>
+                    </label>
+
+                    {formData.foto && (
+                      <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Foto Siap Dicetak</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Format: JPG, PNG, WebP. Otomatis dikompresi beresolusi tinggi dan hemat ruang.
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

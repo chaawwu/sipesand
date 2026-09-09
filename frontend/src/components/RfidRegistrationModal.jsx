@@ -585,14 +585,18 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ${
                             isSelected
                               ? 'bg-blue-600 text-white'
                               : hasCard
                               ? 'bg-emerald-100 text-emerald-700'
                               : 'bg-slate-100 text-slate-600'
                           }`}>
-                            {s.nama?.charAt(0) || 'S'}
+                            {s.foto ? (
+                              <img src={s.foto} alt={s.nama} className="w-full h-full object-cover" />
+                            ) : (
+                              s.nama?.charAt(0) || 'S'
+                            )}
                           </div>
                           <div className="min-w-0">
                             <div className="font-bold text-slate-900 truncate">
@@ -646,8 +650,12 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
                   {/* Selected Santri Info Banner */}
                   <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white rounded-2xl p-3.5 sm:p-4 shadow-sm border border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center font-black text-lg">
-                        {selectedSantri.nama?.charAt(0)}
+                      <div className="w-12 h-12 rounded-xl bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center font-black text-lg overflow-hidden shrink-0 shadow-inner">
+                        {selectedSantri.foto ? (
+                          <img src={selectedSantri.foto} alt={selectedSantri.nama} className="w-full h-full object-cover" />
+                        ) : (
+                          selectedSantri.nama?.charAt(0)
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
