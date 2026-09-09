@@ -143,9 +143,37 @@
     </script>
 
 
+    <script>
+      // Auto-recovery jika browser memiliki cache bundle yang kadaluarsa
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message) ? e.message.toLowerCase() : '';
+        if (msg.indexOf('unexpected token') !== -1 || msg.indexOf('loading chunk') !== -1 || msg.indexOf('dynamically imported module') !== -1) {
+          if (!sessionStorage.getItem('sipesand_auto_recovered')) {
+            sessionStorage.setItem('sipesand_auto_recovered', 'true');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                for (var r of regs) r.unregister();
+              });
+            }
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                for (var n of names) caches.delete(n);
+              });
+            }
+            window.location.reload();
+          }
+        }
+      });
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-800 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 30px; text-align: center; font-family: sans-serif;">
+        <h2>Aplikasi Membutuhkan JavaScript</h2>
+        <p>Silakan aktifkan JavaScript pada browser Anda untuk mengakses SiPesand.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
