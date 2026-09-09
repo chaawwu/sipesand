@@ -127,7 +127,7 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
     if (santriList.length > 0) {
       const targetId = initialSantriId || new URLSearchParams(window.location.search).get('santriId');
       if (targetId) {
-        const found = santriList.find(s => s.id === parseInt(targetId));
+        const found = santriList.find(s => String(s.id) === String(targetId));
         if (found) {
           handleSelectSantri(found);
         }
@@ -797,6 +797,18 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
                               {isNfcScanning
                                 ? '🟢 SCANNER AKTIF: Tempelkan kartu RFID ke bagian belakang bodi ponsel Anda sekarang.'
                                 : 'Klik tombol di bawah untuk mengaktifkan sensor NFC di ponsel Anda, lalu tempelkan kartu RFID.'}
+                            </p>
+                          </div>
+
+                          {/* Anti-GoPay/DANA Tip Alert */}
+                          <div className="p-2.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-amber-900 text-xs text-left space-y-1">
+                            <div className="font-bold flex items-center gap-1.5 text-amber-800 text-[11px]">
+                              <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <span>Ponsel membuka GoPay / DANA saat kartu ditempelkan?</span>
+                            </div>
+                            <p className="text-[10.5px] text-amber-700 leading-relaxed">
+                              • <strong>Tekan tombol "Mulai Pindai NFC Ponsel" di bawah TERLEBIH DAHULU</strong> sebelum menempelkan kartu.<br />
+                              • Jika masih membuka dompet digital, buka <strong>Pengaturan HP ➔ NFC ➔ Pembayaran Nirkontak (Ketuk & Bayar)</strong>, lalu ubah ke <em>"Gunakan aplikasi yang sedang dibuka"</em>.
                             </p>
                           </div>
 

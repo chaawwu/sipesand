@@ -21,7 +21,10 @@ import {
   Camera,
   UploadCloud,
   RefreshCw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Smartphone,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { 
   getSantriList, 
@@ -37,6 +40,7 @@ import { compressImage } from '../utils/imageCompressor';
 import { getCurrentTenant } from '../services/localDatabase';
 import SantriIdCard from '../components/SantriIdCard';
 import FirebaseMigratorModal from '../components/FirebaseMigratorModal';
+import RfidRegistrationModal from '../components/RfidRegistrationModal';
 import AestheticToast from '../components/AestheticToast';
 
 export default function Santri({ onOpenNfcModal }) {
@@ -58,10 +62,18 @@ export default function Santri({ onOpenNfcModal }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
+  const [isRfidModalOpen, setIsRfidModalOpen] = useState(false);
+  const [rfidTargetSantriId, setRfidTargetSantriId] = useState(null);
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Form Direct NFC Scanner State (Web NFC)
+  const isWebNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window;
+  const [isFormNfcScanning, setIsFormNfcScanning] = useState(false);
+  const [formNfcError, setFormNfcError] = useState(null);
+  const formNdefControllerRef = useRef(null);
 
   // Photo Upload State
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -215,6 +227,72 @@ export default function Santri({ onOpenNfcModal }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Direct Web NFC Scanner for Form Input
+  const startFormNfcScan = async () => {
+    if (!isWebNfcSupported) {
+      setFormNfcError('Browser ini belum mendukung Web NFC. Silakan gunakan Google Chrome di HP Android ber-NFC.');
+      return;
+    }
+
+    try {
+      setFormNfcError(null);
+      const abortController = new AbortController();
+      formNdefControllerRef.current = abortController;
+      const ndef = new window.NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
+      setIsFormNfcScanning(true);
+
+      ndef.onreading = (event) => {
+        let rawUid = event.serialNumber;
+        if (!rawUid && event.message && event.message.records) {
+          for (const record of event.message.records) {
+            if (record.id) rawUid = record.id;
+          }
+        }
+        if (rawUid) {
+          const cleanUid = rawUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+          }
+          setFormData(prev => ({ ...prev, nfcUid: cleanUid }));
+          setIsFormNfcScanning(false);
+          setToast({
+            isOpen: true,
+            type: 'success',
+            title: 'Kartu NFC Terdeteksi!',
+            message: `Nomor UID Kartu: ${cleanUid} berhasil dimasukkan.`
+          });
+        }
+      };
+
+      ndef.onreadingerror = () => {
+        setFormNfcError('Gagal membaca kartu. Tempelkan kartu stabil di bodi belakang ponsel Anda.');
+      };
+    } catch (err) {
+      setIsFormNfcScanning(false);
+      if (err.name === 'NotAllowedError') {
+        setFormNfcError('Izin akses NFC ditolak. Izinkan browser Chrome untuk mengakses sensor NFC.');
+      } else if (err.name === 'NotSupportedError') {
+        setFormNfcError('Sensor NFC di ponsel belum aktif. Buka Pengaturan HP ➔ Aktifkan NFC.');
+      } else {
+        setFormNfcError(`Gagal mengaktifkan scanner: ${err.message}`);
+      }
+    }
+  };
+
+  const stopFormNfcScan = () => {
+    if (formNdefControllerRef.current) {
+      formNdefControllerRef.current.abort();
+      formNdefControllerRef.current = null;
+    }
+    setIsFormNfcScanning(false);
+  };
+
+  const handleCloseForm = () => {
+    stopFormNfcScan();
+    setIsFormOpen(false);
+  };
+
   const handleOpenDetail = async (id) => {
     try {
       const res = await getSantriById(id);
@@ -285,6 +363,7 @@ export default function Santri({ onOpenNfcModal }) {
           message: `Santri ${formData.nama} berhasil terdaftar di sistem.`
         });
       }
+      stopFormNfcScan();
       setIsFormOpen(false);
       fetchSantri();
     } catch (err) {
@@ -364,8 +443,17 @@ export default function Santri({ onOpenNfcModal }) {
           </button>
 
           <button
+            onClick={() => { setRfidTargetSantriId(null); setIsRfidModalOpen(true); }}
+            className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Buka pendaftaran RFID mandiri via sensor NFC ponsel atau reader USB"
+          >
+            <Radio className="w-4 h-4 text-emerald-200 animate-pulse" />
+            <span>Tautkan Kartu RFID (NFC)</span>
+          </button>
+
+          <button
             onClick={handleOpenCreate}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Santri</span>
@@ -444,12 +532,28 @@ export default function Santri({ onOpenNfcModal }) {
                     {/* NFC UID */}
                     <td className="py-3.5 px-4">
                       {santri.nfcUid ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          <Radio className="w-3 h-3 text-blue-600" />
-                          <span>{santri.nfcUid}</span>
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                            <Radio className="w-3 h-3 text-blue-600" />
+                            <span>{santri.nfcUid}</span>
+                          </span>
+                          <button
+                            onClick={() => { setRfidTargetSantriId(santri.id); setIsRfidModalOpen(true); }}
+                            className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline font-bold cursor-pointer"
+                            title="Ganti Kartu RFID"
+                          >
+                            Ganti
+                          </button>
+                        </div>
                       ) : (
-                        <span className="text-slate-400 italic">Belum terdaftar</span>
+                        <button
+                          onClick={() => { setRfidTargetSantriId(santri.id); setIsRfidModalOpen(true); }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 transition-colors cursor-pointer shadow-xs"
+                          title="Tautkan Kartu RFID Santri via Ponsel NFC"
+                        >
+                          <Radio className="w-2.5 h-2.5" />
+                          <span>+ Tautkan RFID</span>
+                        </button>
                       )}
                     </td>
 
@@ -526,8 +630,8 @@ export default function Santri({ onOpenNfcModal }) {
                 {isEditing ? 'Edit Data Santri' : 'Tambah Santri Baru'}
               </h3>
               <button
-                onClick={() => setIsFormOpen(false)}
-                className="text-white hover:opacity-80"
+                onClick={handleCloseForm}
+                className="text-white hover:opacity-80 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -664,14 +768,61 @@ export default function Santri({ onOpenNfcModal }) {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">NFC Card UID</label>
-                  <input
-                    type="text"
-                    value={formData.nfcUid}
-                    onChange={(e) => setFormData({ ...formData, nfcUid: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-blue-500"
-                    placeholder="NFC-99A1BC"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Kartu Smart NFC (UID)</label>
+                    {isWebNfcSupported && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                        <Radio className="w-2.5 h-2.5 animate-pulse" />
+                        <span>Web NFC Aktif</span>
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative flex-1">
+                      <Radio className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={formData.nfcUid || ''}
+                        onChange={(e) => setFormData({ ...formData, nfcUid: e.target.value.toUpperCase() })}
+                        className="w-full pl-8 pr-2 py-2 border border-slate-300 rounded-xl font-mono text-xs font-bold focus:ring-2 focus:ring-blue-500 bg-white"
+                        placeholder="Contoh: 04A1B2C3"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={isFormNfcScanning ? stopFormNfcScan : startFormNfcScan}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition-all shadow-xs shrink-0 cursor-pointer ${
+                        isFormNfcScanning
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                      title={isFormNfcScanning ? 'Klik untuk mematikan sensor' : 'Aktifkan sensor & tempel kartu ke belakang bodi HP'}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>{isFormNfcScanning ? '🟢 Tempelkan Kartu...' : 'Tap HP NFC'}</span>
+                    </button>
+                  </div>
+
+                  {isFormNfcScanning && (
+                    <div className="mt-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-[10.5px] text-emerald-800 flex items-center gap-1.5 animate-in fade-in">
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
+                      <span className="font-semibold">Scanner Aktif! Tempelkan kartu RFID sekarang ke bodi belakang ponsel Anda.</span>
+                    </div>
+                  )}
+
+                  {formNfcError && (
+                    <div className="mt-1.5 p-2 bg-rose-50 border border-rose-200 rounded-xl text-[10.5px] text-rose-800 flex items-start gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <div>{formNfcError}</div>
+                        <div className="text-[9.5px] text-rose-600">
+                          💡 Tips: Jika HP malah membuka GoPay/DANA, pastikan tombol "Tap HP NFC" ditekan DULU sebelum kartu ditempelkan, atau ubah pengaturan 'Ketuk & Bayar' di HP.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -761,15 +912,15 @@ export default function Santri({ onOpenNfcModal }) {
               <div className="pt-4 border-t border-slate-200 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold"
+                  onClick={handleCloseForm}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Menyimpan...' : isEditing ? 'Perbarui Data' : 'Simpan Santri'}
                 </button>
@@ -778,6 +929,23 @@ export default function Santri({ onOpenNfcModal }) {
           </div>
         </div>
       )}
+
+      {/* Modal Pendaftaran RFID Mandiri (Web NFC / Remote HP / Camera) */}
+      <RfidRegistrationModal
+        isOpen={isRfidModalOpen}
+        onClose={() => setIsRfidModalOpen(false)}
+        initialSantriId={rfidTargetSantriId}
+        onSuccess={() => {
+          fetchSantri();
+          setIsRfidModalOpen(false);
+          setToast({
+            isOpen: true,
+            type: 'success',
+            title: 'Kartu RFID Tertaut',
+            message: 'Kartu santri berhasil didaftarkan ke sistem.'
+          });
+        }}
+      />
 
       {/* Modal Cetak ID Card ATM */}
       <SantriIdCard
