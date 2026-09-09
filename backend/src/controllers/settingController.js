@@ -42,7 +42,7 @@ exports.saveSettings = async (req, res) => {
   }
 };
 
-// 3. Login Petugas / Super Admin / Pengurus Devisi
+// 3. Login Petugas / Super Admin / Pengurus Devisi (100% Real Auth)
 exports.loginUser = async (req, res) => {
   try {
     const db = getDb(req);
@@ -54,8 +54,23 @@ exports.loginUser = async (req, res) => {
     username = username.trim().toLowerCase();
     password = password.trim();
 
-    // 1. Coba cari akun di database
-    let user = await db.userAccount.findFirst({
+    // 1. Cek apakah database benar-benar kosong belum ada akun (Inisialisasi awal Super Admin jika fresh)
+    const countUsers = await db.userAccount.count();
+    if (countUsers === 0 && username === 'admin') {
+      await db.userAccount.create({
+        data: {
+          username: 'admin',
+          password: 'admin123',
+          name: 'Super Administrator',
+          role: 'SUPER_ADMIN',
+          division: 'PUSAT',
+          isActive: true,
+        }
+      });
+    }
+
+    // 2. Cari akun di database berdasarkan username
+    const user = await db.userAccount.findFirst({
       where: {
         username: {
           equals: username
@@ -63,40 +78,11 @@ exports.loginUser = async (req, res) => {
       }
     });
 
-    // 2. Jika akun belum ada di DB (misal belum di-seed), sediakan built-in demo credentials
     if (!user) {
-      const demoMap = {
-        'admin': { role: 'SUPER_ADMIN', name: 'Super Administrator', pass: 'admin123', div: 'PUSAT', managed: null },
-        'superadmin': { role: 'SUPER_ADMIN', name: 'Super Administrator', pass: 'password123', div: 'PUSAT', managed: null },
-        'bendahara': { role: 'BENDAHARA', name: 'Ustadz Ridwan, S.E. (Bendahara)', pass: 'admin123', div: 'KEUANGAN', managed: '[1, 2, 3]' },
-        'pengasuh': { role: 'KEPALA_PONDOK', name: 'K.H. Syarif Hidayatullah, M.A. (Pengasuh)', pass: 'admin123', div: 'PENGASUHAN', managed: null },
-        'kepalapondok': { role: 'KEPALA_PONDOK', name: 'K.H. Syarif Hidayatullah, M.A.', pass: 'password123', div: 'PENGASUHAN', managed: null },
-        'uangsaku': { role: 'PENGURUS_SAKU', name: 'Ustadz Ridwan (Pengurus Uang Saku)', pass: 'admin123', div: 'ASRAMA_POS', managed: '[1, 2, 3]' },
-        'poskantin': { role: 'PENGURUS_SAKU', name: 'Petugas Kasir Kantin & Saku', pass: 'password123', div: 'ASRAMA_POS', managed: '[3, 4, 5]' },
-        'kamtib': { role: 'KEAMANAN', name: 'Ustadz Danang (Keamanan)', pass: 'admin123', div: 'KAMTIB', managed: null },
-        'keamanan': { role: 'KEAMANAN', name: 'Ustadz Danang (Keamanan)', pass: 'admin123', div: 'KAMTIB', managed: null },
-      };
-
-      const foundDemo = demoMap[username];
-      if (foundDemo && (password === foundDemo.pass || password === 'admin123' || password === 'password123')) {
-        user = await db.userAccount.create({
-          data: {
-            username,
-            password,
-            name: foundDemo.name,
-            role: foundDemo.role,
-            division: foundDemo.div,
-            managedSantriIds: foundDemo.managed || null,
-            isActive: true,
-          }
-        });
-      }
+      return res.status(401).json({ success: false, message: 'Username atau password yang Anda masukkan salah' });
     }
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Username tidak ditemukan pada sistem' });
-    }
-
+    // 3. Validasi Password Asli (Mendukung enkripsi bcrypt atau plain-text match)
     let isPasswordValid = false;
     if (user.password.startsWith('$2b$') || user.password.startsWith('$2a$')) {
       isPasswordValid = await bcrypt.compare(password, user.password);
@@ -104,23 +90,18 @@ exports.loginUser = async (req, res) => {
       isPasswordValid = user.password === password;
     }
 
-    // Built-in dev password bypass
-    if (password === 'admin123' || password === 'password123') {
-      isPasswordValid = true;
-    }
-
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Password yang Anda masukkan salah' });
+      return res.status(401).json({ success: false, message: 'Username atau password yang Anda masukkan salah' });
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'Akun Anda dinonaktifkan oleh Administrator' });
+      return res.status(403).json({ success: false, message: 'Akun Anda telah dinonaktifkan oleh Super Admin' });
     }
 
     let parsedManagedIds = [];
     try {
       if (user.managedSantriIds) {
-        parsedManagedIds = JSON.parse(user.managedSantriIds);
+        parsedManagedIds = typeof user.managedSantriIds === 'string' ? JSON.parse(user.managedSantriIds) : user.managedSantriIds;
       }
     } catch (e) {
       parsedManagedIds = [];
@@ -135,7 +116,7 @@ exports.loginUser = async (req, res) => {
         name: user.name,
         role: user.role, // 'SUPER_ADMIN' | 'KEPALA_PONDOK' | 'BENDAHARA' | 'PENGURUS_SAKU' | 'KEAMANAN'
         division: user.division,
-        managedSantriIds: parsedManagedIds,
+        managedSantriIds: Array.isArray(parsedManagedIds) ? parsedManagedIds : [],
         performanceNotes: user.performanceNotes,
         performanceGrade: user.performanceGrade,
       }
@@ -213,19 +194,28 @@ exports.createUserAccount = async (req, res) => {
   }
 };
 
-// 6. Update Akun (Termasuk Pemetaan Santri & Evaluasi Kinerja)
+// 6. Update Akun (Termasuk Username, Password, Pemetaan Santri & Evaluasi Kinerja)
 exports.updateUserAccount = async (req, res) => {
   try {
     const db = getDb(req);
     const { id } = req.params;
-    const { name, role, division, isActive, password, managedSantriIds, performanceNotes, performanceGrade } = req.body;
+    const { username, name, role, division, isActive, password, managedSantriIds, performanceNotes, performanceGrade } = req.body;
 
     const dataToUpdate = {};
+    if (username) {
+      const cleanUsername = username.trim().toLowerCase();
+      // Pastikan username unik kecuali untuk akun ini sendiri
+      const existing = await db.userAccount.findUnique({ where: { username: cleanUsername } });
+      if (existing && existing.id !== parseInt(id)) {
+        return res.status(400).json({ success: false, message: 'Username sudah digunakan oleh akun lain' });
+      }
+      dataToUpdate.username = cleanUsername;
+    }
     if (name) dataToUpdate.name = name;
     if (role) dataToUpdate.role = role;
     if (division !== undefined) dataToUpdate.division = division;
     if (isActive !== undefined) dataToUpdate.isActive = isActive;
-    if (password) dataToUpdate.password = password;
+    if (password && password.trim()) dataToUpdate.password = password.trim();
     if (performanceNotes !== undefined) dataToUpdate.performanceNotes = performanceNotes;
     if (performanceGrade !== undefined) dataToUpdate.performanceGrade = performanceGrade;
 

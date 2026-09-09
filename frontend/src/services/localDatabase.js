@@ -138,6 +138,75 @@ function buildInitialDatabase(tenant) {
     },
   ];
 
+  // Template Akun Devisi Awal (Dapat diedit & ditambah sepenuhnya oleh Super Admin)
+  const userAccounts = [
+    {
+      id: 1,
+      username: 'admin',
+      password: 'admin123',
+      name: isDarulRahman ? 'Super Administrator Darul Rahman' : 'Super Administrator',
+      role: 'SUPER_ADMIN',
+      division: 'PUSAT',
+      managedSantriIds: null,
+      performanceNotes: 'Mengelola seluruh operasional sistem.',
+      performanceGrade: 'Mumtaz',
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 2,
+      username: 'uangsaku',
+      password: 'admin123',
+      name: 'Ustadz Ridwan (Pengurus Uang Saku)',
+      role: 'PENGURUS_SAKU',
+      division: 'ASRAMA_POS',
+      managedSantriIds: null,
+      performanceNotes: 'Pencatatan uang saku santri tertib dan amanah.',
+      performanceGrade: 'Mumtaz',
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 3,
+      username: 'bendahara',
+      password: 'admin123',
+      name: 'Ustadz Bendahara, S.E.',
+      role: 'BENDAHARA',
+      division: 'KEUANGAN',
+      managedSantriIds: null,
+      performanceNotes: 'Pembukuan keuangan dan tagihan syahriyah rapi.',
+      performanceGrade: 'Mumtaz',
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 4,
+      username: 'kamtib',
+      password: 'admin123',
+      name: 'Ustadz Danang (Keamanan & Kamtib)',
+      role: 'KEAMANAN',
+      division: 'KAMTIB',
+      managedSantriIds: null,
+      performanceNotes: 'Disiplin dan aktif memantau perizinan santri.',
+      performanceGrade: 'Mumtaz',
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+    {
+      id: 5,
+      username: 'pengasuh',
+      password: 'admin123',
+      name: 'K.H. Pengasuh Pondok',
+      role: 'KEPALA_PONDOK',
+      division: 'PENGASUHAN',
+      managedSantriIds: null,
+      performanceNotes: 'Pengasuh Utama Pondok Pesantren.',
+      performanceGrade: 'Mumtaz',
+      isActive: true,
+      createdAt: now.toISOString(),
+    },
+  ];
+
   return {
     santri: [],
     masterBills,
@@ -148,6 +217,7 @@ function buildInitialDatabase(tenant) {
     academics: [],
     violations: [],
     divisionFunds: [],
+    userAccounts,
   };
 }
 
@@ -1157,6 +1227,174 @@ export class LocalDatabase {
 
     this.saveData(db, activeT);
     return { success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 8. USER ACCOUNTS & REAL AUTHENTICATION
+  // ---------------------------------------------------------------------------
+  getUserAccounts(tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    return {
+      success: true,
+      data: db.userAccounts || [],
+    };
+  }
+
+  createUserAccount(accountData, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    const cleanUsername = (accountData.username || '').trim().toLowerCase();
+
+    if (!cleanUsername || !accountData.password || !accountData.name) {
+      return { success: false, message: 'Username, password, dan nama wajib diisi' };
+    }
+
+    if (!db.userAccounts) db.userAccounts = [];
+
+    const existing = db.userAccounts.find(u => u.username.toLowerCase() === cleanUsername);
+    if (existing) {
+      return { success: false, message: 'Username sudah digunakan oleh akun lain' };
+    }
+
+    const newAccount = {
+      id: Date.now(),
+      username: cleanUsername,
+      password: String(accountData.password).trim(),
+      name: accountData.name.trim(),
+      role: accountData.role || 'PENGURUS_SAKU',
+      division: accountData.division || 'ASRAMA_POS',
+      managedSantriIds: Array.isArray(accountData.managedSantriIds) 
+        ? JSON.stringify(accountData.managedSantriIds) 
+        : (typeof accountData.managedSantriIds === 'string' ? accountData.managedSantriIds : null),
+      performanceNotes: accountData.performanceNotes || null,
+      performanceGrade: accountData.performanceGrade || 'Mumtaz',
+      isActive: accountData.isActive !== undefined ? accountData.isActive : true,
+      createdAt: new Date().toISOString(),
+    };
+
+    db.userAccounts.push(newAccount);
+    this.saveData(db, activeT);
+
+    return {
+      success: true,
+      message: `Akun ${newAccount.name} (${newAccount.role}) berhasil dibuat`,
+      data: newAccount,
+    };
+  }
+
+  updateUserAccount(id, updateData, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    if (!db.userAccounts) db.userAccounts = [];
+
+    const idx = db.userAccounts.findIndex(u => String(u.id) === String(id));
+    if (idx === -1) {
+      return { success: false, message: 'Akun tidak ditemukan' };
+    }
+
+    const target = db.userAccounts[idx];
+
+    if (updateData.username) {
+      const cleanU = updateData.username.trim().toLowerCase();
+      const duplicate = db.userAccounts.find(u => u.username.toLowerCase() === cleanU && String(u.id) !== String(id));
+      if (duplicate) {
+        return { success: false, message: 'Username sudah digunakan oleh akun lain' };
+      }
+      target.username = cleanU;
+    }
+
+    if (updateData.name) target.name = updateData.name;
+    if (updateData.role) target.role = updateData.role;
+    if (updateData.division !== undefined) target.division = updateData.division;
+    if (updateData.isActive !== undefined) target.isActive = updateData.isActive;
+    if (updateData.password && String(updateData.password).trim()) {
+      target.password = String(updateData.password).trim();
+    }
+    if (updateData.performanceNotes !== undefined) target.performanceNotes = updateData.performanceNotes;
+    if (updateData.performanceGrade !== undefined) target.performanceGrade = updateData.performanceGrade;
+
+    if (updateData.managedSantriIds !== undefined) {
+      target.managedSantriIds = Array.isArray(updateData.managedSantriIds) 
+        ? JSON.stringify(updateData.managedSantriIds) 
+        : (typeof updateData.managedSantriIds === 'string' ? updateData.managedSantriIds : null);
+    }
+
+    target.updatedAt = new Date().toISOString();
+    this.saveData(db, activeT);
+
+    return {
+      success: true,
+      message: 'Data akun & pemetaan berhasil diperbarui',
+      data: target,
+    };
+  }
+
+  deleteUserAccount(id, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    if (!db.userAccounts) return { success: true, message: 'Akun berhasil dihapus' };
+
+    db.userAccounts = db.userAccounts.filter(u => String(u.id) !== String(id));
+    this.saveData(db, activeT);
+    return { success: true, message: 'Akun berhasil dihapus' };
+  }
+
+  authenticate(username, password, tenant = null) {
+    const activeT = tenant || this.tenant;
+    const db = this.getData(activeT);
+    const cleanU = (username || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    if (!cleanU || !cleanPass) {
+      return { success: false, message: 'Username dan password wajib diisi' };
+    }
+
+    const accounts = db.userAccounts || [];
+    const user = accounts.find(u => u.username.toLowerCase() === cleanU);
+
+    if (!user) {
+      return { success: false, message: 'Username atau password yang Anda masukkan salah' };
+    }
+
+    if (String(user.password).trim() !== cleanPass) {
+      return { success: false, message: 'Username atau password yang Anda masukkan salah' };
+    }
+
+    if (user.isActive === false) {
+      return { success: false, message: 'Akun Anda telah dinonaktifkan oleh Super Admin' };
+    }
+
+    let parsedManagedIds = [];
+    try {
+      if (user.managedSantriIds) {
+        parsedManagedIds = typeof user.managedSantriIds === 'string' ? JSON.parse(user.managedSantriIds) : user.managedSantriIds;
+      }
+    } catch (e) {
+      parsedManagedIds = [];
+    }
+
+    const userSession = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      division: user.division || user.role,
+      managedSantriIds: Array.isArray(parsedManagedIds) ? parsedManagedIds : [],
+      performanceNotes: user.performanceNotes || null,
+      performanceGrade: user.performanceGrade || 'Mumtaz',
+      tenant: activeT,
+    };
+
+    return {
+      success: true,
+      message: `Login berhasil sebagai ${user.name} (${user.role})`,
+      user: userSession,
+      data: {
+        token: `local-session-token-${Date.now()}`,
+        user: userSession,
+      }
+    };
   }
 }
 

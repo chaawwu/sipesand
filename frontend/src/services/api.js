@@ -37,6 +37,7 @@ import {
   createCloudUserAccount,
   updateCloudUserAccount,
   deleteCloudUserAccount,
+  authenticateCloudUser,
   getCloudDashboardStats,
   getCloudPortalWaliData,
   getCloudSantriById,
@@ -446,48 +447,7 @@ export const deleteViolation = (id) =>
 export const loginUser = (data) => 
   runHybrid(
     () => api.post('/settings/login', data),
-    () => {
-      const u = (data.username || 'admin').trim().toLowerCase();
-      let role = 'SUPER_ADMIN';
-      let name = 'Super Administrator Pesantren';
-      let division = 'PUSAT';
-
-      if (u === 'kamtib' || u === 'keamanan') {
-        role = 'KEAMANAN';
-        name = 'Divisi Keamanan (Kamtib)';
-        division = 'KAMTIB';
-      } else if (u === 'uangsaku' || u === 'saku') {
-        role = 'PENGURUS_SAKU';
-        name = 'Divisi Pengurus Uang Saku & POS';
-        division = 'ASRAMA_POS';
-      } else if (u === 'bendahara' || u === 'keuangan') {
-        role = 'BENDAHARA';
-        name = 'Divisi Bendahara Keuangan';
-        division = 'KEUANGAN';
-      } else if (u === 'pengasuh' || u === 'kepalapondok') {
-        role = 'KEPALA_PONDOK';
-        name = 'Pengasuh / Kepala Pondok';
-        division = 'PENGASUHAN';
-      }
-
-      const userData = {
-        id: `tenant-${u}`,
-        username: u,
-        name: name,
-        role: role,
-        division: division
-      };
-
-      return {
-        success: true,
-        message: 'Login berhasil',
-        user: userData,
-        data: {
-          token: 'local-session-token-' + Date.now(),
-          user: userData
-        }
-      };
-    }
+    () => authenticateCloudUser(data.username, data.password)
   );
 
 export const getSystemSettings = () => 

@@ -94,10 +94,23 @@ export default function SettingsAndAccounts() {
     division: 'ASRAMA_POS',
   });
 
+  // Modal Edit Account State
+  const [editingAccount, setEditingAccount] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'PENGURUS_SAKU',
+    division: 'ASRAMA_POS',
+    isActive: true,
+  });
+
   // Modal Pemetaan Santri Asuh State
   const [mappingAccount, setMappingAccount] = useState(null);
   const [selectedSantriIds, setSelectedSantriIds] = useState([]);
   const [savingMapping, setSavingMapping] = useState(false);
+  const [mappingSearchQuery, setMappingSearchQuery] = useState('');
+  const [mappingFilterKelas, setMappingFilterKelas] = useState('ALL');
 
   // Modal Evaluasi Pengurus State
   const [evaluatingAccount, setEvaluatingAccount] = useState(null);
@@ -229,9 +242,51 @@ export default function SettingsAndAccounts() {
     }
   };
 
+  // Handler Edit Akun Pengurus
+  const handleOpenEdit = (acc) => {
+    setEditingAccount(acc);
+    setEditFormData({
+      username: acc.username || '',
+      password: '', // Kosongkan, jika diisi baru akan diupdate
+      name: acc.name || '',
+      role: acc.role || 'PENGURUS_SAKU',
+      division: acc.division || 'ASRAMA_POS',
+      isActive: acc.isActive !== undefined ? acc.isActive : true,
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingAccount) return;
+    try {
+      const payload = {
+        name: editFormData.name.trim(),
+        username: editFormData.username.trim().toLowerCase(),
+        role: editFormData.role,
+        division: editFormData.division,
+        isActive: editFormData.isActive,
+      };
+      if (editFormData.password && editFormData.password.trim()) {
+        payload.password = editFormData.password.trim();
+      }
+
+      const res = await updateUserAccount(editingAccount.id, payload);
+      if (res && (res.success || res.data?.success)) {
+        setEditingAccount(null);
+        loadAccountsAndSantri();
+      } else {
+        alert(res?.message || 'Gagal memperbarui akun');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Gagal memperbarui akun');
+    }
+  };
+
   // Handler Buka Modal Pemetaan Santri Asuh
   const handleOpenMapping = (acc) => {
     setMappingAccount(acc);
+    setMappingSearchQuery('');
+    setMappingFilterKelas('ALL');
     try {
       const ids = typeof acc.managedSantriIds === 'string' 
         ? JSON.parse(acc.managedSantriIds) 
@@ -1215,7 +1270,16 @@ export default function SettingsAndAccounts() {
                         <div className="text-[10px] text-slate-400 max-w-xs truncate">{acc.performanceNotes || 'Belum ada evaluasi'}</div>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => handleOpenEdit(acc)}
+                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
+                            title="Edit Kredensial, Password & Devisi"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+
                           <button
                             onClick={() => handleOpenMapping(acc)}
                             className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
@@ -1334,76 +1398,271 @@ export default function SettingsAndAccounts() {
       )}
 
       {/* Modal Dialog Pemetaan Santri Asuh */}
-      {mappingAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm">Pemetaan Santri Asuh: {mappingAccount.name}</h3>
-                <p className="text-[11px] text-slate-400">Pilih santri yang uang sakunya dikelola pengurus ini</p>
+      {mappingAccount && (() => {
+        // Filter santri berdasarkan search & kelas
+        const classes = Array.from(new Set(santriList.map(s => s.kelas).filter(Boolean)));
+        const filteredSantri = santriList.filter(s => {
+          const matchQuery = !mappingSearchQuery || 
+            (s.nama && s.nama.toLowerCase().includes(mappingSearchQuery.toLowerCase())) ||
+            (s.nis && s.nis.toLowerCase().includes(mappingSearchQuery.toLowerCase())) ||
+            (s.kamar && s.kamar.toLowerCase().includes(mappingSearchQuery.toLowerCase()));
+          const matchKelas = mappingFilterKelas === 'ALL' || s.kelas === mappingFilterKelas;
+          return matchQuery && matchKelas;
+        });
+
+        const handleSelectAllFiltered = () => {
+          const filteredIds = filteredSantri.map(s => s.id);
+          setSelectedSantriIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+        };
+
+        const handleDeselectAllFiltered = () => {
+          const filteredIds = new Set(filteredSantri.map(s => s.id));
+          setSelectedSantriIds(prev => prev.filter(id => !filteredIds.has(id)));
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[88vh]">
+              
+              {/* Header */}
+              <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-blue-400" />
+                    <span>Pemetaan Santri Binaan Uang Saku: {mappingAccount.name}</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    Petakan santri asuh yang pengelolaan uang sakunya dipegang oleh akun ini ({mappingAccount.username})
+                  </p>
+                </div>
+                <button onClick={() => setMappingAccount(null)} className="text-white hover:opacity-80 p-1">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button onClick={() => setMappingAccount(null)} className="text-white hover:opacity-80">
+
+              {/* Filter Controls */}
+              <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <input
+                    type="text"
+                    value={mappingSearchQuery}
+                    onChange={(e) => setMappingSearchQuery(e.target.value)}
+                    placeholder="Cari santri (nama, NIS, kamar)..."
+                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-xl bg-white text-xs focus:ring-1 focus:ring-blue-600"
+                  />
+                  <select
+                    value={mappingFilterKelas}
+                    onChange={(e) => setMappingFilterKelas(e.target.value)}
+                    className="px-3 py-1.5 border border-slate-300 rounded-xl bg-white text-xs font-semibold"
+                  >
+                    <option value="ALL">Semua Kelas</option>
+                    {classes.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <div className="font-bold text-slate-700">
+                    <span className="text-blue-700 font-extrabold">{selectedSantriIds.length}</span> dari {santriList.length} Santri Dipetakan
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiltered}
+                      className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-[10px] font-bold"
+                    >
+                      + Pilih Semua ({filteredSantri.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllFiltered}
+                      className="px-2.5 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300 rounded-lg text-[10px] font-bold"
+                    >
+                      Batal Pilih
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Santri List */}
+              <div className="p-4 space-y-2 overflow-y-auto flex-1">
+                {filteredSantri.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-xs font-medium">
+                    Tidak ada santri yang sesuai dengan pencarian / filter kelas.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                    {filteredSantri.map((s) => {
+                      const isChecked = selectedSantriIds.includes(s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => handleToggleSantriMapping(s.id)}
+                          className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                            isChecked ? 'bg-blue-50/70 border-l-4 border-blue-600' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isChecked ? (
+                              <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900">{s.nama}</div>
+                              <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2">
+                                <span>NIS: {s.nis || '-'}</span>
+                                <span>•</span>
+                                <span>{s.kelas || 'Umum'}</span>
+                                {s.kamar && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{s.kamar}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className={`font-mono font-bold text-xs ${s.saldo_saku < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                              Rp {(s.saldo_saku || 0).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+                <span className="text-[11px] text-slate-500">
+                  {selectedSantriIds.length === 0 ? 'Catatan: Jika 0 dipilih, pengurus akan memiliki akses ke semua santri.' : `${selectedSantriIds.length} santri akan dikhususkan untuk pengurus ini.`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMappingAccount(null)}
+                    className="px-4 py-2 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveMapping}
+                    disabled={savingMapping}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm text-xs disabled:opacity-50"
+                  >
+                    {savingMapping ? 'Menyimpan...' : 'Simpan Pemetaan Santri'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modal Dialog Edit Akun Pengurus */}
+      {editingAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Edit className="w-4 h-4 text-amber-400" />
+                <span>Edit Akun Pengurus Devisi</span>
+              </h3>
+              <button onClick={() => setEditingAccount(null)} className="text-white hover:opacity-80 p-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="p-5 space-y-3 overflow-y-auto flex-1">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="font-bold text-slate-700">{selectedSantriIds.length} Santri Terpilih</span>
-                <span className="text-[11px] text-slate-400">Total {santriList.length} Santri</span>
+            <form onSubmit={handleSaveEdit} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Nama Lengkap Pengurus *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-medium focus:ring-1 focus:ring-blue-600"
+                />
               </div>
 
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-                {santriList.map((s) => {
-                  const isChecked = selectedSantriIds.includes(s.id);
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => handleToggleSantriMapping(s.id)}
-                      className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
-                        isChecked ? 'bg-blue-50/70' : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        ) : (
-                          <Square className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        )}
-                        <div>
-                          <div className="font-bold text-slate-900">{s.nama}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            NIS: {s.nis} • {s.kelas}
-                          </div>
-                        </div>
-                      </div>
-
-                      <span className={`font-mono font-bold ${s.saldo_saku < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
-                        Rp {s.saldo_saku?.toLocaleString('id-ID')}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Username Login *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.username}
+                  onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono focus:ring-1 focus:ring-blue-600"
+                />
               </div>
-            </div>
 
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setMappingAccount(null)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold rounded-xl"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveMapping}
-                disabled={savingMapping}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm"
-              >
-                {savingMapping ? 'Menyimpan...' : 'Simpan Pemetaan Santri'}
-              </button>
-            </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Password Baru (Kosongkan jika tidak ingin merubah)
+                </label>
+                <input
+                  type="password"
+                  placeholder="Masukkan password baru..."
+                  value={editFormData.password}
+                  onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Pilih Devisi / Tipe Akun *</label>
+                <select
+                  value={editFormData.role}
+                  onChange={(e) => {
+                    const sel = DIVISION_ROLES.find(r => r.id === e.target.value);
+                    setEditFormData({
+                      ...editFormData,
+                      role: e.target.value,
+                      division: sel?.division || 'PUSAT',
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold focus:ring-1 focus:ring-blue-600"
+                >
+                  {DIVISION_ROLES.map(r => (
+                    <option key={r.id} value={r.id}>{r.label} ({r.division})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Status Akun</label>
+                <select
+                  value={editFormData.isActive ? 'true' : 'false'}
+                  onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.value === 'true' })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold focus:ring-1 focus:ring-blue-600"
+                >
+                  <option value="true">Aktif (Dapat Login)</option>
+                  <option value="false">Nonaktif (Diblokir)</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingAccount(null)}
+                  className="px-4 py-2 border border-slate-300 rounded-xl font-bold text-slate-700 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

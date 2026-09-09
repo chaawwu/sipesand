@@ -139,32 +139,21 @@ export default function AppGatewayPage({
         password: password.trim() 
       });
 
-      if (res.data && res.data.success && res.data.user) {
+      if (res && (res.success || res.data?.success)) {
+        const u = res.user || res.data?.user || res.data;
         setTimeout(() => {
-          onLoginSuccess(res.data.user, normalizedSubdomain);
+          onLoginSuccess(u, normalizedSubdomain);
         }, 600);
         return;
+      } else {
+        setRedirectingNotice(null);
+        setErrorMsg(res?.message || 'Login gagal. Periksa kembali subdomain, username, dan password Anda.');
       }
     } catch (err) {
-      // Fallback for static environments: demo user is strictly read-only
-      const isReadOnlyUser = username.trim().toLowerCase() === 'demo';
-      if (username.trim() && (password.trim() === 'admin123' || password.trim() === 'password123' || isReadOnlyUser)) {
-        setTimeout(() => {
-          onLoginSuccess({
-            id: 'auth-' + username.trim(),
-            username: username.trim(),
-            name: isReadOnlyUser ? 'Tamu Demo (Read Only)' : `Petugas ${normalizedSubdomain}`,
-            role: isReadOnlyUser ? 'DEMO_READONLY' : 'SUPER_ADMIN',
-            isReadOnly: isReadOnlyUser,
-            division: 'PUSAT'
-          }, normalizedSubdomain);
-        }, 600);
-        return;
-      }
-
       setRedirectingNotice(null);
       setErrorMsg(
         err.response?.data?.message || 
+        err.message || 
         'Login gagal. Periksa kembali subdomain, username, dan password Anda.'
       );
     } finally {

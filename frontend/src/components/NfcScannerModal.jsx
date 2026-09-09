@@ -12,11 +12,10 @@ import {
   ShoppingBag,
   Smartphone
 } from 'lucide-react';
-import { getSantriByNfc, createPocketTransaction, checkInByNfc, getSantriList } from '../services/api';
+import { getSantriByNfc, createPocketTransaction, checkInByNfc } from '../services/api';
 
 export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
   const [nfcUidInput, setNfcUidInput] = useState('');
-  const [quickSantriList, setQuickSantriList] = useState([]);
   const [scannedSantri, setScannedSantri] = useState(null);
   const [activeAction, setActiveAction] = useState('purchase'); // 'purchase', 'topup', 'checkin'
   const [amount, setAmount] = useState('');
@@ -31,24 +30,11 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
   const [nfcError, setNfcError] = useState(null);
   const ndefControllerRef = useRef(null);
 
-  // Ambil daftar santri untuk tombol quick simulator
   useEffect(() => {
     if (isOpen) {
-      loadQuickList();
       resetForm();
     }
   }, [isOpen]);
-
-  const loadQuickList = async () => {
-    try {
-      const res = await getSantriList({ limit: 10 });
-      if (res.data.success) {
-        setQuickSantriList(res.data.data.filter(s => s.nfcUid));
-      }
-    } catch (err) {
-      console.error('Gagal mengambil daftar quick santri', err);
-    }
-  };
 
   const resetForm = () => {
     setNfcUidInput('');
@@ -205,25 +191,25 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-emerald-700 to-teal-600 px-6 py-4 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-              <Radio className="w-5 h-5 animate-pulse text-white" />
+              <Radio className="w-5 h-5 animate-pulse text-[#8CE829]" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">Simulator Smart NFC Reader</h3>
-              <p className="text-xs text-emerald-100">Pindai kartu santri untuk POS Kantin, Top-Up, atau Check-in Izin</p>
+              <h3 className="font-bold text-base sm:text-lg text-white">Pemindai Smart NFC & RFID Fisik</h3>
+              <p className="text-xs text-emerald-100">Tap kartu fisik di bodi HP Android (Web NFC) atau tempelkan ke USB RFID Reader</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto text-xs">
           {/* Smartphone Web NFC Tap Section */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -232,7 +218,7 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div>
                 <div className="font-extrabold text-xs text-slate-800 flex items-center gap-2">
-                  <span>Tap Kartu NFC Langsung di Ponsel</span>
+                  <span>Sensor Web NFC Smartphone</span>
                   {isWebNfcSupported && (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                       Web NFC Aktif
@@ -241,8 +227,8 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
                 </div>
                 <p className="text-[11px] text-slate-500">
                   {isWebNfcSupported
-                    ? (isNfcScanning ? '🟢 Scanner aktif: Tempelkan kartu ke bodi belakang ponsel.' : 'Aktifkan scanner untuk membaca kartu saat ditempelkan ke HP.')
-                    : 'Buka di Google Chrome Android ber-NFC untuk tap kartu langsung tanpa mesin reader.'}
+                    ? (isNfcScanning ? '🟢 Scanner aktif: Tempelkan kartu KTSD langsung ke bodi belakang ponsel.' : 'Aktifkan scanner untuk membaca kartu fisik saat ditempelkan ke bodi HP.')
+                    : 'Buka di Google Chrome Android ber-NFC untuk tap kartu langsung di bodi HP.'}
                 </p>
                 {nfcError && <p className="text-[11px] text-rose-600 font-semibold mt-0.5">{nfcError}</p>}
               </div>
@@ -272,52 +258,35 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
             )}
           </div>
 
-          {/* Quick Select Preset NFC Cards */}
-          <div>
-            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 block">
-              Pilih Kartu Santri Siap Pakai (Simulasi Cepat):
+          {/* USB RFID Reader / Barcode / UID Input */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Desktop USB RFID Reader / Ketik UID Kartu Fisik:
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {quickSantriList.map((santri) => (
-                <button
-                  key={santri.id}
-                  onClick={() => handleScan(santri.nfcUid)}
-                  className={`p-2.5 text-left rounded-xl border transition-all text-xs flex flex-col justify-between ${
-                    scannedSantri?.id === santri.id
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="font-semibold truncate">{santri.nama}</div>
-                  <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
-                    <span>{santri.nfcUid}</span>
-                    <span className="font-mono font-medium text-emerald-700">Rp {santri.saldo_saku?.toLocaleString('id-ID')}</span>
-                  </div>
-                </button>
-              ))}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Radio className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Tempelkan kartu ke USB reader / ketik UID (contoh: NFC-8A3F129B)..."
+                  value={nfcUidInput}
+                  onChange={(e) => setNfcUidInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                  className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 focus:bg-white"
+                />
+              </div>
+              <button
+                onClick={() => handleScan()}
+                disabled={loading || !nfcUidInput.trim()}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+              >
+                {loading ? 'Mencari...' : 'Scan / Cari Kartu'}
+              </button>
             </div>
-          </div>
-
-          {/* Manual Input NFC UID */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Radio className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Atau ketik UID Kartu NFC (contoh: NFC-8A3F129B)..."
-                value={nfcUidInput}
-                onChange={(e) => setNfcUidInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <button
-              onClick={() => handleScan()}
-              disabled={loading || !nfcUidInput.trim()}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Memindai...' : 'Scan / Cari'}
-            </button>
+            <p className="text-[10px] text-slate-400">
+              Mendukung semua USB Reader 13.56 MHz (Mifare) & 125 kHz (EM4100). Saat kartu ditempelkan, pembacaan akan otomatis diproses.
+            </p>
           </div>
 
           {/* Status Message */}

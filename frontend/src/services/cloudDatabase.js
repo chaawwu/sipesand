@@ -737,13 +737,6 @@ export async function deleteCloudViolation(id, tenant = null) {
 // -----------------------------------------------------------------------------
 // 8. AKUN PENGURUS & DEVISI (USER ACCOUNTS)
 // -----------------------------------------------------------------------------
-const DEFAULT_ACCOUNTS = [
-  { id: 1, username: "admin", name: "Pengasuh & Superadmin", role: "SUPER_ADMIN", division: "PENGASUHAN_PUSAT", isActive: true },
-  { id: 2, username: "bendahara", name: "Ustadz Bendahara, S.E.", role: "BENDAHARA", division: "KEUANGAN", isActive: true },
-  { id: 3, username: "kamtib", name: "Ustadz Keamanan", role: "KAMTIB", division: "KEAMANAN", isActive: true },
-  { id: 4, username: "asatidz", name: "Dewan Asatidz", role: "ASATIDZ", division: "PENDIDIKAN", isActive: true },
-];
-
 export async function getCloudUserAccounts(tenant = null) {
   try {
     const colRef = getTenantCol("accounts", tenant);
@@ -751,44 +744,97 @@ export async function getCloudUserAccounts(tenant = null) {
     if (!snap.empty) {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       return { success: true, data: items };
-    } else {
-      for (const a of DEFAULT_ACCOUNTS) {
-        await setDoc(getTenantDoc("accounts", a.id, tenant), a);
-      }
-      return { success: true, data: DEFAULT_ACCOUNTS };
     }
   } catch (err) {
     console.warn("Firebase getCloudUserAccounts fallback:", err);
   }
-  return { success: true, data: DEFAULT_ACCOUNTS };
+  return localDb.getUserAccounts(tenant);
 }
 
 export async function createCloudUserAccount(accountData, tenant = null) {
-  const newAccount = { id: Date.now(), ...accountData, isActive: true };
-  try {
-    await setDoc(getTenantDoc("accounts", newAccount.id, tenant), newAccount);
-  } catch (err) {
-    console.warn("Gagal create user account di Firestore:", err);
+  const localRes = localDb.createUserAccount(accountData, tenant);
+  if (localRes.success && localRes.data) {
+    try {
+      await setDoc(getTenantDoc("accounts", localRes.data.id, tenant), localRes.data);
+    } catch (err) {
+      console.warn("Gagal create user account di Firestore:", err);
+    }
   }
-  return { success: true, message: "Akun baru berhasil ditambahkan", data: newAccount };
+  return localRes;
 }
 
 export async function updateCloudUserAccount(id, updateData, tenant = null) {
+  const localRes = localDb.updateUserAccount(id, updateData, tenant);
   try {
     await setDoc(getTenantDoc("accounts", id, tenant), updateData, { merge: true });
   } catch (err) {
     console.warn("Gagal update account di Firestore:", err);
   }
-  return { success: true, message: "Akun berhasil diperbarui", data: { id, ...updateData } };
+  return localRes;
 }
 
 export async function deleteCloudUserAccount(id, tenant = null) {
+  const localRes = localDb.deleteUserAccount(id, tenant);
   try {
     await deleteDoc(getTenantDoc("accounts", id, tenant));
   } catch (err) {
     console.warn("Gagal delete account dari Firestore:", err);
   }
-  return { success: true, message: "Akun berhasil dihapus" };
+  return localRes;
+}
+
+export async function authenticateCloudUser(username, password, tenant = null) {
+  const cleanU = (username || '').trim().toLowerCase();
+  const cleanPass = (password || '').trim();
+
+  try {
+    const colRef = getTenantCol("accounts", tenant);
+    const snap = await getDocs(colRef);
+    if (!snap.empty) {
+      const accounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const found = accounts.find(a => (a.username || '').toLowerCase() === cleanU);
+      if (found) {
+        if (String(found.password).trim() !== cleanPass) {
+          return { success: false, message: 'Username atau password yang Anda masukkan salah' };
+        }
+        if (found.isActive === false) {
+          return { success: false, message: 'Akun Anda telah dinonaktifkan oleh Super Admin' };
+        }
+        let parsedManagedIds = [];
+        try {
+          if (found.managedSantriIds) {
+            parsedManagedIds = typeof found.managedSantriIds === 'string' ? JSON.parse(found.managedSantriIds) : found.managedSantriIds;
+          }
+        } catch (e) {
+          parsedManagedIds = [];
+        }
+        const userSession = {
+          id: found.id,
+          username: found.username,
+          name: found.name,
+          role: found.role,
+          division: found.division || found.role,
+          managedSantriIds: Array.isArray(parsedManagedIds) ? parsedManagedIds : [],
+          performanceNotes: found.performanceNotes || null,
+          performanceGrade: found.performanceGrade || 'Mumtaz',
+          tenant: tenant || getCurrentTenant(),
+        };
+        return {
+          success: true,
+          message: `Login berhasil sebagai ${found.name} (${found.role})`,
+          user: userSession,
+          data: {
+            token: `cloud-session-token-${Date.now()}`,
+            user: userSession,
+          }
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Firebase authenticateCloudUser fallback:", err);
+  }
+
+  return localDb.authenticate(username, password, tenant);
 }
 
 // -----------------------------------------------------------------------------
