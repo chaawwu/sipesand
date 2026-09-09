@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wallet, 
   Radio, 
@@ -19,7 +19,14 @@ import {
   Search,
   Check,
   Users,
-  Filter
+  Filter,
+  Smartphone,
+  User,
+  Lock,
+  Zap,
+  ArrowRight,
+  ExternalLink,
+  Banknote
 } from 'lucide-react';
 import { 
   getSantriList, 
@@ -39,7 +46,28 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
   const userRole = currentUser?.role || 'PENGURUS_SAKU';
   const managedIds = currentUser?.managedSantriIds || [];
 
-  // State
+  // ============================================================================
+  // SMART NFC TARIK TUNAI CASH STATE
+  // ============================================================================
+  const isWebNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window;
+  const [isCashNfcScanning, setIsCashNfcScanning] = useState(false);
+  const [cashNfcError, setCashNfcError] = useState(null);
+  const cashNfcControllerRef = useRef(null);
+  const [smartCashUid, setSmartCashUid] = useState('');
+
+  // Modal Pop-Up Tarik Tunai Khusus
+  const [isSmartWithdrawModalOpen, setIsSmartWithdrawModalOpen] = useState(false);
+  const [smartWithdrawSantri, setSmartWithdrawSantri] = useState(null);
+  const [smartWithdrawAmount, setSmartWithdrawAmount] = useState('20000');
+  const [smartWithdrawNotes, setSmartWithdrawNotes] = useState('Uang saku tunai harian/mingguan');
+  const [smartWithdrawPin, setSmartWithdrawPin] = useState('');
+  const [smartBypassPin, setSmartBypassPin] = useState(true);
+  const [smartWithdrawSendWa, setSmartWithdrawSendWa] = useState(true);
+  const [smartWithdrawProcessing, setSmartWithdrawProcessing] = useState(false);
+  const [smartWithdrawFeedback, setSmartWithdrawFeedback] = useState(null);
+  const [smartLastSuccessTx, setSmartLastSuccessTx] = useState(null);
+
+  // State Standar
   const [allSantriList, setAllSantriList] = useState([]);
   const [santriList, setSantriList] = useState([]);
   const [selectedSantri, setSelectedSantri] = useState(null);
@@ -47,7 +75,7 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
   const [searchSantri, setSearchSantri] = useState('');
   const [scanningNfc, setScanningNfc] = useState(false);
   
-  // Form Transaksi Harian (Tanpa Merchant/Kasir)
+  // Form Transaksi Harian
   const [txType, setTxType] = useState('WITHDRAW'); // 'TOPUP' | 'WITHDRAW' | 'PURCHASE'
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -144,7 +172,249 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
     }
   };
 
-  // Handler Scan NFC
+  // Synthesizer Nada Chime & Kasir
+  const playCashChime = (type = 'cash') => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'cash') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+        osc.frequency.setValueAtTime(1318.5, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.28, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.22, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } else {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(260, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch (e) {}
+  };
+
+  // Smartphone Web NFC Scanner Engine untuk Tarik Tunai Cash
+  const startCashNfcScan = async () => {
+    if (!isWebNfcSupported) {
+      setCashNfcError('Perangkat/Browser ini belum mendukung Web NFC. Gunakan Google Chrome di HP Android ber-NFC.');
+      return;
+    }
+    try {
+      setCashNfcError(null);
+      const abortController = new AbortController();
+      cashNfcControllerRef.current = abortController;
+      const ndef = new window.NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
+      setIsCashNfcScanning(true);
+
+      ndef.onreading = (event) => {
+        let rawUid = event.serialNumber;
+        if (!rawUid && event.message && event.message.records) {
+          for (const record of event.message.records) {
+            if (record.id) rawUid = record.id;
+          }
+        }
+        if (rawUid) {
+          const cleanUid = rawUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+          }
+          handleSmartWithdrawDetected(cleanUid);
+        }
+      };
+
+      ndef.onreadingerror = () => {
+        playCashChime('error');
+        setCashNfcError('Gagal membaca kartu. Tempelkan kartu stabil di bodi belakang ponsel.');
+      };
+    } catch (err) {
+      setIsCashNfcScanning(false);
+      setCashNfcError(`Sensor NFC belum aktif: ${err.message}`);
+    }
+  };
+
+  const stopCashNfcScan = () => {
+    if (cashNfcControllerRef.current) {
+      cashNfcControllerRef.current.abort();
+      cashNfcControllerRef.current = null;
+    }
+    setIsCashNfcScanning(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCashNfcScan();
+    };
+  }, []);
+
+  // Handler Ketika Kartu Santri Terdeteksi untuk Tarik Tunai
+  const handleSmartWithdrawDetected = async (uidToLookup = null) => {
+    const targetUid = (uidToLookup || smartCashUid).trim().toUpperCase();
+    if (!targetUid) return;
+
+    try {
+      setCashNfcError(null);
+      let foundSantri = allSantriList.find(s => s.nfcUid && s.nfcUid.toUpperCase() === targetUid);
+      if (!foundSantri) {
+        const res = await getSantriByNfc(targetUid);
+        if (res.data.success) {
+          foundSantri = res.data.data;
+        }
+      }
+
+      if (!foundSantri) {
+        playCashChime('error');
+        setCashNfcError(`Kartu RFID UID "${targetUid}" belum terdaftar pada santri manapun.`);
+        return;
+      }
+
+      playCashChime('success');
+      setSmartWithdrawSantri(foundSantri);
+      setSmartCashUid(targetUid);
+      setSmartWithdrawAmount('20000');
+      setSmartWithdrawNotes('Uang saku tunai harian/mingguan');
+      setSmartWithdrawPin('');
+      setSmartBypassPin(true);
+      setSmartWithdrawFeedback(null);
+      setSmartLastSuccessTx(null);
+      setIsSmartWithdrawModalOpen(true);
+    } catch (err) {
+      playCashChime('error');
+      setCashNfcError('Data santri tidak ditemukan.');
+    }
+  };
+
+  // Eksekusi Tarik Tunai Cash Aman
+  const handleExecuteSmartWithdraw = async (e) => {
+    if (e) e.preventDefault();
+    if (!smartWithdrawSantri) return;
+
+    const nominal = parseFloat(smartWithdrawAmount);
+    if (!nominal || nominal <= 0) {
+      setSmartWithdrawFeedback({ type: 'error', message: 'Masukkan nominal penarikan yang valid.' });
+      playCashChime('error');
+      return;
+    }
+
+    const currentBal = parseFloat(smartWithdrawSantri.saldo_saku || 0);
+    if (currentBal < nominal) {
+      setSmartWithdrawFeedback({
+        type: 'error',
+        message: `Saldo tidak mencukupi! Saldo saat ini Rp ${currentBal.toLocaleString('id-ID')}, penarikan Rp ${nominal.toLocaleString('id-ID')}.`
+      });
+      playCashChime('error');
+      return;
+    }
+
+    // Verifikasi PIN jika tidak bypass
+    if (!smartBypassPin) {
+      const expectedPin = (smartWithdrawSantri.nis || '1234').slice(-4);
+      if (smartWithdrawPin !== expectedPin) {
+        setSmartWithdrawFeedback({
+          type: 'error',
+          message: `PIN Keamanan salah! Gunakan 4 digit terakhir NIS (${expectedPin}).`
+        });
+        playCashChime('error');
+        return;
+      }
+    }
+
+    try {
+      setSmartWithdrawProcessing(true);
+      setSmartWithdrawFeedback(null);
+
+      const defaultMerchantName = `Posko Pengurus Uang Saku (${currentUser?.name || 'Kasir Saku'})`;
+      const res = await deductPocketBalance({
+        santriId: smartWithdrawSantri.id,
+        amount: nominal,
+        merchant: defaultMerchantName,
+        description: smartWithdrawNotes || 'Tarik Tunai Uang Saku Cash',
+        isEmergency: false,
+        date: new Date().toISOString().slice(0, 10),
+      }, {
+        role: userRole,
+        name: currentUser?.name || 'Pengurus Uang Saku',
+      });
+
+      if (res.data.success) {
+        const txData = res.data.data;
+        const newBalance = txData.balanceAfter !== undefined ? txData.balanceAfter : (currentBal - nominal);
+        playCashChime('cash');
+
+        // Update lokal santri
+        const updatedSantri = { ...smartWithdrawSantri, saldo_saku: newBalance };
+        setSmartWithdrawSantri(updatedSantri);
+        updateLocalBalance(newBalance);
+
+        const successRecord = {
+          santri: updatedSantri,
+          amount: nominal,
+          previousBalance: currentBal,
+          currentBalance: newBalance,
+          date: new Date().toISOString(),
+          description: smartWithdrawNotes,
+          officer: currentUser?.name || 'Pengurus Uang Saku'
+        };
+        setSmartLastSuccessTx(successRecord);
+
+        setSmartWithdrawFeedback({
+          type: 'success',
+          message: `Tarik tunai Rp ${nominal.toLocaleString('id-ID')} BERHASIL! Sisa saldo: Rp ${newBalance.toLocaleString('id-ID')}.`
+        });
+
+        // Auto-send WA jika dipilih
+        if (smartWithdrawSendWa && smartWithdrawSantri.noHpWali) {
+          sendWithdrawWaReceipt(successRecord);
+        }
+
+        // Refresh riwayat mutasi
+        const txRes = await getPocketTransactions({ limit: 20 });
+        if (txRes.data.success) setRecentDeductions(txRes.data.data);
+      }
+    } catch (err) {
+      playCashChime('error');
+      setSmartWithdrawFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Gagal memproses penarikan uang saku.'
+      });
+    } finally {
+      setSmartWithdrawProcessing(false);
+    }
+  };
+
+  // Helper Kirim Bukti Tarik Tunai WA ke Wali
+  const sendWithdrawWaReceipt = (record) => {
+    const s = record.santri;
+    if (!s || !s.noHpWali) return;
+    let phone = s.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const nowStr = new Date(record.date).toLocaleDateString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const msg = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${s.nama}* (NIS: ${s.nis || '-'}).\n\n*BUKTI PENARIKAN UANG SAKU TUNAI (CASH)*\n- Waktu Penarikan: ${nowStr}\n- Jumlah Ditarik: *Rp ${record.amount.toLocaleString('id-ID')}*\n- Keperluan: ${record.description || 'Kebutuhan Harian'}\n- Petugas Pengasuh: ${record.officer}\n- Saldo Awal: Rp ${record.previousBalance.toLocaleString('id-ID')}\n- *Sisa Saldo Kas Saku: Rp ${record.currentBalance.toLocaleString('id-ID')}*\n\nTransaksi tercatat secara real-time di sistem keuangan SiPesand. Pantau saldo dan transaksi ananda di Portal Wali:\nhttps://sipesand.web.id/wali-santri\n\nJazakumullah Khairan Katsiran.\n_Pengurus Uang Saku & Bendahara Pesantren_`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // Handler Scan NFC Input Lama
   const handleScanNfc = async (uidToScan) => {
     const uid = (uidToScan || nfcInput).trim();
     if (!uid) return;
@@ -333,7 +603,7 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
           <button
             onClick={() => setIsIdCardOpen(true)}
             disabled={!selectedSantri}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors flex items-center gap-1.5 border border-slate-200 disabled:opacity-50"
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors flex items-center gap-1.5 border border-slate-200 disabled:opacity-50 cursor-pointer"
           >
             <CreditCard className="w-3.5 h-3.5 text-blue-600" />
             <span>ID Card KTSD</span>
@@ -342,13 +612,88 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
           {isNfcEnabled && (
             <button
               onClick={onOpenNfcModal}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Radio className="w-3.5 h-3.5 animate-pulse" />
               <span>Tap Kartu NFC</span>
             </button>
           )}
         </div>
+      </div>
+
+      {/* ======================================================================= */}
+      {/* SMART NFC CARD TARIK TUNAI BANNER (PENGURUS UANG SAKU)                  */}
+      {/* ======================================================================= */}
+      <div className="bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-950 text-white p-4 sm:p-5 rounded-3xl shadow-lg border border-emerald-500/30 relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${
+              isCashNfcScanning 
+                ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300 ring-4 ring-emerald-400/20 animate-pulse' 
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            }`}>
+              <Banknote className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-extrabold text-emerald-300 border border-emerald-400/30 mb-1">
+                <Radio className={`w-2.5 h-2.5 ${isCashNfcScanning ? 'animate-ping text-emerald-300' : 'text-emerald-400'}`} />
+                <span>SMART NFC CASH DISPENSE</span>
+              </div>
+              <h3 className="text-sm sm:text-base font-black tracking-tight text-white flex items-center gap-2">
+                Tarik Tunai Uang Saku Cash via Tap ID Card
+              </h3>
+              <p className="text-xs text-emerald-100/80 mt-0.5">
+                Santri tempelkan kartu pintar ke HP pengurus: saldo langsung terdeteksi, pilih nominal cash, dan struk WA otomatis terkirim.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={isCashNfcScanning ? stopCashNfcScan : startCashNfcScan}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-md cursor-pointer ${
+                isCashNfcScanning
+                  ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 ring-2 ring-emerald-200 animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>{isCashNfcScanning ? '🟢 Tempelkan Kartu Santri...' : 'Tap Kartu Tarik Tunai'}</span>
+            </button>
+
+            {/* Quick UID lookup for USB Reader */}
+            <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-xl border border-white/20">
+              <Radio className="w-3.5 h-3.5 text-emerald-400 ml-2" />
+              <input
+                type="text"
+                placeholder="Scan reader / ketik UID..."
+                value={smartCashUid}
+                onChange={(e) => setSmartCashUid(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && smartCashUid.trim()) {
+                    handleSmartWithdrawDetected(smartCashUid.trim());
+                  }
+                }}
+                className="bg-transparent text-xs font-mono font-bold text-white placeholder:text-emerald-300/50 px-2 py-1 outline-none w-36 sm:w-44"
+              />
+              <button
+                type="button"
+                onClick={() => smartCashUid.trim() && handleSmartWithdrawDetected(smartCashUid.trim())}
+                className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-950 rounded-lg text-xs font-extrabold transition-all cursor-pointer"
+              >
+                Cek
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {cashNfcError && (
+          <div className="mt-3 p-2.5 bg-rose-950/80 border border-rose-500/40 rounded-xl text-xs text-rose-200 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{cashNfcError}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Grid: Form Input Harian (Tanpa Merchant) & Pemetaan Saldo Santri Asuh */}
@@ -676,6 +1021,310 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
         </div>
 
       </div>
+
+      {/* ======================================================================= */}
+      {/* POP-UP MODAL SMART TARIK TUNAI CASH (OTOMATIS TAP ID CARD)             */}
+      {/* ======================================================================= */}
+      {isSmartWithdrawModalOpen && smartWithdrawSantri && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200 my-4 flex flex-col">
+            
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-emerald-700 via-teal-800 to-slate-900 text-white p-5 flex items-center justify-between relative overflow-hidden">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 shadow-sm shrink-0">
+                  <Banknote className="w-6 h-6 text-emerald-300" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-900/80 text-[10px] font-mono font-bold text-emerald-300 border border-emerald-400/30 mb-0.5">
+                    <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
+                    <span>NFC UID: {smartWithdrawSantri.nfcUid || smartCashUid}</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
+                    Tarik Tunai Uang Saku Cash
+                  </h3>
+                  <p className="text-xs text-emerald-100/80">
+                    Penyerahan uang tunai santri yang dipegang pengurus asrama.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSmartWithdrawModalOpen(false)}
+                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer relative z-10 shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-5 sm:p-6 space-y-4 max-h-[82vh] overflow-y-auto text-xs">
+              
+              {/* Santri Profile Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400 shadow-xs">
+                    {smartWithdrawSantri.foto ? (
+                      <img src={smartWithdrawSantri.foto} alt={smartWithdrawSantri.nama} className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-7 h-7 text-emerald-600" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 truncate">
+                      {smartWithdrawSantri.nama}
+                    </h4>
+                    <div className="text-[11px] text-slate-500 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className="font-mono font-bold text-slate-700">NIS: {smartWithdrawSantri.nis || '-'}</span>
+                      <span>•</span>
+                      <span>{smartWithdrawSantri.kelas || 'Umum'}</span>
+                      <span>•</span>
+                      <span>{smartWithdrawSantri.kamar || 'Asrama'}</span>
+                    </div>
+                    {smartWithdrawSantri.namaWali && (
+                      <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                        Wali: {smartWithdrawSantri.namaWali} {smartWithdrawSantri.noHpWali && `(${smartWithdrawSantri.noHpWali})`}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Saldo Saku Real-Time Box */}
+              <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-400/40 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                    <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Saldo Uang Saku Tersedia</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-950 font-mono mt-0.5">
+                    Rp {(smartWithdrawSantri.saldo_saku || 0).toLocaleString('id-ID')}
+                  </div>
+                </div>
+
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  {smartWithdrawSantri.saldo_saku > 0 ? 'Saldo Aman' : 'Saldo Kosong / Minus'}
+                </span>
+              </div>
+
+              {/* Feedback Message */}
+              {smartWithdrawFeedback && (
+                <div className={`p-3.5 rounded-2xl flex items-start gap-2.5 text-xs font-bold border ${
+                  smartWithdrawFeedback.type === 'success' 
+                    ? 'bg-emerald-50 text-emerald-900 border-emerald-300' 
+                    : 'bg-rose-50 text-rose-900 border-rose-300'
+                }`}>
+                  {smartWithdrawFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <div>{smartWithdrawFeedback.message}</div>
+                    {smartLastSuccessTx && smartWithdrawSantri.noHpWali && (
+                      <button
+                        type="button"
+                        onClick={() => sendWithdrawWaReceipt(smartLastSuccessTx)}
+                        className="mt-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Kirim Struk Penarikan ke WhatsApp Wali Santri</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Form Tarik Tunai */}
+              <form onSubmit={handleExecuteSmartWithdraw} className="space-y-4 pt-1">
+                
+                {/* Nominal Presets */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    Pilih Nominal Penarikan Tunai *
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { amt: '10000', label: 'Rp 10.000' },
+                      { amt: '20000', label: 'Rp 20.000' },
+                      { amt: '50000', label: 'Rp 50.000' },
+                      { amt: '100000', label: 'Rp 100.000' },
+                    ].map((p) => (
+                      <button
+                        key={p.amt}
+                        type="button"
+                        onClick={() => setSmartWithdrawAmount(p.amt)}
+                        className={`py-2 px-2 rounded-xl border font-mono font-bold text-xs transition-all cursor-pointer ${
+                          smartWithdrawAmount === p.amt
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Input Manual & Tarik Semua Saldo */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                      <input
+                        type="number"
+                        required
+                        min="1000"
+                        value={smartWithdrawAmount}
+                        onChange={(e) => setSmartWithdrawAmount(e.target.value)}
+                        placeholder="Nominal lainnya..."
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl font-mono font-black text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
+                    {smartWithdrawSantri.saldo_saku > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSmartWithdrawAmount(String(smartWithdrawSantri.saldo_saku))}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs shrink-0 cursor-pointer"
+                      >
+                        Semua Saldo
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Live Remaining Balance Calculation */}
+                {(() => {
+                  const nominal = parseFloat(smartWithdrawAmount || 0);
+                  const currentBal = parseFloat(smartWithdrawSantri.saldo_saku || 0);
+                  const rem = currentBal - nominal;
+                  const isInsufficient = rem < 0;
+
+                  return (
+                    <div className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                      isInsufficient 
+                        ? 'bg-rose-50 border-rose-200 text-rose-900' 
+                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}>
+                      <span className="font-semibold">
+                        {isInsufficient ? '⚠️ Saldo Santri Kurang!' : 'Simulasi Sisa Saldo:'}
+                      </span>
+                      <span className={`font-mono font-black ${isInsufficient ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        Rp {rem.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Keperluan / Catatan */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Keperluan Penarikan Uang Tunai
+                  </label>
+                  <input
+                    type="text"
+                    value={smartWithdrawNotes}
+                    onChange={(e) => setSmartWithdrawNotes(e.target.value)}
+                    placeholder="Contoh: Uang jajan mingguan / Beli kitab"
+                    className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {/* Suggestions */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    {[
+                      'Uang jajan mingguan',
+                      'Beli kitab & alat tulis',
+                      'Kebutuhan asrama',
+                      'Berobat / Medis'
+                    ].map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => setSmartWithdrawNotes(sug)}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                      >
+                        + {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Double Security Safeguard: PIN / Verifikasi Pengurus */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Proteksi Keamanan Penarikan</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">Anti-Salah Ambil</span>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={smartBypassPin}
+                      onChange={(e) => setSmartBypassPin(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                    />
+                    <span>Verifikasi Pengurus: Saya mengkonfirmasi identitas santri secara langsung</span>
+                  </label>
+
+                  {!smartBypassPin && (
+                    <div className="pt-1">
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Masukkan PIN Santri (4 Digit Terakhir NIS: {smartWithdrawSantri.nis?.slice(-4) || '1234'}):
+                      </label>
+                      <input
+                        type="password"
+                        maxLength="4"
+                        value={smartWithdrawPin}
+                        onChange={(e) => setSmartWithdrawPin(e.target.value)}
+                        placeholder="****"
+                        className="w-32 px-3 py-1.5 border border-slate-300 rounded-xl text-center font-mono font-black text-sm tracking-widest outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Send WhatsApp Toggle */}
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={smartWithdrawSendWa}
+                    onChange={(e) => setSmartWithdrawSendWa(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                  <span>Kirim bukti penarikan uang cash ke WhatsApp wali santri</span>
+                </label>
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSmartWithdrawModalOpen(false)}
+                    className="px-4 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 cursor-pointer text-xs"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      smartWithdrawProcessing || 
+                      !smartWithdrawAmount || 
+                      parseFloat(smartWithdrawAmount) <= 0 || 
+                      parseFloat(smartWithdrawAmount) > parseFloat(smartWithdrawSantri.saldo_saku || 0)
+                    }
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer text-xs"
+                  >
+                    <Banknote className="w-4 h-4" />
+                    <span>{smartWithdrawProcessing ? 'Memproses Kas...' : 'Konfirmasi Tarik Tunai & Serahkan Uang'}</span>
+                  </button>
+                </div>
+
+              </form>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal ID Card */}
       <SantriIdCard

@@ -165,18 +165,19 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
     setStatusMsg(null);
     try {
-      const type = activeAction === 'purchase' ? 'PURCHASE' : 'TOPUP';
+      const type = activeAction === 'purchase' ? 'PURCHASE' : activeAction === 'withdraw' ? 'WITHDRAW' : 'TOPUP';
       const res = await createPocketTransaction({
         santriId: scannedSantri.id,
         type,
         amount: parseFloat(amount),
-        description: description || (type === 'PURCHASE' ? `Belanja di ${merchant}` : 'Top Up Saldo Saku'),
+        description: description || (type === 'PURCHASE' ? `Belanja di ${merchant}` : type === 'WITHDRAW' ? 'Tarik Tunai Uang Saku Cash' : 'Top Up Saldo Saku'),
         merchant: type === 'PURCHASE' ? merchant : 'Admin Uang Saku',
       });
 
+      const label = type === 'PURCHASE' ? 'Belanja' : type === 'WITHDRAW' ? 'Tarik Tunai Cash' : 'Top Up';
       setStatusMsg({
         type: 'success',
-        text: `Transaksi ${type === 'PURCHASE' ? 'Belanja' : 'Top Up'} berhasil! Saldo baru: Rp ${res.data.data.santri.saldo_saku.toLocaleString('id-ID')}`,
+        text: `Transaksi ${label} berhasil! Saldo baru: Rp ${res.data.data.santri.saldo_saku.toLocaleString('id-ID')}`,
       });
 
       // Update scanned santri balance in modal
@@ -371,38 +372,50 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
                   <button
                     type="button"
                     onClick={() => setActiveAction('purchase')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
                       activeAction === 'purchase'
                         ? 'border-emerald-600 text-emerald-700'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>POS Kantin / Belanja</span>
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>POS Belanja</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAction('withdraw')}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+                      activeAction === 'withdraw'
+                        ? 'border-emerald-600 text-emerald-700'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    <span>Tarik Tunai Cash</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveAction('topup')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
                       activeAction === 'topup'
                         ? 'border-emerald-600 text-emerald-700'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    <ArrowDownRight className="w-4 h-4" />
+                    <ArrowDownRight className="w-3.5 h-3.5" />
                     <span>Top-Up Saldo</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveAction('checkin')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
                       activeAction === 'checkin'
                         ? 'border-emerald-600 text-emerald-700'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                     }`}
                   >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Check-in Izin Pulang</span>
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Check-in Izin</span>
                   </button>
                 </div>
 

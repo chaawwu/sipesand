@@ -210,10 +210,22 @@ export async function deleteCloudSantri(id, tenant = null) {
   return localRes;
 }
 
-export async function registerCloudRfid(id, nfcUid, tenant = null) {
-  const localRes = localDb.registerRfidCard({ santriId: id, nfcUid });
+export async function registerCloudRfid(id, nfcUid, extraData = {}, tenant = null) {
+  const payload = { 
+    santriId: id, 
+    nfcUid,
+    ...(typeof extraData === 'object' && extraData !== null ? extraData : {})
+  };
+  const localRes = localDb.registerRfidCard(payload);
   try {
-    await setDoc(getTenantDoc("santri", id, tenant), { nfcUid }, { merge: true });
+    const firestoreUpdate = { nfcUid, updatedAt: new Date().toISOString() };
+    if (payload.saldo_saku !== undefined && payload.saldo_saku !== '') {
+      firestoreUpdate.saldo_saku = parseFloat(payload.saldo_saku);
+    }
+    if (payload.status) {
+      firestoreUpdate.status = payload.status;
+    }
+    await setDoc(getTenantDoc("santri", id, tenant), firestoreUpdate, { merge: true });
   } catch (err) {
     console.warn("Gagal simpan RFID ke Firestore:", err);
   }

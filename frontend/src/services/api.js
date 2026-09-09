@@ -120,9 +120,22 @@ async function runHybrid(apiFn, fallbackFn) {
   // Jika backend online, coba request API
   try {
     const res = await apiFn();
-    if (res && res.data && typeof res.data === 'object' && res.data.success !== undefined) {
-      isBackendLive = true;
-      return res;
+    if (res && res.data && typeof res.data === 'object') {
+      // Jika serverless mengembalikan sinyal endpoint belum siap, otomatis fallback ke Cloud/Local DB
+      if (res.data.success === false && res.data.message && res.data.message.includes('siap dilayani')) {
+        const localResult = await fallbackFn();
+        return {
+          status: 200,
+          statusText: 'OK (Cloud/Local DB Fallback)',
+          data: localResult,
+          headers: {},
+          config: {}
+        };
+      }
+      if (res.data.success !== undefined) {
+        isBackendLive = true;
+        return res;
+      }
     }
     // Server mengembalikan HTML bukan JSON
     isBackendLive = false;
@@ -193,10 +206,16 @@ export const getSantriByNfc = (uid) =>
   runHybrid(() => api.get(`/santri/nfc/${uid}`), () => getCloudSantriByNfc(uid));
 
 export const registerRfidCard = (data) => 
-  runHybrid(() => api.post('/santri/register-rfid', data), () => registerCloudRfid(data.santriId || data.id, data.nfcUid));
+  runHybrid(
+    () => api.post('/santri/register-rfid', data), 
+    () => registerCloudRfid(data.santriId || data.id, data.nfcUid, { saldo_saku: data.saldo_saku, status: data.status })
+  );
 
 export const unregisterRfidCard = (data) => 
-  runHybrid(() => api.post('/santri/unregister-rfid', data), () => registerCloudRfid(data.santriId || data.id, null));
+  runHybrid(
+    () => api.post('/santri/unregister-rfid', data), 
+    () => registerCloudRfid(data.santriId || data.id, null)
+  );
 
 export const exportSantriData = () => 
   runHybrid(() => api.get('/santri/export/all'), () => getCloudSantriList());

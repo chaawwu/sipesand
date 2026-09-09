@@ -104,28 +104,24 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
   // Load Santri List when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetchSantriData();
-      resetState();
+      fetchSantriData(initialSantriId);
       
       // Auto-start NFC scan if on supported mobile device
       if (isWebNfcSupported) {
         setScanMode('phone-nfc');
       } else {
-        // If on desktop without Web NFC, default to phone-nfc tab showing remote pairing QR
         setScanMode('phone-nfc');
       }
-    }
-
-    return () => {
+    } else {
       stopNfcScan();
       stopCameraScan();
-    };
-  }, [isOpen]);
+    }
+  }, [isOpen, initialSantriId]);
 
   // Handle Initial Santri ID if supplied from query or parent
   useEffect(() => {
     if (santriList.length > 0) {
-      const targetId = initialSantriId || new URLSearchParams(window.location.search).get('santriId');
+      const targetId = initialSantriId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('santriId') : null);
       if (targetId) {
         const found = santriList.find(s => String(s.id) === String(targetId));
         if (found) {
@@ -144,12 +140,20 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
     }
   }, [scanMode, selectedSantri]);
 
-  const fetchSantriData = async () => {
+  const fetchSantriData = async (targetId = null) => {
     try {
       setLoadingSantri(true);
       const res = await getSantriList();
       if (res.data.success) {
-        setSantriList(res.data.data);
+        const list = res.data.data;
+        setSantriList(list);
+        const resolvedId = targetId || initialSantriId || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('santriId') : null);
+        if (resolvedId) {
+          const found = list.find(s => String(s.id) === String(resolvedId));
+          if (found) {
+            handleSelectSantri(found);
+          }
+        }
       }
     } catch (err) {
       console.error('Gagal mengambil daftar santri:', err);
@@ -364,7 +368,7 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
       };
 
       const res = await registerRfidCard(payload);
-      if (res.data.success) {
+      if (res && res.data && res.data.success) {
         const updated = res.data.data;
         setJustRegisteredSantri(updated);
         setSelectedSantri(updated);
@@ -383,10 +387,14 @@ export default function RfidRegistrationModal({ isOpen, onClose, onSuccess, init
         if (onSuccess) {
           onSuccess(updated);
         }
+      } else {
+        const msg = res?.data?.message || 'Gagal mendaftarkan kartu RFID. Silakan periksa koneksi atau coba lagi.';
+        playAudioFeedback('error');
+        setFeedback({ type: 'error', message: msg });
       }
     } catch (err) {
       playAudioFeedback('error');
-      const errMsg = err.response?.data?.message || 'Gagal mendaftarkan kartu RFID';
+      const errMsg = err.response?.data?.message || err.message || 'Gagal mendaftarkan kartu RFID';
       setFeedback({ type: 'error', message: errMsg });
     } finally {
       setIsSubmitting(false);

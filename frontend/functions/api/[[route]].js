@@ -336,6 +336,131 @@ export async function onRequest(context) {
       }
     }
 
+    // 4A. /api/santri/register-rfid
+    if (route === 'santri/register-rfid' && method === 'POST') {
+      const body = await request.json();
+      const santriId = String(body.santriId || body.id || '');
+      const nfcUid = (body.nfcUid || '').trim().toUpperCase();
+
+      if (!santriId) {
+        return jsonResponse({ success: false, message: 'ID santri wajib diisi' }, 400);
+      }
+      if (!nfcUid) {
+        return jsonResponse({ success: false, message: 'UID Kartu RFID wajib diisi' }, 400);
+      }
+
+      // Cek apakah UID sudah dipakai santri lain
+      const allSantriRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+      if (allSantriRes.ok) {
+        const allSantriJson = await allSantriRes.json();
+        const existingHolder = (allSantriJson.documents || []).find(d => {
+          const docId = d.name.split('/').pop();
+          if (docId === santriId) return false;
+          const fields = decodeFields(d.fields);
+          return fields.nfcUid && fields.nfcUid.toUpperCase() === nfcUid;
+        });
+        if (existingHolder) {
+          const holderData = decodeFields(existingHolder.fields);
+          return jsonResponse({
+            success: false,
+            message: `UID "${nfcUid}" sudah digunakan oleh santri lain: ${holderData.nama || 'Santri'} (NIS: ${holderData.nis || '-'})`
+          }, 400);
+        }
+      }
+
+      // Ambil data santri saat ini
+      let currentSantri = {};
+      const currentDocRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${santriId}`);
+      if (currentDocRes.ok) {
+        const currentDoc = await currentDocRes.json();
+        currentSantri = decodeFields(currentDoc.fields);
+      }
+
+      const updateData = {
+        ...currentSantri,
+        nfcUid,
+        status: body.status || currentSantri.status || 'AKTIF',
+        updatedAt: new Date().toISOString()
+      };
+      if (body.saldo_saku !== undefined && body.saldo_saku !== '') {
+        updateData.saldo_saku = parseFloat(body.saldo_saku);
+      }
+
+      const patchRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${santriId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(updateData))
+      });
+
+      if (!patchRes.ok) {
+        return jsonResponse({ success: false, message: 'Gagal memperbarui kartu santri di Cloud Firestore' }, 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        message: `Kartu RFID (${nfcUid}) berhasil ditautkan ke ${updateData.nama || 'santri'}.`,
+        data: { id: santriId, ...updateData }
+      });
+    }
+
+    // 4B. /api/santri/unregister-rfid
+    if (route === 'santri/unregister-rfid' && method === 'POST') {
+      const body = await request.json();
+      const santriId = String(body.santriId || body.id || '');
+      if (!santriId) {
+        return jsonResponse({ success: false, message: 'ID santri wajib diisi' }, 400);
+      }
+
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${santriId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({ nfcUid: null, updatedAt: new Date().toISOString() }))
+      });
+
+      return jsonResponse({ success: true, message: 'Asosiasi kartu RFID berhasil dicabut.' });
+    }
+
+    // 4C. /api/santri/nfc/:uid
+    if (route.startsWith('santri/nfc/')) {
+      const targetUid = decodeURIComponent(route.replace('santri/nfc/', '')).trim().toUpperCase();
+      const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+      if (res.ok) {
+        const json = await res.json();
+        const doc = (json.documents || []).find(d => {
+          const fields = decodeFields(d.fields);
+          return fields.nfcUid && fields.nfcUid.toUpperCase() === targetUid;
+        });
+        if (doc) {
+          const santri = { id: doc.name.split('/').pop(), ...decodeFields(doc.fields) };
+          return jsonResponse({ success: true, data: santri });
+        }
+      }
+      return jsonResponse({ success: false, message: 'Kartu RFID belum terdaftar pada santri manapun' }, 404);
+    }
+
+    // 4D. /api/santri/:id (GET / PUT)
+    if (route.startsWith('santri/') && !route.includes('register-rfid') && !route.includes('unregister-rfid') && !route.includes('nfc/')) {
+      const santriId = route.replace('santri/', '').trim();
+      if (method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${santriId}`);
+        if (res.ok) {
+          const json = await res.json();
+          return jsonResponse({ success: true, data: { id: santriId, ...decodeFields(json.fields) } });
+        }
+        return jsonResponse({ success: false, message: 'Santri tidak ditemukan' }, 404);
+      }
+      if (method === 'PUT') {
+        const body = await request.json();
+        const updateData = { ...body, updatedAt: new Date().toISOString() };
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${santriId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(updateData))
+        });
+        return jsonResponse({ success: true, message: 'Data santri berhasil diperbarui', data: { id: santriId, ...updateData } });
+      }
+    }
+
     // 5. /api/portal-wali/santri/:q
     if (route.startsWith('portal-wali/santri/')) {
       const q = decodeURIComponent(route.replace('portal-wali/santri/', '')).trim().toUpperCase();
@@ -395,6 +520,201 @@ export async function onRequest(context) {
           body: JSON.stringify(firestorePayload)
         });
         return jsonResponse({ success: true, message: 'Transaksi kas berhasil dicatat', data: { id: docId, ...body } });
+      }
+    }
+
+    // 6A. /api/pocket-tx (GET / POST untuk Tarik Tunai Cash, Top Up, dan Pembelian POS)
+    if (route === 'pocket-tx' || route === 'pocket-tx/deduct') {
+      if (method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs`);
+        const json = await res.json();
+        const items = (json.documents || []).map(d => ({
+          id: d.name.split('/').pop(),
+          ...decodeFields(d.fields)
+        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return jsonResponse({ success: true, data: items });
+      }
+      if (method === 'POST') {
+        const body = await request.json();
+        let targetSantriId = String(body.santriId || '');
+
+        // Jika lookup via NFC UID
+        if (!targetSantriId && body.nfcUid) {
+          const cleanUid = body.nfcUid.trim().toUpperCase();
+          const allSantriRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+          if (allSantriRes.ok) {
+            const allSantriJson = await allSantriRes.json();
+            const holder = (allSantriJson.documents || []).find(d => {
+              const f = decodeFields(d.fields);
+              return f.nfcUid && f.nfcUid.toUpperCase() === cleanUid;
+            });
+            if (holder) {
+              targetSantriId = holder.name.split('/').pop();
+            }
+          }
+        }
+
+        if (!targetSantriId) {
+          return jsonResponse({ success: false, message: 'Santri tidak ditemukan atau kartu belum terdaftar' }, 404);
+        }
+
+        // Ambil data santri saat ini
+        const santriDocRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${targetSantriId}`);
+        if (!santriDocRes.ok) {
+          return jsonResponse({ success: false, message: 'Santri tidak ditemukan' }, 404);
+        }
+        const santriJson = await santriDocRes.json();
+        const santriData = decodeFields(santriJson.fields);
+
+        const currentBalance = parseFloat(santriData.saldo_saku || 0);
+        const amount = parseFloat(body.amount || 0);
+        const txType = (body.type || (route === 'pocket-tx/deduct' ? 'PURCHASE' : 'WITHDRAW')).toUpperCase();
+
+        if (amount <= 0) {
+          return jsonResponse({ success: false, message: 'Nominal transaksi harus lebih besar dari 0' }, 400);
+        }
+
+        let newBalance = currentBalance;
+        if (txType === 'TOPUP') {
+          newBalance = currentBalance + amount;
+        } else {
+          // WITHDRAW atau PURCHASE
+          if (currentBalance < amount && !body.isEmergency) {
+            return jsonResponse({
+              success: false,
+              message: `Saldo tidak mencukupi. Saldo saat ini: Rp ${currentBalance.toLocaleString('id-ID')}, penarikan: Rp ${amount.toLocaleString('id-ID')}`
+            }, 400);
+          }
+          newBalance = currentBalance - amount;
+        }
+
+        const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const txDoc = {
+          id: txId,
+          santriId: targetSantriId,
+          santriNama: santriData.nama || 'Santri',
+          type: txType,
+          amount,
+          previousBalance: currentBalance,
+          currentBalance: newBalance,
+          description: body.description || (txType === 'WITHDRAW' ? 'Tarik Tunai Uang Saku Cash' : txType === 'TOPUP' ? 'Top-Up Saldo' : 'Belanja POS'),
+          merchant: body.merchant || (txType === 'WITHDRAW' ? 'Posko Pengurus Uang Saku' : 'Kantin Pesantren'),
+          pinVerified: !!body.pinVerified,
+          createdAt: new Date().toISOString()
+        };
+
+        // Simpan transaksi & perbarui saldo santri
+        await Promise.all([
+          fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs/${txId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc(txDoc))
+          }),
+          fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${targetSantriId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({ saldo_saku: newBalance, updatedAt: new Date().toISOString() }))
+          })
+        ]);
+
+        return jsonResponse({
+          success: true,
+          message: `Transaksi ${txType === 'WITHDRAW' ? 'tarik tunai' : txType === 'TOPUP' ? 'top-up' : 'pembelian'} berhasil diproses.`,
+          data: {
+            transaction: txDoc,
+            santri: {
+              ...santriData,
+              id: targetSantriId,
+              saldo_saku: newBalance
+            }
+          }
+        });
+      }
+    }
+
+    // 6B. /api/permits (GET / POST / CHECK-IN NFC untuk Perizinan Kamtib)
+    if (route === 'permits' || route.startsWith('permits/')) {
+      if (route === 'permits' && method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/permits`);
+        const json = await res.json();
+        const items = (json.documents || []).map(d => ({
+          id: d.name.split('/').pop(),
+          ...decodeFields(d.fields)
+        })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return jsonResponse({ success: true, data: items });
+      }
+
+      if (route === 'permits' && method === 'POST') {
+        const body = await request.json();
+        const permitId = body.id || `permit_${Date.now()}`;
+        const permitDoc = {
+          ...body,
+          id: permitId,
+          status: body.status || 'ACTIVE',
+          createdAt: new Date().toISOString()
+        };
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/permits/${permitId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(permitDoc))
+        });
+        return jsonResponse({ success: true, message: 'Izin keluar santri berhasil diterbitkan', data: permitDoc });
+      }
+
+      if (route === 'permits/check-in-nfc' && method === 'POST') {
+        const body = await request.json();
+        let targetSantriId = String(body.santriId || '');
+
+        if (!targetSantriId && body.nfcUid) {
+          const cleanUid = body.nfcUid.trim().toUpperCase();
+          const allSantriRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+          if (allSantriRes.ok) {
+            const allSantriJson = await allSantriRes.json();
+            const holder = (allSantriJson.documents || []).find(d => {
+              const f = decodeFields(d.fields);
+              return f.nfcUid && f.nfcUid.toUpperCase() === cleanUid;
+            });
+            if (holder) targetSantriId = holder.name.split('/').pop();
+          }
+        }
+
+        if (!targetSantriId) {
+          return jsonResponse({ success: false, message: 'Santri tidak ditemukan untuk kartu ini' }, 404);
+        }
+
+        // Cari izin aktif santri
+        const permitsRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/permits`);
+        if (permitsRes.ok) {
+          const permitsJson = await permitsRes.json();
+          const activePermitDoc = (permitsJson.documents || []).find(d => {
+            const f = decodeFields(d.fields);
+            return String(f.santriId) === targetSantriId && f.status === 'ACTIVE';
+          });
+
+          if (activePermitDoc) {
+            const docId = activePermitDoc.name.split('/').pop();
+            const now = new Date().toISOString();
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/permits/${docId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc({ status: 'COMPLETED', actualReturnTime: now, updatedAt: now }))
+            });
+            return jsonResponse({ success: true, message: 'Santri berhasil check-in kembali ke pondok tepat waktu.', data: { id: docId, status: 'COMPLETED' } });
+          }
+        }
+
+        return jsonResponse({ success: false, message: 'Tidak ada surat izin keluar yang aktif untuk santri ini.' }, 400);
+      }
+
+      if (route.startsWith('permits/') && route.endsWith('/status') && method === 'PUT') {
+        const permitId = route.replace('permits/', '').replace('/status', '');
+        const body = await request.json();
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/permits/${permitId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ status: body.status, actualReturnTime: body.actualReturnTime || new Date().toISOString(), updatedAt: new Date().toISOString() }))
+        });
+        return jsonResponse({ success: true, message: 'Status izin berhasil diperbarui' });
       }
     }
 
@@ -1236,7 +1556,7 @@ export async function onRequest(context) {
       success: false,
       message: `Endpoint /api/${route} siap dilayani oleh Cloudflare Pages Functions`,
       tenant
-    }, 200);
+    }, 404);
 
   } catch (err) {
     return jsonResponse({
