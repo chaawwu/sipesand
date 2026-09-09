@@ -3,7 +3,7 @@ services:
     name: sipesand-backend
     env: node
     plan: free
-    buildCommand: npm --prefix backend install && npm --prefix backend run prisma:generate && npm --prefix backend run prisma:push && npm --prefix backend run seed
+    buildCommand: npm --prefix backend install && npm --prefix backend run prisma:generate && npm --prefix backend run prisma:push
     startCommand: node backend/src/server.js
     envVars:
       - key: PORT

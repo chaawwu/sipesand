@@ -342,23 +342,7 @@ exports.handlePaymentWebhook = async (req, res) => {
   }
 };
 
-// 4. Endpoint Simulasi Pembayaran Berhasil (Untuk Pengujian Instan UI Demo)
-exports.simulatePaymentSuccess = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    req.body = {
-      orderId,
-      status: 'PAID',
-      paymentMethod: 'QRIS_SIMULATOR',
-      transactionTime: new Date().toISOString(),
-    };
-    return exports.handlePaymentWebhook(req, res);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Gagal simulasi pembayaran', error: err.message });
-  }
-};
-
-// 5. Konfigurasi King Digital Payment Gateway & Auto-Disbursement (Pengaturan Tenant)
+// 4. Konfigurasi King Digital Payment Gateway & Auto-Disbursement (Pengaturan Tenant)
 exports.updateKingDigitalPgConfig = async (req, res) => {
   try {
     const { pgEnabled, disbursementBank, disbursementAccountNo, disbursementAccountHolder } = req.body;

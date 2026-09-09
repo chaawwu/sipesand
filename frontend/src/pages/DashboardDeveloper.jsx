@@ -478,16 +478,7 @@ export default function DashboardDeveloper({
   // ---------------------------------------------------------------------------
   // 5. STATE: SAAS BILLING, MITRA CONFIG & INCOMING ORDERS
   // ---------------------------------------------------------------------------
-  const [mitraConfig, setMitraConfig] = useState({
-    bankName: 'Bank Syariah Indonesia (BSI)',
-    bankAccountNo: '7192837465',
-    bankAccountHolder: 'YAYASAN DARUL RAHMAN SUMBERSARI / KING DIGITAL DEV',
-    qrisImageUrl: 'https://i.ibb.co/vzkmT9r/qris-sample.png',
-    qrisString: '00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A0163041029',
-    waConfirmationNumber: '+62 851-2373-4342',
-    tahunanPrice: 1500000,
-    lifetimePrice: 3500000
-  });
+  const [mitraConfig, setMitraConfig] = useState({});
   const [loadingMitraConfig, setLoadingMitraConfig] = useState(false);
   const [savingMitraConfig, setSavingMitraConfig] = useState(false);
   const [mitraConfigToast, setMitraConfigToast] = useState(null);

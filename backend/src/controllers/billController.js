@@ -349,6 +349,10 @@ exports.payOnline = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Silakan pilih tagihan yang ingin dibayar' });
     }
 
+    if (paymentMethod !== 'KING_DIGITAL_PG' && !proofImage) {
+      return res.status(400).json({ success: false, message: 'Bukti transfer wajib diunggah untuk pembayaran manual' });
+    }
+
     const updatedBills = [];
     for (const id of targetIds) {
       const existing = await prisma.santriBill.findUnique({ where: { id } });
@@ -359,7 +363,7 @@ exports.payOnline = async (req, res) => {
             status: 'PENDING_VERIFICATION',
             paymentMethod: paymentMethod || 'TRANSFER_BSI',
             paymentDate: new Date(),
-            proofImage: proofImage || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80',
+            proofImage: proofImage || null,
             notes: notes || 'Konfirmasi pembayaran dari Portal Wali online',
           }
         });

@@ -96,6 +96,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const bankAccountNo = tenantSettings.BANK_ACCOUNT_NO || settings.BANK_ACCOUNT_NO || '7192837465';
   const bankAccountHolder = tenantSettings.BANK_ACCOUNT_HOLDER || settings.BANK_ACCOUNT_HOLDER || `YAYASAN ${namaLembaga.toUpperCase()}`;
   const qrisUrl = tenantSettings.QRIS_PAYMENT_URL || settings.QRIS_PAYMENT_URL || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80';
+  const pocketTransactions = portalRawData?.financial?.recentPocketTxs || [];
   
   // King Digital Payment Gateway Active State
   const isKingDigitalPgActive = tenantSettings.KING_DIGITAL_PG_ENABLED === 'true';
@@ -232,7 +233,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         billId: selectedBillIds[0],
         billIds: selectedBillIds,
         paymentMethod,
-        proofImage: proofPreview || (paymentMethod === 'KING_DIGITAL_PG' ? 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80' : 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80'),
+        proofImage: proofPreview || null,
         notes: notes || `Pembayaran transfer oleh wali santri ${santriData?.namaWali || ''}`,
       };
 
@@ -500,6 +501,62 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                 <p className="text-xs text-stone-500">Kwitansi resmi diterbitkan setelah bendahara mengonfirmasi.</p>
               </div>
 
+            </div>
+
+            {/* Histori transaksi uang saku dari data santri yang sebenarnya */}
+            <div className="bg-white rounded-[32px] border border-stone-200/90 shadow-sm overflow-hidden p-6 sm:p-8 space-y-5">
+              <div className="flex items-center justify-between gap-4 border-b border-stone-100 pb-5">
+                <div>
+                  <h3 className="font-black text-lg text-slate-900">Histori Transaksi Uang Saku</h3>
+                  <p className="text-xs text-stone-500 mt-1">Riwayat transaksi tercatat untuk santri ini.</p>
+                </div>
+                <Wallet className="w-5 h-5 text-emerald-600" />
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-stone-200/80">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-stone-50/80 border-b border-stone-200 text-[11px] font-bold text-stone-600 uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Waktu</th>
+                      <th className="py-3.5 px-4">Jenis</th>
+                      <th className="py-3.5 px-4">Keterangan</th>
+                      <th className="py-3.5 px-4">Nominal</th>
+                      <th className="py-3.5 px-4">Saldo Setelah</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {pocketTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-10 text-center text-stone-400">
+                          Belum ada histori transaksi uang saku.
+                        </td>
+                      </tr>
+                    ) : pocketTransactions.map((transaction) => {
+                      const isTopup = transaction.type === 'TOPUP';
+                      const transactionDate = transaction.createdAt || transaction.date;
+                      return (
+                        <tr key={transaction.id || transaction.txCode} className="hover:bg-stone-50/70 transition-colors">
+                          <td className="py-3.5 px-4 text-stone-600 whitespace-nowrap">
+                            {transactionDate ? new Date(transactionDate).toLocaleString('id-ID') : '-'}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${isTopup ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                              {isTopup ? 'Top-Up' : transaction.type === 'WITHDRAW' ? 'Penarikan' : 'Belanja'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-stone-600">{transaction.description || transaction.merchant || '-'}</td>
+                          <td className={`py-3.5 px-4 font-mono font-bold ${isTopup ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {isTopup ? '+' : '-'} Rp {parseFloat(transaction.amount || 0).toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                            Rp {parseFloat(transaction.balanceAfter ?? transaction.currentBalance ?? 0).toLocaleString('id-ID')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Section Tagihan & Pembayaran Mandiri */}

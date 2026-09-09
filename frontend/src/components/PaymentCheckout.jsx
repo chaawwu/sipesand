@@ -27,39 +27,18 @@ import { QRCodeSVG } from 'qrcode.react';
 import { 
   getMitraConfig, 
   getMitraOrderStatus, 
-  simulatePaymentSuccess, 
   uploadMitraPaymentProof 
 } from '../services/api';
 import { compressImage } from '../utils/imageCompressor';
 import AestheticToast from './AestheticToast';
 
 export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTenant }) {
-  const [order, setOrder] = useState(orderData || {
-    orderId: 'KGD-ORD-SAMPLE-1029',
-    namaPondok: 'Pondok Pesantren Al-Hikmah',
-    subdomain: 'alhikmah',
-    namaPengelola: 'Ustadz Ahmad Fauzi',
-    email: 'admin@alhikmah.sch.id',
-    noWhatsapp: '081298765432',
-    packageType: 'TAHUNAN',
-    basePrice: 1500000,
-    uniqueCode: 284,
-    amount: 1500284,
-    status: 'PENDING_PAYMENT',
-    vaNumber: '7192837465',
-    vaBank: 'Bank Syariah Indonesia (BSI)',
-    accountHolder: 'YAYASAN DARUL RAHMAN SUMBERSARI / KING DIGITAL DEV',
-    qrisImageUrl: 'https://i.ibb.co/vzkmT9r/qris-sample.png',
-    qrisString: '00020101021226580016ID.CO.KINGDIGITAL.WWW0118936009928192837465520458145303360540715000005802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A0163041029',
-    waConfirmationNumber: '+62 851-2373-4342',
-    expiredAt: new Date(Date.now() + 86400000).toISOString(),
-  });
+  const [order, setOrder] = useState(orderData || {});
 
   const [copiedVA, setCopiedVA] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [checking, setChecking] = useState(false);
   const [provisionResult, setProvisionResult] = useState(null);
   
@@ -136,6 +115,7 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
   // Real-Time Polling Status Pesanan & Webhook
   useEffect(() => {
     if (provisionResult) return;
+    if (!order?.orderId) return undefined;
 
     const interval = setInterval(async () => {
       try {
@@ -159,7 +139,7 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [order.orderId, provisionResult]);
+  }, [order?.orderId, provisionResult]);
 
   // Handler Copy to Clipboard
   const handleCopy = (text, type) => {
@@ -249,37 +229,20 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
 
   // Handler WhatsApp Fast Confirmation
   const handleWhatsappConfirm = () => {
-    const rawNumber = order.waConfirmationNumber || '+62 851-2373-4342';
+    const rawNumber = order.waConfirmationNumber;
+    if (!rawNumber) {
+      setToast({
+        isOpen: true,
+        type: 'warning',
+        title: 'Nomor WhatsApp Belum Tersedia',
+        message: 'Nomor konfirmasi resmi belum dikonfigurasi oleh admin mitra.'
+      });
+      return;
+    }
     const cleanNumber = rawNumber.replace(/[^0-9]/g, '');
     const message = `Halo Tim SiPesand Mitra,\n\nSaya telah mendaftar dan melakukan transfer pembayaran lisensi platform SiPesand:\n\n• Order ID: ${order.orderId}\n• Nama Pondok: ${order.namaPondok}\n• Subdomain: ${order.subdomain}.sipesand.web.id\n• Paket: ${order.packageType === 'LIFETIME' ? 'Lifetime Selamanya' : 'Tahunan'}\n• Total Transfer: Rp ${order.amount?.toLocaleString('id-ID')}\n• Pengelola: ${order.namaPengelola} (${order.noWhatsapp})\n\nMohon bantu verifikasi dan aktivasi instans pesantren kami. Terima kasih!`;
     const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
-  };
-
-  // Handler Simulasi Webhook Pembayaran Berhasil (Testing Instant)
-  const handleSimulatePayment = async () => {
-    try {
-      setSimulating(true);
-      const res = await simulatePaymentSuccess(order.orderId);
-      if (res.data?.success) {
-        setProvisionResult(res.data.data);
-        setToast({
-          isOpen: true,
-          type: 'success',
-          title: 'Pembayaran Diverifikasi!',
-          message: `Auto-provisioning database ${order.subdomain} dan akun Super Admin berhasil.`
-        });
-      }
-    } catch (err) {
-      setToast({
-        isOpen: true,
-        type: 'error',
-        title: 'Simulasi Gagal',
-        message: err.response?.data?.message || 'Terjadi kesalahan sistem saat memproses simulasi.'
-      });
-    } finally {
-      setSimulating(false);
-    }
   };
 
   const handleManualCheck = async () => {
@@ -787,17 +750,6 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
           </button>
         </div>
 
-        {/* Demo Fast Verification Bar for testing */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Mode Simulasi Pengujian (Demo):</span>
-          <button
-            onClick={handleSimulatePayment}
-            disabled={simulating}
-            className="font-bold text-blue-600 hover:underline cursor-pointer disabled:opacity-50"
-          >
-            {simulating ? 'Memproses Simulasi...' : 'Simulasikan Pembayaran Lunas (Webhook Test)'}
-          </button>
-        </div>
       </div>
 
       {/* Aesthetic Toast Notification */}

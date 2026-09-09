@@ -10,9 +10,8 @@ router.post('/register', mitraController.registerMitra);
 router.get('/status/:orderId', mitraController.getMitraOrderStatus);
 router.get('/all', mitraController.getAllMitraAktif);
 
-// Webhook & Simulasi
+// Webhook pembayaran dari payment gateway
 router.post('/webhook/pg-lisensi', mitraController.handlePaymentWebhook);
-router.post('/simulate-payment/:orderId', mitraController.simulatePaymentSuccess);
 
 // Konfigurasi Payment Gateway & Auto-Disbursement
 router.post('/pg-config', mitraController.updateKingDigitalPgConfig);
