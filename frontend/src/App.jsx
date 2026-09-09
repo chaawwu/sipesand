@@ -7,6 +7,7 @@ import LoginModal from './components/LoginModal';
 import DeveloperLoginModal from './components/DeveloperLoginModal';
 import DeveloperLoginPage from './pages/DeveloperLoginPage';
 import DeveloperFooter from './components/DeveloperFooter';
+import ErrorBoundary from './components/ErrorBoundary';
 import { logoutDeveloper } from './services/api';
 
 import LandingPage from './pages/LandingPage';
@@ -753,7 +754,9 @@ function MainAppContent() {
           />
 
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-6xl w-full mx-auto animate-in fade-in duration-150">
-          {renderDashboardContent()}
+          <ErrorBoundary key={activeTab}>
+            {renderDashboardContent()}
+          </ErrorBoundary>
         </main>
 
         <DeveloperFooter className="mt-auto" />

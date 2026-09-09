@@ -218,7 +218,13 @@ export async function registerCloudRfid(id, nfcUid, extraData = {}, tenant = nul
   };
   const localRes = localDb.registerRfidCard(payload);
   try {
-    const firestoreUpdate = { nfcUid, updatedAt: new Date().toISOString() };
+    const fullLocal = localDb.getSantriById(id);
+    const santriObj = (fullLocal && fullLocal.data) ? fullLocal.data : {};
+    const firestoreUpdate = { 
+      ...santriObj,
+      nfcUid, 
+      updatedAt: new Date().toISOString() 
+    };
     if (payload.saldo_saku !== undefined && payload.saldo_saku !== '') {
       firestoreUpdate.saldo_saku = parseFloat(payload.saldo_saku);
     }

@@ -99,8 +99,8 @@ export default function Santri({ onOpenNfcModal }) {
     fetchSantri();
     // Real-time synchronization across all devices
     const unsubscribe = subscribeCloudSantri(null, (cloudItems) => {
-      if (cloudItems) {
-        setSantriList(cloudItems);
+      if (Array.isArray(cloudItems)) {
+        setSantriList(cloudItems.filter(Boolean));
       }
     });
     return () => {
@@ -115,8 +115,8 @@ export default function Santri({ onOpenNfcModal }) {
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
       const res = await getSantriList(params);
-      if (res.data.success) {
-        setSantriList(res.data.data);
+      if (res?.data?.success && Array.isArray(res.data.data)) {
+        setSantriList(res.data.data.filter(Boolean));
       }
     } catch (err) {
       console.error('Error fetchSantri:', err);
@@ -490,7 +490,7 @@ export default function Santri({ onOpenNfcModal }) {
                   </td>
                 </tr>
               ) : (
-                santriList.map((santri) => (
+                santriList.filter(Boolean).map((santri) => (
                   <tr key={santri.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* Santri Name & NIS */}
                     <td className="py-3.5 px-4">
@@ -498,16 +498,16 @@ export default function Santri({ onOpenNfcModal }) {
                         {santri.foto ? (
                           <img 
                             src={santri.foto} 
-                            alt={santri.nama} 
+                            alt={santri.nama || 'Santri'} 
                             className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" 
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200">
-                            {santri.nama.charAt(0)}
+                          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200 uppercase">
+                            {(santri.nama || 'S').charAt(0)}
                           </div>
                         )}
                         <div>
-                          <div className="font-bold text-slate-900">{santri.nama}</div>
+                          <div className="font-bold text-slate-900">{santri.nama || 'Santri Tanpa Nama'}</div>
                           <div className="text-[11px] text-slate-400 font-mono">
                             NIS: {santri.nis || '-'} • {santri.gender === 'L' ? 'Ikhwan' : 'Akhwat'}
                           </div>

@@ -572,11 +572,14 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
     setSantriList(prev => prev.map(s => s.id === selectedSantri.id ? { ...s, saldo_saku: newBalance } : s));
   };
 
-  const filteredSantri = santriList.filter(s => 
-    s.nama.toLowerCase().includes(searchSantri.toLowerCase()) || 
-    (s.nis && s.nis.includes(searchSantri)) ||
-    (s.kamar && s.kamar.toLowerCase().includes(searchSantri.toLowerCase()))
-  );
+  const filteredSantri = santriList.filter(s => {
+    if (!s) return false;
+    const q = (searchSantri || '').toLowerCase();
+    const nama = (s.nama || '').toLowerCase();
+    const nis = String(s.nis || '');
+    const kamar = (s.kamar || '').toLowerCase();
+    return nama.includes(q) || nis.includes(q) || kamar.includes(q);
+  });
 
   return (
     <div className="space-y-6 text-xs font-sans">
@@ -788,9 +791,9 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
                 {santriList.length === 0 ? (
                   <option value="">Tidak ada santri yang dipetakan ke akun ini</option>
                 ) : (
-                  santriList.map((s) => (
+                  santriList.filter(Boolean).map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.nama} ({s.kelas || '-'}) — Saldo: Rp {s.saldo_saku?.toLocaleString('id-ID')} {s.saldo_saku < 0 ? '[MINUS]' : ''}
+                      {s.nama || 'Santri'} ({s.kelas || '-'}) — Saldo: Rp {(s.saldo_saku || 0).toLocaleString('id-ID')} {(s.saldo_saku || 0) < 0 ? '[MINUS]' : ''}
                     </option>
                   ))
                 )}
@@ -936,21 +939,21 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
                 <div className="py-6 text-center text-slate-400">Tidak ada santri yang sesuai</div>
               ) : (
                 filteredSantri.map((s) => {
-                  const isNegative = s.saldo_saku < 0;
+                  const isNegative = (s.saldo_saku || 0) < 0;
                   return (
                     <div key={s.id} className="py-2.5 flex items-center justify-between gap-2">
                       <div 
                         onClick={() => handleSelectSantri(s.id)}
                         className="cursor-pointer flex-1 min-w-0"
                       >
-                        <div className="font-bold text-slate-800 truncate">{s.nama}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">NIS: {s.nis} • {s.kamar || '-'}</div>
+                        <div className="font-bold text-slate-800 truncate">{s.nama || 'Santri'}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">NIS: {s.nis || '-'} • {s.kamar || '-'}</div>
                       </div>
 
                       <div className="text-right flex items-center gap-2">
                         <div>
                           <div className={`font-mono font-bold ${isNegative ? 'text-rose-600' : 'text-slate-900'}`}>
-                            Rp {s.saldo_saku?.toLocaleString('id-ID')}
+                            Rp {(s.saldo_saku || 0).toLocaleString('id-ID')}
                           </div>
                           {isNegative && (
                             <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded">
@@ -1066,14 +1069,14 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400 shadow-xs">
                     {smartWithdrawSantri.foto ? (
-                      <img src={smartWithdrawSantri.foto} alt={smartWithdrawSantri.nama} className="w-full h-full object-cover" />
+                      <img src={smartWithdrawSantri.foto} alt={smartWithdrawSantri.nama || 'Santri'} className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-7 h-7 text-emerald-600" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-sm sm:text-base font-black text-slate-900 truncate">
-                      {smartWithdrawSantri.nama}
+                      {smartWithdrawSantri.nama || 'Santri'}
                     </h4>
                     <div className="text-[11px] text-slate-500 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
                       <span className="font-mono font-bold text-slate-700">NIS: {smartWithdrawSantri.nis || '-'}</span>

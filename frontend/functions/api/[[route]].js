@@ -378,10 +378,24 @@ export async function onRequest(context) {
 
       const updateData = {
         ...currentSantri,
+        nama: currentSantri.nama || body.nama || body.santriNama || 'Santri Terdaftar',
+        nis: currentSantri.nis || body.nis || santriId,
+        kelas: currentSantri.kelas || body.kelas || 'Umum',
+        kamar: currentSantri.kamar || body.kamar || 'Asrama',
+        gender: currentSantri.gender || body.gender || 'L',
         nfcUid,
         status: body.status || currentSantri.status || 'AKTIF',
         updatedAt: new Date().toISOString()
       };
+      if (body.foto || currentSantri.foto) {
+        updateData.foto = body.foto || currentSantri.foto;
+      }
+      if (body.namaWali || currentSantri.namaWali) {
+        updateData.namaWali = body.namaWali || currentSantri.namaWali;
+      }
+      if (body.noHpWali || currentSantri.noHpWali) {
+        updateData.noHpWali = body.noHpWali || currentSantri.noHpWali;
+      }
       if (body.saldo_saku !== undefined && body.saldo_saku !== '') {
         updateData.saldo_saku = parseFloat(body.saldo_saku);
       }

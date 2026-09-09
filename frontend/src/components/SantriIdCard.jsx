@@ -1054,10 +1054,10 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                         layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-lg'
                       } bg-slate-100 p-0.5 border-2 border-slate-800 shadow-sm relative overflow-hidden flex items-center justify-center flex-shrink-0`}>
                         {santri.foto ? (
-                          <img src={santri.foto} alt={santri.nama} className={`w-full h-full object-cover ${layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-md'}`} />
+                          <img src={santri.foto} alt={santri.nama || 'Santri'} className={`w-full h-full object-cover ${layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-md'}`} />
                         ) : (
                           <div className="text-center">
-                            <div className="text-xl font-bold text-slate-700">{santri.nama.charAt(0)}</div>
+                            <div className="text-xl font-bold text-slate-700 uppercase">{(santri.nama || 'S').charAt(0)}</div>
                             <div className="text-[6px] text-slate-400 font-semibold">PAS FOTO</div>
                           </div>
                         )}
@@ -1069,7 +1069,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                       <h3 className={`font-black text-[12px] sm:text-[13px] leading-tight truncate ${
                         isLight ? 'text-slate-900' : 'text-white'
                       }`}>
-                        {santri.nama}
+                        {santri.nama || 'Santri'}
                       </h3>
                       {layoutCustom.showNis && (
                         <div className={`text-[9.5px] font-mono font-bold ${
@@ -1109,9 +1109,9 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                         layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-lg'
                       } bg-slate-100 p-0.5 border-2 border-slate-800 shadow-sm overflow-hidden flex items-center justify-center flex-shrink-0`}>
                         {santri.foto ? (
-                          <img src={santri.foto} alt={santri.nama} className={`w-full h-full object-cover ${layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-md'}`} />
+                          <img src={santri.foto} alt={santri.nama || 'Santri'} className={`w-full h-full object-cover ${layoutCustom.photoShape === 'circle' ? 'rounded-full' : layoutCustom.photoShape === 'square' ? 'rounded-none' : 'rounded-md'}`} />
                         ) : (
-                          <div className="text-xl font-bold text-slate-700">{santri.nama.charAt(0)}</div>
+                          <div className="text-xl font-bold text-slate-700 uppercase">{(santri.nama || 'S').charAt(0)}</div>
                         )}
                       </div>
                     )}
@@ -1119,7 +1119,7 @@ export default function SantriIdCard({ santri, isOpen, onClose }) {
                       <h3 className={`font-black text-[11px] leading-tight truncate max-w-[180px] ${
                         isLight ? 'text-slate-900' : 'text-white'
                       }`}>
-                        {santri.nama}
+                        {santri.nama || 'Santri'}
                       </h3>
                       {layoutCustom.showNis && (
                         <div className={`text-[9px] font-mono font-bold ${
