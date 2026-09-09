@@ -523,16 +523,17 @@ export const uploadPaymentProof = (data, tenant = null) =>
 export const checkSubdomainAvailability = async (subdomain) => {
   try {
     const res = await api.get(`/mitra/check-subdomain/${encodeURIComponent(subdomain)}`);
-    return res.data;
+    return { data: res.data, ...res.data };
   } catch (err) {
-    return { success: true, available: true, subdomain };
+    const fallback = err.response?.data || { success: false, available: false, message: 'Gagal menghubungi server pengecekan domain.' };
+    return { data: fallback, ...fallback };
   }
 };
 
 export const getMitraConfig = async () => {
   try {
     const res = await api.get('/mitra/config');
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return {
       data: {
@@ -555,7 +556,7 @@ export const getMitraConfig = async () => {
 export const updateMitraConfig = async (data) => {
   try {
     const res = await api.post('/mitra/config', data);
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, message: 'Konfigurasi pembayaran lisensi mitra berhasil disimpan', data } };
   }
@@ -564,22 +565,16 @@ export const updateMitraConfig = async (data) => {
 export const registerMitraTenant = async (data) => {
   try {
     const res = await api.post('/mitra/register', data);
-    return res.data;
+    return { data: res.data, ...res.data };
   } catch (err) {
-    return {
-      success: true,
-      message: 'Pendaftaran mitra berhasil diterima',
-      orderId: `ORD-${Date.now()}`,
-      subdomain: data.subdomain,
-      redirectUrl: `https://${data.subdomain}.sipesand.web.id`
-    };
+    throw err;
   }
 };
 
 export const getMitraOrders = async () => {
   try {
     const res = await api.get('/mitra/orders');
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, data: [] } };
   }
@@ -588,7 +583,7 @@ export const getMitraOrders = async () => {
 export const getMitraOrderStatus = async (orderId) => {
   try {
     const res = await api.get(`/mitra/status/${orderId}`);
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, status: 'PAID', orderId } };
   }
@@ -597,7 +592,7 @@ export const getMitraOrderStatus = async (orderId) => {
 export const uploadMitraPaymentProof = async (payload) => {
   try {
     const res = await api.post('/mitra/upload-proof', payload);
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, message: 'Bukti pembayaran berhasil diunggah', data: payload } };
   }
@@ -606,7 +601,7 @@ export const uploadMitraPaymentProof = async (payload) => {
 export const verifyMitraOrder = async (orderId) => {
   try {
     const res = await api.post('/mitra/verify-order', { orderId });
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, message: 'Pesanan berhasil diverifikasi dan lembaga telah aktif' } };
   }
@@ -615,7 +610,7 @@ export const verifyMitraOrder = async (orderId) => {
 export const deleteMitraOrder = async (orderId) => {
   try {
     const res = await api.delete(`/mitra/orders/${orderId}`);
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, message: 'Pesanan berhasil dihapus' } };
   }
@@ -624,9 +619,51 @@ export const deleteMitraOrder = async (orderId) => {
 export const simulatePaymentSuccess = async (orderId) => {
   try {
     const res = await api.post(`/mitra/simulate-payment/${orderId}`);
-    return { data: res.data };
+    return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: true, message: 'Pembayaran lisensi berhasil disimulasikan', orderId } };
+  }
+};
+
+export const loginDeveloper = async (credentials) => {
+  const res = await api.post('/mitra/auth/login', credentials);
+  return { data: res.data, ...res.data };
+};
+
+export const verifyDeveloperSession = async (token) => {
+  const res = await api.post('/mitra/auth/verify', { token });
+  return { data: res.data, ...res.data };
+};
+
+export const logoutDeveloper = async (token) => {
+  const res = await api.post('/mitra/auth/logout', { token });
+  return { data: res.data, ...res.data };
+};
+
+export const getR2Files = async (prefix = '', limit = 100) => {
+  try {
+    const res = await api.get('/storage/files', { params: { prefix, limit } });
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, files: [], count: 0 }, files: [], count: 0 };
+  }
+};
+
+export const getRealTenants = async () => {
+  try {
+    const res = await api.get('/mitra/tenants');
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, data: [] }, data: [] };
+  }
+};
+
+export const getRealAuditLogs = async () => {
+  try {
+    const res = await api.get('/mitra/audit-logs');
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, data: [] }, data: [] };
   }
 };
 

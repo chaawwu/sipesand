@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Globe, 
@@ -15,9 +15,12 @@ import {
   ArrowLeft,
   Server,
   Layers,
-  HelpCircle
+  HelpCircle,
+  RefreshCw,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
-import { registerMitraTenant, getMitraConfig } from '../services/api';
+import { registerMitraTenant, getMitraConfig, checkSubdomainAvailability } from '../services/api';
 import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 
@@ -64,10 +67,59 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
     message: ''
   });
 
+  // Subdomain Validation State
+  const [subdomainStatus, setSubdomainStatus] = useState({
+    checking: false,
+    checked: false,
+    available: null,
+    reason: null,
+    message: ''
+  });
+
   const handleSubdomainChange = (e) => {
     const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     setFormData({ ...formData, subdomain: val });
   };
+
+  // Debounced Subdomain Availability Check
+  useEffect(() => {
+    const raw = (formData.subdomain || '').trim().toLowerCase();
+    if (!raw || raw.length < 3) {
+      setSubdomainStatus({
+        checking: false,
+        checked: false,
+        available: null,
+        reason: null,
+        message: raw.length > 0 && raw.length < 3 ? 'Subdomain minimal 3 karakter' : ''
+      });
+      return;
+    }
+
+    setSubdomainStatus(prev => ({ ...prev, checking: true }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkSubdomainAvailability(raw);
+        const data = res.data || res;
+        setSubdomainStatus({
+          checking: false,
+          checked: true,
+          available: Boolean(data.available),
+          reason: data.reason || null,
+          message: data.message || (data.available ? `Subdomain "${raw}.sipesand.web.id" tersedia!` : 'Subdomain tidak tersedia.')
+        });
+      } catch (e) {
+        setSubdomainStatus({
+          checking: false,
+          checked: true,
+          available: false,
+          reason: 'ERROR',
+          message: 'Gagal mengecek ketersediaan subdomain.'
+        });
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [formData.subdomain]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,20 +135,30 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
       return;
     }
 
+    if (subdomainStatus.checked && subdomainStatus.available === false) {
+      setErrorMsg(subdomainStatus.message || 'Subdomain ini tidak dapat digunakan. Silakan gunakan nama subdomain lain.');
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await registerMitraTenant(formData);
-      if (res.data.success) {
-        setCreatedOrder(res.data.data);
+      const resData = res.data || res;
+      if (resData.success && resData.data) {
+        setCreatedOrder(resData.data);
         setToast({
           isOpen: true,
           type: 'success',
           title: 'Invoice Pendaftaran Dibuat',
           message: 'Silakan selesaikan pembayaran lisensi melalui QRIS atau Virtual Account.'
         });
+      } else if (resData.orderId) {
+        setCreatedOrder(resData);
+      } else {
+        throw new Error(resData.message || 'Gagal memproses pendaftaran mitra.');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Gagal memproses pendaftaran mitra.';
+      const msg = err.response?.data?.message || err.message || 'Gagal memproses pendaftaran mitra.';
       setErrorMsg(msg);
       setToast({
         isOpen: true,
@@ -247,11 +309,27 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                     .sipesand.web.id
                   </span>
                 </div>
-                {formData.subdomain && (
+                {/* Live Subdomain Status Feedback */}
+                {subdomainStatus.checking && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-blue-700 font-medium bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 animate-pulse">
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+                    <span>Memverifikasi ketersediaan subdomain...</span>
+                  </div>
+                )}
+                {!subdomainStatus.checking && subdomainStatus.checked && subdomainStatus.available === true && (
                   <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Tautan Login Anda: <strong>https://{formData.subdomain}.sipesand.web.id</strong></span>
+                    <span>Subdomain <strong>{formData.subdomain}.sipesand.web.id</strong> tersedia!</span>
                   </div>
+                )}
+                {!subdomainStatus.checking && subdomainStatus.checked && subdomainStatus.available === false && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-rose-700 font-medium bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>{subdomainStatus.message || 'Subdomain tidak dapat digunakan.'}</span>
+                  </div>
+                )}
+                {!subdomainStatus.checked && !subdomainStatus.checking && formData.subdomain && formData.subdomain.length < 3 && (
+                  <p className="mt-1 text-[10px] text-slate-400">Minimal 3 karakter alfanumerik.</p>
                 )}
               </div>
 

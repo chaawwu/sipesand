@@ -5,7 +5,9 @@ import Header from './components/Header';
 import NfcScannerModal from './components/NfcScannerModal';
 import LoginModal from './components/LoginModal';
 import DeveloperLoginModal from './components/DeveloperLoginModal';
+import DeveloperLoginPage from './pages/DeveloperLoginPage';
 import DeveloperFooter from './components/DeveloperFooter';
+import { logoutDeveloper } from './services/api';
 
 import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
@@ -130,7 +132,7 @@ function MainAppContent() {
   // Developer Portal Auth State (mitra.sipesand.web.id)
   const [isDeveloperLoggedIn, setIsDeveloperLoggedIn] = useState(() => {
     try {
-      return sessionStorage.getItem('sipesand_dev_auth') === 'true';
+      return !!sessionStorage.getItem('sipesand_dev_token');
     } catch (e) {
       return false;
     }
@@ -256,9 +258,6 @@ function MainAppContent() {
   // Developer Superadmin Auth Handlers
   const handleDevLoginSuccess = (devUser) => {
     setIsDeveloperLoggedIn(true);
-    try {
-      sessionStorage.setItem('sipesand_dev_auth', 'true');
-    } catch (e) {}
     setCurrentView('developer-dashboard');
     setIsDevLoginModalOpen(false);
   };
@@ -266,15 +265,13 @@ function MainAppContent() {
   const handleDevLogout = () => {
     setIsDeveloperLoggedIn(false);
     try {
+      const token = sessionStorage.getItem('sipesand_dev_token');
+      sessionStorage.removeItem('sipesand_dev_token');
       sessionStorage.removeItem('sipesand_dev_auth');
+      sessionStorage.removeItem('sipesand_dev_user');
+      if (token) logoutDeveloper(token).catch(() => {});
     } catch (e) {}
-    const hostname = window.location.hostname.toLowerCase();
-    if (hostname.startsWith('mitra.')) {
-      setCurrentView('landing-saas');
-      setIsDevLoginModalOpen(true);
-    } else {
-      setCurrentView('landing-saas');
-    }
+    setCurrentView('developer-dashboard');
   };
 
   // Impersonate Tenant
@@ -348,19 +345,21 @@ function MainAppContent() {
 
   // 0. Tampilan Superadmin & Developer Control Panel (mitra.sipesand.web.id)
   if (currentView === 'developer-dashboard') {
+    if (!isDeveloperLoggedIn) {
+      return (
+        <DeveloperLoginPage
+          onLoginSuccess={handleDevLoginSuccess}
+          onBackToLanding={() => setCurrentView('landing-saas')}
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 font-sans">
         <DashboardDeveloper
           onLogout={handleDevLogout}
           onImpersonateTenant={handleImpersonateTenant}
           onBackToSaasLanding={() => setCurrentView('landing-saas')}
-        />
-
-        {/* Developer Login Modal */}
-        <DeveloperLoginModal
-          isOpen={isDevLoginModalOpen}
-          onClose={() => setIsDevLoginModalOpen(false)}
-          onLoginSuccess={handleDevLoginSuccess}
         />
 
         {/* Global NFC Simulator Modal */}

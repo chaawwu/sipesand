@@ -62,7 +62,11 @@ import {
   getMitraOrders,
   verifyMitraOrder,
   deleteMitraOrder,
-  uploadFileToR2
+  uploadFileToR2,
+  getR2Files,
+  getRealTenants,
+  getRealAuditLogs,
+  deleteFileFromR2
 } from '../services/api';
 import { compressImage } from '../utils/imageCompressor';
 
@@ -93,10 +97,16 @@ export default function DashboardDeveloper({
   const [loadingR2, setLoadingR2] = useState(false);
   const [r2Message, setR2Message] = useState(null);
 
+  const [r2Files, setR2Files] = useState([]);
+  const [loadingR2Files, setLoadingR2Files] = useState(false);
+
   useEffect(() => {
     loadR2Status();
+    loadR2FilesData();
     loadMitraConfigData();
     loadMitraOrdersData();
+    loadRealTenantsData();
+    loadRealAuditLogsData();
   }, []);
 
   const loadR2Status = async () => {
@@ -119,6 +129,31 @@ export default function DashboardDeveloper({
     }
   };
 
+  const loadR2FilesData = async () => {
+    try {
+      setLoadingR2Files(true);
+      const res = await getR2Files();
+      const files = res.data?.files || res.files || [];
+      setR2Files(files);
+    } catch (e) {
+      console.warn('Gagal memuat berkas R2:', e);
+    } finally {
+      setLoadingR2Files(false);
+    }
+  };
+
+  const handleDeleteR2File = async (objectKey) => {
+    if (!window.confirm(`Hapus berkas "${objectKey}" secara permanen dari Cloudflare R2?`)) return;
+    try {
+      await deleteFileFromR2(objectKey);
+      setR2Message({ type: 'success', text: `Berkas ${objectKey} berhasil dihapus dari R2.` });
+      loadR2Status();
+      loadR2FilesData();
+    } catch (e) {
+      alert('Gagal menghapus berkas R2: ' + e.message);
+    }
+  };
+
   const handleR2Cleanup = async () => {
     if (!window.confirm('Jalankan auto-pruning untuk membersihkan berkas sementara dan file usang di Cloudflare R2?')) return;
     try {
@@ -126,6 +161,7 @@ export default function DashboardDeveloper({
       const res = await cleanupR2Storage();
       setR2Message({ type: 'success', text: res.message || 'Pembersihan R2 selesai!' });
       loadR2Status();
+      loadR2FilesData();
     } catch (e) {
       setR2Message({ type: 'error', text: 'Gagal membersihkan R2: ' + (e.message || 'Error') });
     } finally {
@@ -135,100 +171,42 @@ export default function DashboardDeveloper({
   };
 
   // ---------------------------------------------------------------------------
-  // 1. STATE: TENANT MANAGEMENT (CRM)
+  // 1. STATE: TENANT MANAGEMENT (100% REAL DARI FIRESTORE - NO FAKE GIMMICKS)
   // ---------------------------------------------------------------------------
   const [tenants, setTenants] = useState([
     {
-      id: 't-0',
+      id: 'tenant-darulrahman',
       name: 'Pondok Pesantren Darul Rahman Sumbersari',
       subdomain: 'darulrahman',
       status: 'ACTIVE',
       plan: 'LIFETIME',
       santriCount: 500,
       dbSizeMb: 18.5,
-      dbEngine: 'SQLite (WAL) + Firestore Cloud',
+      dbEngine: 'Cloudflare Pages Serverless + Firestore Cloud',
       adminEmail: 'darulrahmansumbersari@gmail.com',
       adminPhone: '+62 851-2373-4342',
-      joinedDate: '01 Jan 2026',
-      lastActive: 'Baru saja',
-      nfcActive: true
-    },
-    {
-      id: 't-1',
-      name: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
-      subdomain: 'pesantren-terpadu',
-      status: 'ACTIVE',
-      plan: 'LIFETIME',
-      santriCount: 342,
-      dbSizeMb: 14.2,
-      dbEngine: 'SQLite (WAL) + Firestore',
-      adminEmail: 'ridwan@sipesand.web.id',
-      adminPhone: '081234567890',
-      joinedDate: '12 Jan 2026',
-      lastActive: '2 menit lalu',
-      nfcActive: true
-    },
-    {
-      id: 't-2',
-      name: 'PP Al-Falah Modern Tahfidz',
-      subdomain: 'al-falah',
-      status: 'ACTIVE',
-      plan: 'TAHUNAN',
-      santriCount: 185,
-      dbSizeMb: 8.6,
-      dbEngine: 'SQLite (WAL) + Firestore',
-      adminEmail: 'admin@alfalah.ac.id',
-      adminPhone: '085712345678',
-      joinedDate: '28 Feb 2026',
-      lastActive: '14 menit lalu',
-      nfcActive: true
-    },
-    {
-      id: 't-3',
-      name: 'Pesantren Darul Ulum Digital',
-      subdomain: 'darul-ulum',
-      status: 'TRIAL',
-      plan: 'TRIAL (14 Hari)',
-      santriCount: 94,
-      dbSizeMb: 4.1,
-      dbEngine: 'SQLite (WAL) + Firestore',
-      adminEmail: 'ict@darululum.sch.id',
-      adminPhone: '081987654321',
-      joinedDate: '01 Mar 2026',
-      lastActive: '1 jam lalu',
-      nfcActive: false
-    },
-    {
-      id: 't-4',
-      name: 'Ma\'had Darussalam Boarding',
-      subdomain: 'darussalam',
-      status: 'ACTIVE',
-      plan: 'TAHUNAN',
-      santriCount: 420,
-      dbSizeMb: 21.4,
-      dbEngine: 'SQLite (WAL) + Firestore',
-      adminEmail: 'sekretariat@darussalam.org',
-      adminPhone: '082133445566',
-      joinedDate: '15 Jan 2026',
-      lastActive: '5 menit lalu',
-      nfcActive: true
-    },
-    {
-      id: 't-5',
-      name: 'Pesantren Nurul Huda Mandiri',
-      subdomain: 'nurul-huda',
-      status: 'SUSPENDED',
-      plan: 'TAHUNAN (Expired)',
-      santriCount: 110,
-      dbSizeMb: 6.8,
-      dbEngine: 'SQLite (WAL) + Firestore',
-      adminEmail: 'bendahara@nurulhuda.net',
-      adminPhone: '081399887766',
-      joinedDate: '05 Des 2025',
-      lastActive: '8 hari lalu',
-      nfcActive: false
+      joinedDate: 'Pusat Master',
+      lastActive: 'Aktif',
+      nfcActive: true,
+      liveUrl: 'https://darulrahman.sipesand.web.id'
     }
   ]);
+  const [loadingTenants, setLoadingTenants] = useState(false);
+
+  const loadRealTenantsData = async () => {
+    try {
+      setLoadingTenants(true);
+      const res = await getRealTenants();
+      const items = res.data?.data || res.data || [];
+      if (Array.isArray(items) && items.length > 0) {
+        setTenants(items);
+      }
+    } catch (e) {
+      console.warn('Gagal memuat tenants riil:', e);
+    } finally {
+      setLoadingTenants(false);
+    }
+  };
 
   const [tenantFilter, setTenantFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'TRIAL' | 'SUSPENDED'
   const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
@@ -399,43 +377,32 @@ export default function DashboardDeveloper({
     setFeatureFlags(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // State: Real-Time Monitoring Streams
-  const [livePosTransactions] = useState([
-    { id: 'pos-1', tenant: 'darulrahman', santri: 'Muhammad Azzam Al-Fatih', item: 'Nasi Kuning Santri + Susu Kedelai', amount: 12000, time: '20 detik lalu', status: 'SUCCESS' },
-    { id: 'pos-2', tenant: 'al-falah', santri: 'Aisyah Nur Ramadhani', item: 'Kitab Jurumiyyah + Buku Tulis', amount: 45000, time: '1 menit lalu', status: 'SUCCESS' },
-    { id: 'pos-3', tenant: 'darul-ulum', santri: 'Muhammad Farhan Al-Fatih', item: 'Top-up Saku via QRIS Pesantren', amount: 100000, time: '3 menit lalu', status: 'SUCCESS' },
-    { id: 'pos-4', tenant: 'darulrahman', santri: 'Fathimah Az-Zahra', item: 'Air Mineral + Roti Madinah', amount: 8000, time: '5 menit lalu', status: 'SUCCESS' },
-  ]);
-
-  const [liveRfidScans] = useState([
-    { id: 'rfid-1', tenant: 'darulrahman', santri: 'Muhammad Azzam Al-Fatih', reader: 'Gate Utama Pos Kamtib', uid: 'NFC-8A3F129B', time: '15 detik lalu', status: 'VERIFIED' },
-    { id: 'rfid-2', tenant: 'al-falah', santri: 'Aisyah Nur Ramadhani', reader: 'Madrasah Diniyah Kelas 10', uid: 'NFC-4B7C91D3', time: '45 detik lalu', status: 'VERIFIED' },
-    { id: 'rfid-3', tenant: 'darulrahman', santri: 'Zaki Yamani', reader: 'Kantin Salaf POS Terminal 1', uid: 'NFC-5C8E192A', time: '2 menit lalu', status: 'VERIFIED' },
-  ]);
-
-  const [activePermits] = useState([
-    { id: 'prm-1', tenant: 'darulrahman', santri: 'Aisyah Nur Ramadhani', reason: 'Izin Sambangan Keluarga & Kepulangan Bulanan', returnDate: '09-09-2026 17:00', remainingTime: '6 jam lagi', status: 'ACTIVE' },
-    { id: 'prm-2', tenant: 'al-falah', santri: 'Muhammad Farhan', reason: 'Pemeriksaan Kesehatan Poskestren', returnDate: '09-09-2026 20:00', remainingTime: '9 jam lagi', status: 'ACTIVE' },
-  ]);
+  // State: Real-Time Monitoring Streams (Listening 24/7 - No fake data)
+  const [livePosTransactions, setLivePosTransactions] = useState([]);
+  const [liveRfidScans, setLiveRfidScans] = useState([]);
+  const [activePermits, setActivePermits] = useState([]);
 
   // ---------------------------------------------------------------------------
-  // 2. STATE: SECURITY & AUTH LOGS (Security Center)
+  // 2. STATE: SECURITY & REAL AUDIT LOGS (100% REAL DARI FIRESTORE)
   // ---------------------------------------------------------------------------
-  const [authLogs, setAuthLogs] = useState([
-    { id: 'l-1', user: 'admin', role: 'SUPER_ADMIN', tenant: 'pesantren-terpadu', ip: '114.122.45.19', location: 'Surabaya, ID', status: 'SUCCESS', time: '10 detik lalu', userAgent: 'Chrome 128 / macOS' },
-    { id: 'l-2', user: 'bendahara', role: 'BENDAHARA', tenant: 'al-falah', ip: '180.252.88.102', location: 'Semarang, ID', status: 'SUCCESS', time: '2 menit lalu', userAgent: 'Edge 128 / Win11' },
-    { id: 'l-3', user: 'root', role: 'UNKNOWN', tenant: 'darul-ulum', ip: '194.26.29.11', location: 'Frankfurt, DE', status: 'FAILED', time: '4 menit lalu', userAgent: 'Python-Requests / Linux' },
-    { id: 'l-4', user: 'kamtib', role: 'KEAMANAN', tenant: 'darussalam', ip: '103.111.20.5', location: 'Jakarta, ID', status: 'SUCCESS', time: '8 menit lalu', userAgent: 'Firefox 130 / Android' },
-    { id: 'l-5', user: 'guest_test', role: 'UNKNOWN', tenant: 'pesantren-terpadu', ip: '45.154.255.8', location: 'Amsterdam, NL', status: 'FAILED', time: '15 menit lalu', userAgent: 'Go-http-client' },
-    { id: 'l-6', user: 'uangsaku', role: 'PENGURUS_SAKU', tenant: 'pesantren-terpadu', ip: '114.122.45.19', location: 'Surabaya, ID', status: 'SUCCESS', time: '24 menit lalu', userAgent: 'Chrome 128 / Windows' },
-  ]);
+  const [authLogs, setAuthLogs] = useState([]);
+  const [auditTrails, setAuditTrails] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
 
-  const [auditTrails, setAuditTrails] = useState([
-    { id: 'at-1', admin: 'lead-dev@sipesand.web.id', action: 'DEPLOY_PATCH', target: 'Cloudflare Worker Multi-Tenant Route v3.2', time: '15 menit lalu' },
-    { id: 'at-2', admin: 'lead-dev@sipesand.web.id', action: 'UPDATE_PRICING', target: 'Paket Tahunan Rp 1.500.000 / tahun', time: '2 jam lalu' },
-    { id: 'at-3', admin: 'lead-dev@sipesand.web.id', action: 'ACTIVATE_TENANT', target: 'PP Al-Falah Modern Tahfidz (al-falah)', time: '5 jam lalu' },
-    { id: 'at-4', admin: 'system-cron', action: 'BACKUP_SQLITE', target: 'Auto-snapshot 5 tenant SQLite databases', time: '12 jam lalu' },
-  ]);
+  const loadRealAuditLogsData = async () => {
+    try {
+      setLoadingAuditLogs(true);
+      const res = await getRealAuditLogs();
+      const logs = res.data?.data || res.data || [];
+      if (Array.isArray(logs)) {
+        setAuditTrails(logs);
+      }
+    } catch (e) {
+      console.warn('Gagal memuat audit logs riil:', e);
+    } finally {
+      setLoadingAuditLogs(false);
+    }
+  };
 
   const [authStatusFilter, setAuthStatusFilter] = useState('ALL'); // 'ALL' | 'SUCCESS' | 'FAILED'
 
@@ -1637,6 +1604,98 @@ export default function DashboardDeveloper({
                 </div>
               </div>
 
+              {/* Cloudflare R2 File Explorer Table */}
+              <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">
+                <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold">
+                      <Cloud className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                        <span>Cloudflare R2 Object Explorer (sipesand-storage)</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          LIVE EDGE
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">Daftar objek fisik yang tersimpan di bucket Cloudflare R2 (bukti transfer pendaftar, QRIS, & arsip data).</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={loadR2FilesData}
+                    disabled={loadingR2Files}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingR2Files ? 'animate-spin' : ''}`} />
+                    <span>Segarkan Berkas R2</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  {r2Files.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 space-y-2">
+                      <HardDrive className="w-8 h-8 mx-auto text-slate-600" />
+                      <p className="font-bold text-sm text-slate-300">Belum ada berkas fisik tersimpan di Cloudflare R2</p>
+                      <p className="text-xs text-slate-500 font-mono">Bucket: sipesand-storage • Kuota: {r2Stats.usedFormatted} / 10.00 GB terpakai</p>
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950/80 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          <th className="py-3 px-4">Nama Berkas</th>
+                          <th className="py-3 px-4">Folder / Path R2</th>
+                          <th className="py-3 px-4">Ukuran</th>
+                          <th className="py-3 px-4">Tanggal Diunggah</th>
+                          <th className="py-3 px-4 text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-mono">
+                        {r2Files.map(file => (
+                          <tr key={file.key} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 px-4 font-bold text-slate-200">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                <span className="truncate max-w-xs">{file.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-slate-400 text-[11px]">
+                              {file.folder}
+                            </td>
+                            <td className="py-3 px-4 font-bold text-indigo-300">
+                              {file.sizeFormatted}
+                            </td>
+                            <td className="py-3 px-4 text-slate-400 text-[11px]">
+                              {file.uploaded ? new Date(file.uploaded).toLocaleString('id-ID') : '-'}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[11px] font-bold border border-blue-500/30 flex items-center gap-1 transition-colors"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span>Buka</span>
+                                </a>
+                                <button
+                                  onClick={() => handleDeleteR2File(file.key)}
+                                  className="p-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                                  title="Hapus dari Cloudflare R2"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+
               {/* SQLite Storage Monitor Per Tenant */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-5 border-b border-slate-200 flex items-center justify-between">
@@ -2095,19 +2154,26 @@ export default function DashboardDeveloper({
                 <p className="text-xs text-slate-500">Catatan aktivitas perubahan konfigurasi tingkat superadmin yang tercatat permanen.</p>
 
                 <div className="divide-y divide-slate-100 text-xs">
-                  {auditTrails.map(at => (
-                    <div key={at.id} className="py-2.5 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                          {at.action}
-                        </span>
-                        <span className="font-bold text-slate-900 truncate">{at.target}</span>
-                      </div>
-                      <div className="text-right text-[11px] text-slate-400 flex-shrink-0">
-                        <span>{at.admin}</span> • <span className="font-mono">{at.time}</span>
-                      </div>
+                  {auditTrails.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 space-y-1">
+                      <p className="font-bold text-slate-600 text-xs">Belum ada aktivitas audit log baru</p>
+                      <p className="text-[11px] text-slate-400">Setiap perubahan akun, konfigurasi, dan verifikasi tenant akan tercatat permanen di sini.</p>
                     </div>
-                  ))}
+                  ) : (
+                    auditTrails.map(at => (
+                      <div key={at.id} className="py-2.5 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            {at.action}
+                          </span>
+                          <span className="font-bold text-slate-900 truncate">{at.detail || at.target}</span>
+                        </div>
+                        <div className="text-right text-[11px] text-slate-400 flex-shrink-0">
+                          <span className="text-slate-600 font-medium">{at.adminUser || at.admin}</span> • <span className="font-mono">{at.timestamp ? new Date(at.timestamp).toLocaleString('id-ID') : at.time}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -2815,25 +2881,33 @@ export default function DashboardDeveloper({
                   </div>
 
                   <div className="divide-y divide-slate-100 text-xs font-sans">
-                    {livePosTransactions.map(pos => (
-                      <div key={pos.id} className="py-3 first:pt-0 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 truncate">{pos.santri}</span>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-[#0057FF] border border-blue-200">
-                              @{pos.tenant}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{pos.item}</div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="font-mono font-bold text-slate-900">
-                            Rp {pos.amount.toLocaleString('id-ID')}
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{pos.time}</div>
-                        </div>
+                    {livePosTransactions.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400 space-y-1.5">
+                        <Wallet className="w-6 h-6 mx-auto text-slate-300" />
+                        <p className="font-bold text-xs text-slate-600">Belum ada transaksi POS kasir santri pada sesi ini</p>
+                        <p className="text-[10px] text-slate-400 font-mono">Edge listener aktif • Transaksi real-time akan muncul otomatis di sini</p>
                       </div>
-                    ))}
+                    ) : (
+                      livePosTransactions.map(pos => (
+                        <div key={pos.id} className="py-3 first:pt-0 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 truncate">{pos.santri}</span>
+                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-[#0057FF] border border-blue-200">
+                                @{pos.tenant}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">{pos.item}</div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-mono font-bold text-slate-900">
+                              Rp {pos.amount.toLocaleString('id-ID')}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{pos.time}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -2844,25 +2918,33 @@ export default function DashboardDeveloper({
                       <Radio className="w-4 h-4 text-[#00FF99]" />
                       <h3 className="font-bold text-sm text-slate-900">Live RFID Gate Scanner</h3>
                     </div>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
 
                   <div className="divide-y divide-slate-100 text-xs">
-                    {liveRfidScans.map(rf => (
-                      <div key={rf.id} className="py-3 first:pt-0 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-900 truncate">{rf.santri}</span>
-                          <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">
-                            {rf.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                          <span>{rf.reader}</span>
-                          <span>{rf.time}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">UID: {rf.uid} • @{rf.tenant}</div>
+                    {liveRfidScans.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400 space-y-1.5">
+                        <Radio className="w-6 h-6 mx-auto text-slate-300" />
+                        <p className="font-bold text-xs text-slate-600">Belum ada pemindaian kartu RFID / NFC</p>
+                        <p className="text-[10px] text-slate-400 font-mono">Siap menerima tap KTSD santri secara real-time</p>
                       </div>
-                    ))}
+                    ) : (
+                      liveRfidScans.map(rf => (
+                        <div key={rf.id} className="py-3 first:pt-0 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900 truncate">{rf.santri}</span>
+                            <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">
+                              {rf.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                            <span>{rf.reader}</span>
+                            <span>{rf.time}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono">UID: {rf.uid} • @{rf.tenant}</div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

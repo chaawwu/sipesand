@@ -123,13 +123,14 @@ export default function LandingPageSaas({
     const timer = setTimeout(async () => {
       try {
         const res = await checkSubdomainAvailability(raw);
-        if (res.data.success) {
+        const data = res.data || res;
+        if (data && data.success) {
           setSubdomainStatus({
             checked: true,
             checking: false,
-            available: res.data.available,
-            reason: res.data.reason,
-            message: res.data.message,
+            available: Boolean(data.available),
+            reason: data.reason || null,
+            message: data.message || '',
           });
         }
       } catch (err) {
@@ -180,14 +181,19 @@ export default function LandingPageSaas({
     try {
       setLoading(true);
       const res = await registerMitraTenant(formData);
-      if (res.data.success) {
-        setCreatedOrder(res.data.data);
+      const resData = res.data || res;
+      if (resData.success && resData.data) {
+        setCreatedOrder(resData.data);
         setToast({
           isOpen: true,
           type: 'success',
           title: 'Invoice Lisensi Diterbitkan',
           message: 'Silakan selesaikan pembayaran lisensi melalui QRIS atau Virtual Account BSI.'
         });
+      } else if (resData.orderId) {
+        setCreatedOrder(resData);
+      } else {
+        throw new Error(resData.message || 'Gagal memproses pendaftaran mitra.');
       }
     } catch (err) {
       const msg = err.response?.data?.message || 'Gagal memproses pendaftaran mitra.';
