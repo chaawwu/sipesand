@@ -1026,10 +1026,8 @@ export async function onRequest(context) {
       const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
       let body = {};
       try { body = await request.json(); } catch(e) {}
-      const { email = '', password = '' } = body;
-
-      const cleanEmail = String(email).trim().toLowerCase();
-      const cleanPass = String(password).trim();
+      const cleanEmail = String(body.email || body.username || '').trim().toLowerCase();
+      const cleanPass = String(body.password || '').trim();
 
       if (!cleanEmail || !cleanPass) {
         return jsonResponse({ success: false, message: 'Email / Username dan Password wajib diisi.' }, 400);
