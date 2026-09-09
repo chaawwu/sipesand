@@ -50,7 +50,8 @@ import {
   UploadCloud,
   Wallet,
   MessageCircle,
-  Copy
+  Copy,
+  Smartphone
 } from 'lucide-react';
 import { TENANT_PROFILES } from '../context/SettingsContext';
 import { 

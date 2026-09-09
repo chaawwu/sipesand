@@ -184,15 +184,17 @@ export class LocalDatabase {
       if (!localStorage.getItem(purgeKey)) {
         localStorage.setItem(purgeKey, 'true');
         const DEMO_NIS = ['202601001', '202601002', '202601003', '202601004', '202601005', '202601006'];
-        if (parsed.santri && parsed.santri.length > 0 && parsed.santri.every(s => DEMO_NIS.includes(String(s.nis)))) {
-          parsed.santri = [];
-          parsed.santriBills = [];
-          parsed.generalLedger = [];
-          parsed.pocketTxs = [];
-          parsed.permits = [];
-          parsed.academics = [];
-          parsed.violations = [];
-          parsed.divisionFunds = [];
+        const hasDemoData = parsed.santri && parsed.santri.some(s => DEMO_NIS.includes(String(s.nis)));
+        if (hasDemoData) {
+          // Hanya hapus santri demo, bukan seluruh data santri
+          parsed.santri = (parsed.santri || []).filter(s => !DEMO_NIS.includes(String(s.nis)));
+          // Bersihkan transaksi & tagihan yang berkaitan dengan santri demo
+          const remainingIds = new Set((parsed.santri || []).map(s => String(s.id)));
+          parsed.santriBills = (parsed.santriBills || []).filter(b => remainingIds.has(String(b.santriId)));
+          parsed.pocketTxs = (parsed.pocketTxs || []).filter(t => remainingIds.has(String(t.santriId)));
+          parsed.permits = (parsed.permits || []).filter(p => remainingIds.has(String(p.santriId)));
+          parsed.academics = (parsed.academics || []).filter(a => remainingIds.has(String(a.santriId)));
+          parsed.violations = (parsed.violations || []).filter(v => remainingIds.has(String(v.santriId)));
           this.saveData(parsed, activeT);
           return parsed;
         }

@@ -24,7 +24,7 @@ function getTenantPrismaClient(subdomain) {
     const tenantClient = new PrismaClient({
       datasources: {
         db: {
-          url: `file:./tenants/tenant_${cleanSub}.db`,
+          url: `file:${tenantDbPath}`,
         },
       },
     });

@@ -163,9 +163,13 @@ export function subscribeCloudSantri(tenant = null, callback) {
     const colRef = getTenantCol("santri", tenant);
     return onSnapshot(colRef, (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const dbLocal = localDb.getData();
-      dbLocal.santri = items;
-      localDb.saveData(dbLocal);
+      // Only sync local DB when Firestore has actual data to prevent
+      // accidental data wipeout from empty/loading snapshots
+      if (items.length > 0) {
+        const dbLocal = localDb.getData();
+        dbLocal.santri = items;
+        localDb.saveData(dbLocal);
+      }
       callback(items);
     }, (err) => {
       console.warn("subscribeCloudSantri snapshot error:", err);
@@ -280,9 +284,11 @@ export function subscribeCloudLedger(tenant = null, callback) {
     const colRef = getTenantCol("ledger", tenant);
     return onSnapshot(colRef, (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const dbLocal = localDb.getData();
-      dbLocal.generalLedger = items;
-      localDb.saveData(dbLocal);
+      if (items.length > 0) {
+        const dbLocal = localDb.getData();
+        dbLocal.generalLedger = items;
+        localDb.saveData(dbLocal);
+      }
       callback(items);
     }, (err) => {
       console.warn("subscribeCloudLedger snapshot error:", err);
@@ -413,9 +419,11 @@ export function subscribeCloudPocket(tenant = null, callback) {
     const colRef = getTenantCol("pocket_txs", tenant);
     return onSnapshot(colRef, (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const dbLocal = localDb.getData();
-      dbLocal.pocketTxs = items;
-      localDb.saveData(dbLocal);
+      if (items.length > 0) {
+        const dbLocal = localDb.getData();
+        dbLocal.pocketTxs = items;
+        localDb.saveData(dbLocal);
+      }
       callback(items);
     }, (err) => {
       console.warn("subscribeCloudPocket snapshot error:", err);
@@ -460,9 +468,11 @@ export function subscribeCloudBills(tenant = null, callback) {
     const colRef = getTenantCol("bills", tenant);
     return onSnapshot(colRef, (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const dbLocal = localDb.getData();
-      dbLocal.santriBills = items;
-      localDb.saveData(dbLocal);
+      if (items.length > 0) {
+        const dbLocal = localDb.getData();
+        dbLocal.santriBills = items;
+        localDb.saveData(dbLocal);
+      }
       callback(items);
     }, (err) => {
       console.warn("subscribeCloudBills snapshot error:", err);
@@ -555,9 +565,11 @@ export function subscribeCloudPermits(tenant = null, callback) {
     const colRef = getTenantCol("permits", tenant);
     return onSnapshot(colRef, (snapshot) => {
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const dbLocal = localDb.getData();
-      dbLocal.permits = items;
-      localDb.saveData(dbLocal);
+      if (items.length > 0) {
+        const dbLocal = localDb.getData();
+        dbLocal.permits = items;
+        localDb.saveData(dbLocal);
+      }
       callback(items);
     }, (err) => {
       console.warn("subscribeCloudPermits snapshot error:", err);

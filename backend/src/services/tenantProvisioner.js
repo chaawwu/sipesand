@@ -56,7 +56,7 @@ async function provisionNewTenant({
     const tenantPrisma = new PrismaClient({
       datasources: {
         db: {
-          url: `file:./tenants/${tenantDbName}`,
+          url: tenantDbUrl,
         },
       },
     });

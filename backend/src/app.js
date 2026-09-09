@@ -91,6 +91,11 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Health check endpoint khusus untuk deteksi status server dari frontend
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ONLINE', timestamp: new Date().toISOString() });
+});
+
 // =========================================================================
 // 3. DEDICATED WEBHOOK PAYMENT GATEWAY (MIDTRANS / XENDIT / KING DIGITAL PG)
 // =========================================================================

@@ -40,7 +40,7 @@ import {
 } from '../services/api';
 import { subscribeCloudPermits } from '../services/cloudDatabase';
 
-export default function SecurityKamtib({ onOpenNfcModal }) {
+export default function SecurityKamtib({ onOpenNfcModal, currentUser }) {
   const [subTab, setSubTab] = useState('permits'); // 'permits' | 'violations' | 'rules'
   
   // Data States
@@ -454,48 +454,37 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
     }
   };
 
+  // Kalkulasi Statistik Real-Time Dasbor Kamtib
+  const activePermitsCount = permits.filter(p => p.status === 'ACTIVE').length;
+  const overduePermitsCount = permits.filter(p => p.status === 'ACTIVE' && new Date(p.returnTime) < new Date()).length;
+  const violationsCount = violations.length;
+  const inPondokCount = Math.max(0, santriList.length - activePermitsCount);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       
-      {/* Top Header & Sub-tab Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSubTab('permits')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'permits' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Perizinan Keluar / Pulang</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab('violations')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'violations' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span>Pelanggaran & Takziran</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab('rules')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              subTab === 'rules' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Tata Tertib Pesantren</span>
-          </button>
+      {/* 0. Top Header Devisi Kamtib */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+              DEVISI KEAMANAN & KAMTIB
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">Pos Jaga Gerbang & Asrama</span>
+          </div>
+          <h2 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+            {currentUser?.name ? `Petugas Jaga: ${currentUser.name}` : 'Dasbor Operasional Keamanan & Ketertiban'}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Pusat pemantauan perizinan santri keluar masuk gerbang, reader NFC, dan disiplin santri.
+          </p>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           {subTab === 'permits' ? (
             <button
               onClick={() => setIsPermitModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center"
             >
               <Plus className="w-4 h-4" />
               <span>Buat Izin Manual</span>
@@ -503,13 +492,97 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
           ) : subTab === 'violations' ? (
             <button
               onClick={() => setIsViolationModalOpen(true)}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center"
             >
               <Plus className="w-4 h-4" />
-              <span>Catat Pelanggaran & Takziran</span>
+              <span>Catat Pelanggaran</span>
             </button>
           ) : null}
         </div>
+      </div>
+
+      {/* 1. BENTO STATISTIK REAL-TIME KAMTIB (RESPONSIF HP 2 KOLOM) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Card 1: Sedang Izin Keluar */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200">
+            <Clock className="w-5 h-5 animate-pulse" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Izin Aktif</div>
+            <div className="text-xl sm:text-2xl font-black text-amber-700 font-mono leading-tight">{activePermitsCount}</div>
+            <div className="text-[10px] text-slate-400">Santri di luar</div>
+          </div>
+        </div>
+
+        {/* Card 2: Terlambat / Overdue */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Terlambat</div>
+            <div className="text-xl sm:text-2xl font-black text-rose-600 font-mono leading-tight">{overduePermitsCount}</div>
+            <div className="text-[10px] text-slate-400">Lewat tenggat</div>
+          </div>
+        </div>
+
+        {/* Card 3: Pelanggaran & Takziran */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-200">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Pelanggaran</div>
+            <div className="text-xl sm:text-2xl font-black text-purple-700 font-mono leading-tight">{violationsCount}</div>
+            <div className="text-[10px] text-slate-400">Catatan takziran</div>
+          </div>
+        </div>
+
+        {/* Card 4: Santri di Asrama Pondok */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider truncate">Di Pondok</div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-700 font-mono leading-tight">{inPondokCount}</div>
+            <div className="text-[10px] text-slate-400">Santri di asrama</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-tab Navigation (Scrollable di HP) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          onClick={() => setSubTab('permits')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+            subTab === 'permits' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Perizinan Keluar / Pulang ({permits.length})</span>
+        </button>
+
+        <button
+          onClick={() => setSubTab('violations')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+            subTab === 'violations' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Pelanggaran & Takziran ({violations.length})</span>
+        </button>
+
+        <button
+          onClick={() => setSubTab('rules')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+            subTab === 'rules' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Tata Tertib Pesantren</span>
+        </button>
       </div>
 
       {/* ======================================================================= */}
@@ -594,9 +667,13 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-xs">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900">Daftar Perizinan Santri & Deteksi Overdue</h3>
+            <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+              {permits.length} Data
+            </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -688,6 +765,99 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View (HP Proportional) */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {loading ? (
+              <div className="py-8 text-center text-slate-400">Memuat data perizinan...</div>
+            ) : permits.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">Belum ada data perizinan</div>
+            ) : (
+              permits.map((p) => {
+                const now = new Date();
+                const isLate = p.status === 'ACTIVE' && new Date(p.returnTime) < now;
+                return (
+                  <div key={p.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-slate-900 text-sm">{p.santri?.nama}</div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          NIS: {p.santri?.nis || '-'} • {p.santri?.kelas || '-'}
+                        </div>
+                      </div>
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shrink-0 ${
+                        isLate || p.status === 'OVERDUE'
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                          : p.status === 'RETURNED'
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : 'bg-blue-100 text-blue-700 border border-blue-200'
+                      }`}>
+                        {isLate ? 'OVERDUE' : p.status}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Jenis Izin:</span>
+                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                          {p.type}
+                        </span>
+                      </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-slate-500 font-medium">Keperluan:</span>
+                        <span className="font-semibold text-slate-800 text-right">{p.reason}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Tujuan:</span>
+                        <span className="font-semibold text-slate-700">{p.destination || 'Dalam Kota'}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                        <span className="text-slate-500 font-medium">Jadwal:</span>
+                        <span className="text-slate-700 text-right text-[11px]">
+                          {new Date(p.departureTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                          {' → '}
+                          <span className={isLate ? 'text-rose-600 font-bold' : 'font-semibold'}>
+                            {new Date(p.returnTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons on mobile */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleSendPermitWa(p)}
+                        className="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <MessageSquare className="w-4 h-4 text-emerald-600" />
+                        <span>WA Wali</span>
+                      </button>
+
+                      {p.status === 'ACTIVE' || isLate ? (
+                        <button
+                          onClick={() => handleUpdatePermit(p.id, 'RETURNED')}
+                          className="flex-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer text-center"
+                        >
+                          Check-In Kembali
+                        </button>
+                      ) : p.status === 'PENDING' ? (
+                        <button
+                          onClick={() => handleUpdatePermit(p.id, 'APPROVED')}
+                          className="flex-2 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer text-center"
+                        >
+                          ACC Izin
+                        </button>
+                      ) : (
+                        <span className="flex-2 py-2 text-center text-xs text-slate-400 font-medium bg-slate-50 rounded-xl border border-slate-100">
+                          Sudah Kembali
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
@@ -698,9 +868,13 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-xs">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900">Catatan Pelanggaran Tata Tertib & Sanksi Takziran Edukatif</h3>
+            <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+              {violations.length} Data
+            </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -769,6 +943,85 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (HP Proportional) */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {violations.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">Belum ada catatan pelanggaran</div>
+            ) : (
+              violations.map((v) => (
+                <div key={v.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">{v.santri?.nama}</div>
+                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        NIS: {v.santri?.nis || '-'}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border shrink-0 ${
+                      v.category === 'BERAT' 
+                        ? 'bg-rose-100 text-rose-800 border-rose-200' 
+                        : v.category === 'SEDANG' 
+                        ? 'bg-amber-100 text-amber-800 border-amber-200' 
+                        : 'bg-slate-100 text-slate-700 border-slate-200'
+                    }`}>
+                      {v.category}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-[11px]">
+                    <div>
+                      <div className="font-semibold text-slate-800">{v.violation}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {new Date(v.date).toLocaleDateString('id-ID')} • Petugas: {v.officer}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-950 font-medium leading-relaxed">
+                      <span className="font-bold text-amber-900 block text-[10px] uppercase mb-0.5">Sanksi Takziran Edukatif:</span>
+                      {v.takziran}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-slate-500">Status Tindak Lanjut:</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        v.status === 'SELESAI' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {v.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => handleSendViolationWa(v)}
+                      className="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-emerald-600" />
+                      <span>WA Wali</span>
+                    </button>
+
+                    {v.status === 'PROSES' && (
+                      <button
+                        onClick={() => handleUpdateViolationStatus(v.id, 'SELESAI')}
+                        className="flex-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer text-center"
+                      >
+                        Tandai Selesai
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDeleteViolation(v.id)}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 transition-colors shrink-0 cursor-pointer"
+                      title="Hapus Catatan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -998,75 +1251,71 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 my-4 flex flex-col">
             
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 text-white p-5 flex items-center justify-between relative overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-950 text-white p-4 sm:p-5 flex items-center justify-between relative overflow-hidden border-b border-blue-500/30">
               <div className="flex items-center gap-3 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
-                  <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                <div className="w-11 h-11 rounded-2xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
+                  <Radio className="w-6 h-6 text-emerald-400 animate-pulse" />
                 </div>
                 <div>
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-900/80 text-[10px] font-mono font-bold text-amber-300 border border-blue-400/30 mb-0.5">
-                    <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-                    <span>NFC UID: {smartSantri.nfcUid || smartNfcUid}</span>
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-900/80 text-[10px] font-mono font-black text-amber-300 border border-blue-400/40 mb-0.5">
+                    <span>LIVE RFID TAP</span>
+                    <span>•</span>
+                    <span>UID: {smartSantri.nfcUid || smartNfcUid}</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
-                    Smart Perizinan Kamtib SiPesand
+                  <h3 className="text-sm sm:text-base font-black tracking-tight text-white">
+                    Data Live Kartu RFID Santri
                   </h3>
-                  <p className="text-xs text-blue-100/80">
-                    Sistem deteksi otomatis keberadaan & perizinan santri via ID Card fisik.
-                  </p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsSmartPermitModalOpen(false)}
-                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer relative z-10 shrink-0"
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer relative z-10 shrink-0"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Content Body */}
-            <div className="p-5 sm:p-6 space-y-4 max-h-[82vh] overflow-y-auto text-xs">
+            <div className="p-4 sm:p-6 space-y-4 max-h-[82vh] overflow-y-auto text-xs">
               
-              {/* Santri Profile Card */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+              {/* 1. DATA & FOTO SANTRI (FOKUS & BERSIH) */}
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400 shadow-xs">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400 shadow-xs">
                     {smartSantri.foto ? (
                       <img src={smartSantri.foto} alt={smartSantri.nama} className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-7 h-7 text-blue-600" />
+                      <User className="w-8 h-8 text-blue-600" />
                     )}
                   </div>
-                  <div>
-                    <h4 className="text-sm sm:text-base font-black text-slate-900">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Identitas Santri</span>
+                    <h4 className="text-base sm:text-lg font-black text-slate-900 leading-tight truncate">
                       {smartSantri.nama}
                     </h4>
-                    <div className="text-[11px] text-slate-500 font-medium flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="font-mono font-bold text-slate-700">NIS: {smartSantri.nis || '-'}</span>
+                    <div className="text-xs text-slate-600 font-semibold flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="font-mono bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-200 font-bold">
+                        NIS: {smartSantri.nis || '-'}
+                      </span>
                       <span>•</span>
-                      <span>{smartSantri.kelas || 'Umum'}</span>
+                      <span>Kelas: {smartSantri.kelas || 'Umum'}</span>
                       <span>•</span>
-                      <span>{smartSantri.kamar || 'Asrama Pondok'}</span>
+                      <span>Kamar: {smartSantri.kamar || 'Asrama Pondok'}</span>
                     </div>
-                    {smartSantri.namaWali && (
-                      <div className="text-[10px] text-slate-400 mt-0.5">
-                        Wali: {smartSantri.namaWali} {smartSantri.noHpWali && `(${smartSantri.noHpWali})`}
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* Status Keberadaan Badge */}
                 <div className="sm:text-right shrink-0">
                   {smartActivePermit ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
                       <Clock className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
                       <span>Sedang Izin Keluar</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Berada di Pondok</span>
                     </span>
@@ -1091,39 +1340,47 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
               )}
 
               {/* =============================================================== */}
-              {/* KONDISI A: SANTRI SEDANG IZIN KELUAR -> MODE CHECK-IN KEMBALI  */}
+              {/* 2. DETAIL IZIN & ID LOG IZIN SANTRI                             */}
               {/* =============================================================== */}
               {smartActivePermit ? (
                 <div className="space-y-4">
-                  <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-amber-200/80">
-                      <span className="font-black text-amber-900 flex items-center gap-1.5 text-xs">
-                        <Clock className="w-4 h-4 text-amber-700" />
-                        <span>Detail Surat Izin Aktif</span>
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 font-extrabold text-[10px]">
-                        {smartActivePermit.type}
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-3xl p-4 sm:p-5 space-y-3.5">
+                    
+                    {/* Header Detail Izin & ID LOG IZIN EKSPLISIT */}
+                    <div className="flex items-center justify-between pb-3 border-b border-amber-200/80 flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-amber-950 flex items-center gap-1.5 text-xs">
+                          <Clock className="w-4 h-4 text-amber-700" />
+                          <span>Detail Surat Izin</span>
+                        </span>
+                        {/* ID LOG IZIN DITAMPILKAN MENCOLOK SESUAI PERMINTAAN */}
+                        <span className="px-2.5 py-1 rounded-xl bg-slate-900 text-amber-300 font-mono font-black text-xs border border-slate-700 shadow-xs">
+                          ID LOG IZIN: #{smartActivePermit.id}
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl bg-amber-200 text-amber-900 font-black text-[11px] border border-amber-300 uppercase">
+                        IZIN {smartActivePermit.type}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <div className="text-[10px] text-slate-500">Keperluan / Alasan:</div>
-                        <div className="font-bold text-slate-800">{smartActivePermit.reason}</div>
+                      <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">Keperluan / Alasan Izin:</div>
+                        <div className="font-black text-slate-900 mt-0.5 text-sm">{smartActivePermit.reason}</div>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-slate-500">Tujuan:</div>
-                        <div className="font-bold text-slate-800">{smartActivePermit.destination || 'Dalam Kota'}</div>
+                      <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">Tujuan / Lokasi:</div>
+                        <div className="font-bold text-slate-900 mt-0.5 text-sm">{smartActivePermit.destination || 'Dalam Kota'}</div>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-slate-500">Waktu Berangkat:</div>
-                        <div className="font-bold text-slate-800 font-mono">
+                      <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">Waktu Berangkat:</div>
+                        <div className="font-bold text-slate-800 font-mono mt-0.5">
                           {new Date(smartActivePermit.departureTime).toLocaleTimeString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-slate-500">Batas Waktu Kembali:</div>
-                        <div className="font-bold text-slate-800 font-mono">
+                      <div className="bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                        <div className="text-[10px] text-slate-500 font-bold uppercase">Batas Waktu Kembali (Tenggat):</div>
+                        <div className="font-black text-slate-900 font-mono mt-0.5">
                           {new Date(smartActivePermit.returnTime).toLocaleTimeString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -1140,15 +1397,15 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
                       const diffStr = diffHours > 0 ? `${diffHours} jam ${remMins} menit` : `${remMins} menit`;
 
                       return isLate ? (
-                        <div className="p-2.5 bg-rose-100 border border-rose-300 rounded-xl text-xs text-rose-900 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <div className="p-3 bg-rose-100 border border-rose-300 rounded-2xl text-xs text-rose-900 flex items-center gap-2.5">
+                          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                           <div>
                             <span className="font-black">TERLAMBAT {diffStr}!</span> Santri melewati batas waktu kembali yang diizinkan.
                           </div>
                         </div>
                       ) : (
-                        <div className="p-2.5 bg-emerald-100 border border-emerald-300 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-2xl text-xs text-emerald-900 flex items-center gap-2.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                           <div>
                             <span className="font-black">Tepat Waktu:</span> Santri kembali sebelum batas waktu berakhir (Sisa {diffStr}).
                           </div>
@@ -1184,7 +1441,7 @@ export default function SecurityKamtib({ onOpenNfcModal }) {
                         className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                       >
                         <UserCheck className="w-4 h-4" />
-                        <span>{smartSubmitting ? 'Memproses...' : 'Konfirmasi Santri Kembali ke Asrama (Check-In)'}</span>
+                        <span>{smartSubmitting ? 'Memproses...' : 'Konfirmasi Santri Kembali (Check-In Selesai)'}</span>
                       </button>
                     </div>
                   </div>

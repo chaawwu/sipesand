@@ -299,9 +299,14 @@ function MainAppContent() {
   };
 
   const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-    // Set default initial tab based on role
-    switch (user.role) {
+    let normalizedRole = user?.role || 'SUPER_ADMIN';
+    if (normalizedRole === 'KAMTIB') normalizedRole = 'KEAMANAN';
+    if (normalizedRole === 'UANG_SAKU') normalizedRole = 'PENGURUS_SAKU';
+    const normalizedUser = { ...user, role: normalizedRole };
+    setCurrentUser(normalizedUser);
+    
+    // Set default initial tab based on division role
+    switch (normalizedRole) {
       case 'KEPALA_PONDOK':
         setActiveTab('academics');
         break;
@@ -668,7 +673,7 @@ function MainAppContent() {
   const renderDashboardContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
+        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
       case 'santri':
         return <Santri key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
       case 'bills':
@@ -682,11 +687,11 @@ function MainAppContent() {
       case 'academics':
         return <AcademicMuhafadzoh key={refreshKey} />;
       case 'security':
-        return <SecurityKamtib key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
+        return <SecurityKamtib key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
       case 'settings':
         return <SettingsAndAccounts key={refreshKey} />;
       default:
-        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} />;
+        return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
     }
   };
 

@@ -24,7 +24,7 @@ import { subscribeCloudSantri, subscribeCloudLedger } from '../services/cloudDat
 import RfidRegistrationModal from '../components/RfidRegistrationModal';
 import AestheticToast from '../components/AestheticToast';
 
-export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
+export default function Dashboard({ setActiveTab, onOpenNfcModal, currentUser }) {
   const [stats, setStats] = useState(null);
   const [recentPocketTxs, setRecentPocketTxs] = useState([]);
   const [recentLedgerTxs, setRecentLedgerTxs] = useState([]);
@@ -72,12 +72,16 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
       setLoading(true);
       const res = await getDashboardStats();
       if (res.data.success) {
-        setStats(res.data.data.stats);
-        setRecentPocketTxs(res.data.data.recentPocketTxs || []);
-        setRecentLedgerTxs(res.data.data.recentLedgerTxs || []);
-        setCurrentActivePermits(res.data.data.currentActivePermits || []);
-        setPendingBillsList(res.data.data.pendingBillsList || []);
-        setRecentAcademics(res.data.data.recentAcademics || []);
+        // Backend format: { success, data: { stats: {...}, recentPocketTxs, ... } }
+        // Cloud format:   { success, data: { totalSantri, ..., recentPocketTxs, ... } }
+        const payload = res.data.data || {};
+        const statsData = payload.stats || payload; // normalize keduanya
+        setStats(statsData);
+        setRecentPocketTxs(payload.recentPocketTxs || []);
+        setRecentLedgerTxs(payload.recentLedgerTxs || []);
+        setCurrentActivePermits(payload.currentActivePermits || []);
+        setPendingBillsList(payload.pendingBillsList || []);
+        setRecentAcademics(payload.recentAcademics || []);
       }
     } catch (err) {
       console.error('Error loadDashboard:', err);
@@ -133,13 +137,17 @@ export default function Dashboard({ setActiveTab, onOpenNfcModal }) {
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-[11px] font-bold text-white border border-white/30">
             <ShieldCheck className="w-3.5 h-3.5 text-[#8CE829]" />
-            <span>SIPESAND SUPER ADMIN DASHBOARD</span>
+            <span>
+              {currentUser?.division 
+                ? `DASBOR DEVISI: ${currentUser.division.replace(/_/g, ' ')} (${currentUser.role || 'PETUGAS'})`
+                : 'SIPESAND TERPADU PESANTREN'}
+            </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)
+            {currentUser?.name ? `Ahlan wa Sahlan, ${currentUser.name}` : 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)'}
           </h2>
           <p className="text-xs text-blue-100/90 max-w-xl leading-relaxed">
-            Sistem Informasi Manajemen Terpadu: Pantau Kas Global, Tabungan Uang Saku, Tunggakan Santri, Perizinan, dan Muhafadzoh secara real-time.
+            Pantau ringkasan kas, mutasi uang saku santri, perizinan kamtib, dan data santri terintegrasi secara real-time.
           </p>
         </div>
 

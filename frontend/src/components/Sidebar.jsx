@@ -30,7 +30,8 @@ export default function Sidebar({
   onClose
 }) {
   const { settings, isNfcEnabled } = useSettings();
-  const userRole = currentUser?.role || 'SUPER_ADMIN';
+  const rawRole = currentUser?.role || 'SUPER_ADMIN';
+  const userRole = (rawRole === 'KAMTIB' ? 'KEAMANAN' : rawRole === 'UANG_SAKU' ? 'PENGURUS_SAKU' : rawRole);
   const logoPondok = settings.LOGO_PONDOK_URL;
   const namaLembaga = settings.NAMA_LEMBAGA || 'SiPesand';
 
@@ -39,7 +40,7 @@ export default function Sidebar({
     switch (userRole) {
       case 'KEPALA_PONDOK':
         return [
-          { id: 'academics', label: 'Dashboard Kepala Pondok', icon: Award },
+          { id: 'academics', label: 'Dasbor Kepala Pondok', icon: Award },
           { id: 'santri', label: 'Data Santri & KTSD', icon: Users },
           { id: 'security', label: 'Monitoring Perizinan & Kamtib', icon: ShieldCheck },
         ];
@@ -52,12 +53,13 @@ export default function Sidebar({
         ];
       case 'PENGURUS_SAKU':
         return [
-          { id: 'pocket-cash', label: 'Uang Saku & Follow-Up WA', icon: CircleDollarSign },
+          { id: 'pocket-cash', label: 'Dasbor Uang Saku & POS', icon: CircleDollarSign },
           { id: 'santri', label: 'Data Santri & NFC', icon: Users },
         ];
       case 'KEAMANAN':
+      case 'KAMTIB':
         return [
-          { id: 'security', label: 'Dashboard Keamanan & Izin', icon: ShieldCheck },
+          { id: 'security', label: 'Dasbor Keamanan & Kamtib', icon: ShieldCheck },
           { id: 'santri', label: 'Data Santri & NFC', icon: Users },
         ];
       case 'SUPER_ADMIN':

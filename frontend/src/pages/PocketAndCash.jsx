@@ -26,7 +26,8 @@ import {
   Zap,
   ArrowRight,
   ExternalLink,
-  Banknote
+  Banknote,
+  X
 } from 'lucide-react';
 import { 
   getSantriList, 
@@ -477,6 +478,43 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
     window.open(waUrl, '_blank');
   };
 
+  // Helper Cetak Kwitansi Transaksi Saku
+  const handlePrintReceipt = (tx) => {
+    const s = tx.santri || allSantriList.find(x => x.id === tx.santriId);
+    setActiveReceiptData({
+      receiptNo: `KWT-SAKU-${tx.id}`,
+      date: tx.createdAt || tx.date || new Date().toISOString(),
+      santriName: s?.nama || tx.santri?.nama || 'Santri',
+      nis: s?.nis || tx.santri?.nis || '-',
+      amount: tx.amount,
+      type: tx.type === 'TOPUP' ? 'SETOR' : 'TARIK',
+      description: tx.description,
+      balanceAfter: tx.currentBalance ?? tx.balanceAfter ?? s?.saldo_saku,
+      receiver: tx.merchant || currentUser?.name || 'Pengurus Uang Saku'
+    });
+    setIsReceiptOpen(true);
+  };
+
+  // Helper Kirim Bukti Mutasi WA ke Wali
+  const handleSendTxWa = (tx) => {
+    const s = tx.santri || allSantriList.find(x => x.id === tx.santriId);
+    if (!s || !s.noHpWali) {
+      alert(`Nomor WhatsApp wali untuk ${s?.nama || 'santri ini'} belum terdaftar.`);
+      return;
+    }
+    let phone = s.noHpWali.replace(/\D/g, '');
+    if (phone.startsWith('0')) phone = '62' + phone.slice(1);
+
+    const nowStr = new Date(tx.createdAt || tx.date || new Date()).toLocaleDateString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const typeLabel = tx.type === 'TOPUP' ? 'SETOR / TOP-UP SALDO' : tx.type === 'WITHDRAW' ? 'PENARIKAN TUNAI (CASH)' : 'BELANJA KEBUTUHAN';
+
+    const msg = `Assalamu'alaikum Wr. Wb. Bapak/Ibu Wali dari Ananda *${s.nama}* (NIS: ${s.nis || '-'}).\n\n*BUKTI TRANSAKSI UANG SAKU (${typeLabel})*\n- No. Mutasi: #${tx.id}\n- Waktu: ${nowStr}\n- Nominal: *Rp ${(tx.amount || 0).toLocaleString('id-ID')}*\n- Keperluan: ${tx.description || '-'}\n- Petugas: ${tx.merchant || currentUser?.name || 'Pengurus Saku'}\n- Sisa Saldo: *Rp ${(tx.currentBalance ?? tx.balanceAfter ?? s.saldo_saku ?? 0).toLocaleString('id-ID')}*\n\nTransaksi tercatat secara real-time di sistem SiPesand.\n\nJazakumullah Khairan Katsiran.`;
+
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   // Submit Transaksi (Tanpa Pilihan Merchant/Kasir)
   const handleSubmitTx = async (e) => {
     e.preventDefault();
@@ -747,33 +785,36 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
           )}
 
           {/* Selector Tipe Transaksi (Setor / Tarik / Belanja) */}
-          <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-slate-100 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setTxType('WITHDRAW')}
-              className={`py-2 rounded-lg font-bold transition-all ${
+              className={`py-2 px-1 sm:px-2 rounded-lg font-bold text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-1 text-[11px] sm:text-xs cursor-pointer ${
                 txType === 'WITHDRAW' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tarik Tunai Santri
+              <ArrowDownRight className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Tarik Tunai</span>
             </button>
             <button
               type="button"
               onClick={() => setTxType('TOPUP')}
-              className={`py-2 rounded-lg font-bold transition-all ${
+              className={`py-2 px-1 sm:px-2 rounded-lg font-bold text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-1 text-[11px] sm:text-xs cursor-pointer ${
                 txType === 'TOPUP' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Setor / Top-Up Uang Saku
+              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Setor Saldo</span>
             </button>
             <button
               type="button"
               onClick={() => setTxType('PURCHASE')}
-              className={`py-2 rounded-lg font-bold transition-all ${
+              className={`py-2 px-1 sm:px-2 rounded-lg font-bold text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-1 text-[11px] sm:text-xs cursor-pointer ${
                 txType === 'PURCHASE' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Belanja Kebutuhan Santri
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Belanja</span>
             </button>
           </div>
 
@@ -849,15 +890,19 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
             </div>
 
             {/* Quick Nominal Chips */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {[5000, 10000, 20000, 50000, 100000, 200000].map((val) => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => setAmount(val.toString())}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg border border-slate-200 font-medium"
+                  className={`py-2 px-1 text-center rounded-lg border font-bold text-[11px] sm:text-xs transition-all cursor-pointer ${
+                    amount === val.toString()
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 border-slate-200'
+                  }`}
                 >
-                  +{val.toLocaleString('id-ID')}
+                  +{val >= 1000 ? `${val/1000}rb` : val}
                 </button>
               ))}
             </div>
@@ -1024,6 +1069,162 @@ export default function PocketAndCash({ onOpenNfcModal, currentUser }) {
         </div>
 
       </div>
+
+      {/* ======================================================================= */}
+      {/* RIWAYAT TRANSAKSI UANG SAKU (MOBILE CARDS + DESKTOP TABLE)             */}
+      {/* ======================================================================= */}
+      {recentDeductions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden text-xs">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <History className="w-4 h-4 text-blue-600" />
+                Riwayat Transaksi Uang Saku
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">20 transaksi terakhir seluruh santri</p>
+            </div>
+            <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">
+              {recentDeductions.length} Mutasi
+            </span>
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">Santri</th>
+                  <th className="py-3 px-4">Jenis</th>
+                  <th className="py-3 px-4">Nominal</th>
+                  <th className="py-3 px-4">Keterangan</th>
+                  <th className="py-3 px-4">Sisa Saldo</th>
+                  <th className="py-3 px-4">Waktu</th>
+                  <th className="py-3 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {recentDeductions.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50/70">
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-slate-900">{tx.santri?.nama || '-'}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">NIS: {tx.santri?.nis || '-'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        tx.type === 'TOPUP'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : tx.type === 'WITHDRAW'
+                          ? 'bg-slate-200 text-slate-800'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {tx.type === 'TOPUP' ? 'SETOR' : tx.type === 'WITHDRAW' ? 'TARIK' : 'BELANJA'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`font-mono font-black ${tx.type === 'TOPUP' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                        {tx.type === 'TOPUP' ? '+' : '-'}Rp {(tx.amount || 0).toLocaleString('id-ID')}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 max-w-[200px] truncate">{tx.description || '-'}</td>
+                    <td className="py-3 px-4">
+                      <span className={`font-mono font-bold ${(tx.currentBalance ?? 0) < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                        Rp {(tx.currentBalance ?? 0).toLocaleString('id-ID')}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">
+                      {new Date(tx.createdAt || tx.date || new Date()).toLocaleDateString('id-ID', {
+                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleSendTxWa(tx)}
+                          className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          title="Kirim bukti ke WA Wali"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handlePrintReceipt(tx)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          title="Cetak Kwitansi"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="block md:hidden divide-y divide-slate-100">
+            {recentDeductions.map((tx) => (
+              <div key={tx.id} className="p-4 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{tx.santri?.nama || '-'}</div>
+                    <div className="text-[11px] text-slate-500 font-mono">NIS: {tx.santri?.nis || '-'}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      tx.type === 'TOPUP'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : tx.type === 'WITHDRAW'
+                        ? 'bg-slate-200 text-slate-800'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {tx.type === 'TOPUP' ? 'SETOR' : tx.type === 'WITHDRAW' ? 'TARIK' : 'BELANJA'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className={`font-mono font-black text-sm ${tx.type === 'TOPUP' ? 'text-emerald-700' : 'text-rose-600'}`}>
+                      {tx.type === 'TOPUP' ? '+' : '-'}Rp {(tx.amount || 0).toLocaleString('id-ID')}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">{tx.description || '-'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400">Sisa Saldo</div>
+                    <div className={`font-mono font-bold text-sm ${(tx.currentBalance ?? 0) < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                      Rp {(tx.currentBalance ?? 0).toLocaleString('id-ID')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(tx.createdAt || tx.date || new Date()).toLocaleDateString('id-ID', {
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleSendTxWa(tx)}
+                      className="py-1 px-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>WA</span>
+                    </button>
+                    <button
+                      onClick={() => handlePrintReceipt(tx)}
+                      className="py-1 px-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      <span>Kwitansi</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ======================================================================= */}
       {/* POP-UP MODAL SMART TARIK TUNAI CASH (OTOMATIS TAP ID CARD)             */}

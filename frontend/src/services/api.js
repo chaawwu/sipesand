@@ -71,17 +71,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-let isBackendLive = true; // Default true (Cloudflare Pages Functions serverless live)
+// Default false → Firebase Cloud (Firestore) jadi PRIMARY untuk multi-device sync.
+// Backend SQLite hanya digunakan jika health-check berhasil (opsional, untuk deployment server).
+let isBackendLive = false;
 let isCheckingHealth = false;
 let lastHealthCheck = 0;
-const HEALTH_CHECK_INTERVAL = 30000; // 30 detik
+const HEALTH_CHECK_INTERVAL = 60000; // 60 detik
 
 async function checkBackendHealth() {
   if (isCheckingHealth || (Date.now() - lastHealthCheck < HEALTH_CHECK_INTERVAL)) return;
   isCheckingHealth = true;
   try {
-    const res = await axios.get((import.meta.env.VITE_API_URL || '/api') + '/dashboard/stats', { timeout: 1500 });
-    if (res && res.data && typeof res.data === 'object' && res.data.success !== undefined) {
+    const res = await axios.get((import.meta.env.VITE_API_URL || '/api') + '/health', { timeout: 2000 });
+    if (res && res.data && res.data.status === 'ONLINE') {
       isBackendLive = true;
     } else {
       isBackendLive = false;
@@ -95,7 +97,8 @@ async function checkBackendHealth() {
 }
 
 if (typeof window !== 'undefined') {
-  setTimeout(checkBackendHealth, 200);
+  // Cek setelah 2 detik agar tidak memblokir loading awal
+  setTimeout(checkBackendHealth, 2000);
 }
 
 /**
@@ -444,18 +447,44 @@ export const loginUser = (data) =>
   runHybrid(
     () => api.post('/settings/login', data),
     () => {
-      // Offline fallback login: Berikan akses super admin
+      const u = (data.username || 'admin').trim().toLowerCase();
+      let role = 'SUPER_ADMIN';
+      let name = 'Super Administrator Pesantren';
+      let division = 'PUSAT';
+
+      if (u === 'kamtib' || u === 'keamanan') {
+        role = 'KEAMANAN';
+        name = 'Divisi Keamanan (Kamtib)';
+        division = 'KAMTIB';
+      } else if (u === 'uangsaku' || u === 'saku') {
+        role = 'PENGURUS_SAKU';
+        name = 'Divisi Pengurus Uang Saku & POS';
+        division = 'ASRAMA_POS';
+      } else if (u === 'bendahara' || u === 'keuangan') {
+        role = 'BENDAHARA';
+        name = 'Divisi Bendahara Keuangan';
+        division = 'KEUANGAN';
+      } else if (u === 'pengasuh' || u === 'kepalapondok') {
+        role = 'KEPALA_PONDOK';
+        name = 'Pengasuh / Kepala Pondok';
+        division = 'PENGASUHAN';
+      }
+
+      const userData = {
+        id: `tenant-${u}`,
+        username: u,
+        name: name,
+        role: role,
+        division: division
+      };
+
       return {
         success: true,
-        message: 'Login berhasil (Offline Local Session)',
+        message: 'Login berhasil',
+        user: userData,
         data: {
           token: 'local-session-token-' + Date.now(),
-          user: {
-            username: data.username || 'admin',
-            name: 'Super Admin Pesantren',
-            role: 'SUPER_ADMIN',
-            division: 'PENGASUHAN_PUSAT'
-          }
+          user: userData
         }
       };
     }
