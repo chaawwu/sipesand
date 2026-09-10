@@ -73,7 +73,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: sipesand
           directory: frontend/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ℹ️ Status Integrasi Cloudflare Pages
         env:
