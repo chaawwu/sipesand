@@ -1,6 +1,109 @@
 const prisma = require('../config/prisma');
 const { provisionNewTenant } = require('../services/tenantProvisioner');
 const { sendTenantWelcomeEmail } = require('../services/mailerService');
+const crypto = require('crypto');
+
+// ============================================================================
+// DEVELOPER AUTH HELPERS
+// ============================================================================
+const DEFAULT_DEV_USERNAME = 'admin_dev';
+const DEFAULT_DEV_PASSWORD = 'KingDigital2026#';
+const DEV_SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 jam
+
+function hashPassword(plain) {
+  return crypto.createHash('sha256').update(plain + 'sipesand_salt_2026').digest('hex');
+}
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+async function getDevCredentials() {
+  const rows = await prisma.systemSetting.findMany({
+    where: { key: { in: ['DEV_USERNAME', 'DEV_PASSWORD_HASH'] } }
+  });
+  const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  return {
+    username: map['DEV_USERNAME'] || DEFAULT_DEV_USERNAME,
+    passwordHash: map['DEV_PASSWORD_HASH'] || hashPassword(DEFAULT_DEV_PASSWORD),
+  };
+}
+
+// Audit log: simpan max 200 entri terakhir di SystemSetting (key: AUDIT_LOG_JSON)
+async function appendAuditLog(entry) {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: 'AUDIT_LOG_JSON' } });
+    let logs = [];
+    if (row) {
+      try { logs = JSON.parse(row.value); } catch {}
+    }
+    logs.unshift({ ...entry, id: Date.now(), timestamp: new Date().toISOString() });
+    if (logs.length > 200) logs = logs.slice(0, 200);
+    await prisma.systemSetting.upsert({
+      where: { key: 'AUDIT_LOG_JSON' },
+      update: { value: JSON.stringify(logs) },
+      create: { key: 'AUDIT_LOG_JSON', value: JSON.stringify(logs) },
+    });
+  } catch (e) {
+    console.warn('[AUDIT LOG] Gagal menyimpan audit log:', e.message);
+  }
+}
+
+// Active dev sessions: simpan di SystemSetting key AUDIT_DEV_SESSIONS_JSON
+async function saveDevSession(token, username) {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: 'DEV_SESSIONS_JSON' } });
+    let sessions = {};
+    if (row) {
+      try { sessions = JSON.parse(row.value); } catch {}
+    }
+    // Hapus sesi yang sudah expired
+    const now = Date.now();
+    for (const t of Object.keys(sessions)) {
+      if (sessions[t].expiresAt < now) delete sessions[t];
+    }
+    sessions[token] = { username, createdAt: now, expiresAt: now + DEV_SESSION_TTL_MS };
+    await prisma.systemSetting.upsert({
+      where: { key: 'DEV_SESSIONS_JSON' },
+      update: { value: JSON.stringify(sessions) },
+      create: { key: 'DEV_SESSIONS_JSON', value: JSON.stringify(sessions) },
+    });
+  } catch (e) {
+    console.warn('[DEV SESSION] Gagal menyimpan sesi:', e.message);
+  }
+}
+
+async function verifyDevSession(token) {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: 'DEV_SESSIONS_JSON' } });
+    if (!row) return null;
+    let sessions = {};
+    try { sessions = JSON.parse(row.value); } catch { return null; }
+    const session = sessions[token];
+    if (!session) return null;
+    if (session.expiresAt < Date.now()) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+async function invalidateDevSession(token) {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: 'DEV_SESSIONS_JSON' } });
+    if (!row) return;
+    let sessions = {};
+    try { sessions = JSON.parse(row.value); } catch { return; }
+    delete sessions[token];
+    await prisma.systemSetting.upsert({
+      where: { key: 'DEV_SESSIONS_JSON' },
+      update: { value: JSON.stringify(sessions) },
+      create: { key: 'DEV_SESSIONS_JSON', value: JSON.stringify(sessions) },
+    });
+  } catch (e) {
+    console.warn('[DEV SESSION] Gagal menghapus sesi:', e.message);
+  }
+}
 
 const DEFAULT_MITRA_CONFIG = {
   bankName: 'Bank Syariah Indonesia (BSI)',
@@ -444,15 +547,68 @@ exports.getMitraOrders = async (req, res) => {
       prisma.mitraPending.findMany({ orderBy: { createdAt: 'desc' } }),
       prisma.mitraAktif.findMany({ orderBy: { provisionedAt: 'desc' } }),
     ]);
-    const pendingSubdomains = new Set(pending.map((order) => order.subdomain));
-    const activeOrders = active.filter((tenant) => !pendingSubdomains.has(tenant.subdomain)).map((tenant) => ({
-      id: `active-${tenant.id}`, orderId: `ACTIVE-${tenant.subdomain.toUpperCase()}`,
-      namaPondok: tenant.namaPondok, subdomain: tenant.subdomain, namaPengelola: tenant.namaPengelola,
-      email: tenant.email, noWhatsapp: tenant.noWhatsapp, packageType: tenant.packageType,
-      amount: tenant.amount, status: tenant.status, createdAt: tenant.provisionedAt, provisionedAt: tenant.provisionedAt,
-    }));
-    res.json({ success: true, data: [...pending, ...activeOrders] });
-  } catch (err) { res.status(500).json({ success: false, message: 'Gagal mengambil pendaftaran mitra.', error: err.message }); }
+
+    // Sertakan semua field penting agar dashboard mitra bisa menampilkan detail lengkap
+    const pendingOrders = pending.map((order) => {
+      // Normalisasi status: PENDING → PENDING (konsisten), WAITING_VERIFICATION tetap
+      const normalizedStatus = order.status === 'PAID' ? 'ACTIVE' : order.status;
+      return {
+        id: order.id,
+        orderId: order.orderId,
+        namaPondok: order.namaPondok,
+        subdomain: order.subdomain,
+        namaPengelola: order.namaPengelola,
+        email: order.email,
+        noWhatsapp: order.noWhatsapp,
+        packageType: order.packageType,
+        amount: order.amount,
+        vaNumber: order.vaNumber,
+        vaBank: order.vaBank,
+        qrisUrl: order.qrisUrl,
+        qrisString: order.qrisString,
+        proofUrl: order.proofUrl,
+        proofNote: order.proofNote,
+        senderName: order.senderName,
+        status: normalizedStatus,
+        expiredAt: order.expiredAt,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        isProvisioned: false,
+        source: 'PENDING',
+      };
+    });
+
+    // Mitra aktif yang SUDAH di-provisioning (tidak ada di tabel pending atau sudah PAID)
+    const pendingSubdomains = new Set(pending.map((o) => o.subdomain));
+    const activeOrders = active
+      .filter((tenant) => !pendingSubdomains.has(tenant.subdomain))
+      .map((tenant) => ({
+        id: `active-${tenant.id}`,
+        orderId: `ACTIVE-${tenant.subdomain.toUpperCase()}`,
+        namaPondok: tenant.namaPondok,
+        subdomain: tenant.subdomain,
+        namaPengelola: tenant.namaPengelola,
+        email: tenant.email,
+        noWhatsapp: tenant.noWhatsapp,
+        packageType: tenant.packageType,
+        amount: tenant.amount,
+        vaNumber: null,
+        vaBank: null,
+        qrisUrl: null,
+        proofUrl: null,
+        status: tenant.status === 'ACTIVE' ? 'ACTIVE' : tenant.status,
+        createdAt: tenant.provisionedAt,
+        provisionedAt: tenant.provisionedAt,
+        licenseKey: tenant.licenseKey,
+        adminUsername: tenant.adminUsername,
+        isProvisioned: true,
+        source: 'ACTIVE',
+      }));
+
+    res.json({ success: true, data: [...pendingOrders, ...activeOrders] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil pendaftaran mitra.', error: err.message });
+  }
 };
 
 exports.uploadMitraPaymentProof = async (req, res) => {
@@ -477,3 +633,170 @@ exports.deleteMitraOrder = async (req, res) => {
   try { await prisma.mitraPending.delete({ where: { orderId: req.params.orderId } }); res.json({ success: true, message: 'Pesanan mitra berhasil dihapus.' }); }
   catch (err) { res.status(404).json({ success: false, message: 'Pesanan mitra tidak ditemukan.', error: err.message }); }
 };
+
+// ============================================================================
+// DEVELOPER AUTH ENDPOINTS
+// POST /api/mitra/auth/login
+// ============================================================================
+exports.loginDeveloper = async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username dan password wajib diisi.' });
+    }
+
+    const creds = await getDevCredentials();
+    const inputHash = hashPassword(password);
+
+    if (username !== creds.username || inputHash !== creds.passwordHash) {
+      // Catat percobaan login gagal
+      const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+      await appendAuditLog({
+        action: 'LOGIN_FAILED',
+        actor: username,
+        target: 'mitra.sipesand.web.id',
+        ip,
+        detail: 'Kredensial salah'
+      });
+      return res.status(401).json({ success: false, message: 'Username atau password developer salah.' });
+    }
+
+    const token = generateToken();
+    await saveDevSession(token, username);
+
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    await appendAuditLog({
+      action: 'LOGIN_SUCCESS',
+      actor: username,
+      target: 'mitra.sipesand.web.id',
+      ip,
+      detail: 'Login developer berhasil'
+    });
+
+    res.json({
+      success: true,
+      message: 'Login developer berhasil.',
+      token,
+      username,
+      expiresIn: '8 jam'
+    });
+  } catch (err) {
+    console.error('[DEV AUTH] loginDeveloper error:', err);
+    res.status(500).json({ success: false, message: 'Terjadi kesalahan saat autentikasi developer.', error: err.message });
+  }
+};
+
+// POST /api/mitra/auth/verify
+exports.verifyDeveloperToken = async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (!token) {
+      return res.status(400).json({ success: false, valid: false, message: 'Token wajib disertakan.' });
+    }
+    const session = await verifyDevSession(token);
+    if (!session) {
+      return res.json({ success: true, valid: false, message: 'Sesi tidak valid atau sudah kedaluwarsa.' });
+    }
+    res.json({
+      success: true,
+      valid: true,
+      username: session.username,
+      expiresAt: new Date(session.expiresAt).toISOString(),
+      message: 'Token valid.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, valid: false, message: 'Gagal memverifikasi token.', error: err.message });
+  }
+};
+
+// POST /api/mitra/auth/logout
+exports.logoutDeveloper = async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (token) {
+      const session = await verifyDevSession(token);
+      if (session) {
+        await invalidateDevSession(token);
+        const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        await appendAuditLog({
+          action: 'LOGOUT',
+          actor: session.username,
+          target: 'mitra.sipesand.web.id',
+          ip,
+          detail: 'Logout developer'
+        });
+      }
+    }
+    res.json({ success: true, message: 'Sesi developer berhasil dihentikan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal melakukan logout.', error: err.message });
+  }
+};
+
+// GET /api/mitra/audit-logs
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: 'AUDIT_LOG_JSON' } });
+    let logs = [];
+    if (row) {
+      try { logs = JSON.parse(row.value); } catch {}
+    }
+    // Juga tambahkan log dari aktivitas verifikasi order
+    const limit = parseInt(req.query.limit) || 100;
+    res.json({ success: true, data: logs.slice(0, limit), total: logs.length });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil audit log.', error: err.message });
+  }
+};
+
+// PUT /api/mitra/auth/credentials — ubah username/password developer dari mitra dashboard
+exports.updateDevCredentials = async (req, res) => {
+  try {
+    const { currentPassword, newUsername, newPassword } = req.body || {};
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Password lama wajib diisi untuk konfirmasi.' });
+    }
+
+    const creds = await getDevCredentials();
+    const currentHash = hashPassword(currentPassword);
+
+    if (currentHash !== creds.passwordHash) {
+      return res.status(401).json({ success: false, message: 'Password lama salah.' });
+    }
+
+    const updates = [];
+    if (newUsername && newUsername.length >= 4) {
+      updates.push(prisma.systemSetting.upsert({
+        where: { key: 'DEV_USERNAME' },
+        update: { value: newUsername.trim() },
+        create: { key: 'DEV_USERNAME', value: newUsername.trim() },
+      }));
+    }
+    if (newPassword && newPassword.length >= 8) {
+      updates.push(prisma.systemSetting.upsert({
+        where: { key: 'DEV_PASSWORD_HASH' },
+        update: { value: hashPassword(newPassword) },
+        create: { key: 'DEV_PASSWORD_HASH', value: hashPassword(newPassword) },
+      }));
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada perubahan yang valid. Username minimal 4 karakter, password minimal 8 karakter.' });
+    }
+
+    await Promise.all(updates);
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+    await appendAuditLog({
+      action: 'CREDENTIALS_UPDATED',
+      actor: creds.username,
+      target: 'mitra.sipesand.web.id',
+      ip,
+      detail: `Username/password developer diperbarui`
+    });
+
+    res.json({ success: true, message: 'Kredensial developer berhasil diperbarui.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memperbarui kredensial developer.', error: err.message });
+  }
+};
+

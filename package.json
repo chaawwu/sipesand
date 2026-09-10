@@ -16,5 +16,8 @@
   },
   "keywords": ["pesantren", "fullstack", "react", "express", "prisma", "nfc", "sqlite"],
   "author": "SiPesand Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }

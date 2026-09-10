@@ -611,18 +611,52 @@ export const deleteMitraOrder = async (orderId) => {
 };
 
 export const loginDeveloper = async (credentials) => {
-  const res = await api.post('/mitra/auth/login', credentials);
-  return { data: res.data, ...res.data };
+  try {
+    const res = await axios.post(
+      (import.meta.env.VITE_API_URL || '/api') + '/mitra/auth/login',
+      credentials,
+      { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+    );
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    const errData = err.response?.data || { success: false, message: 'Tidak dapat menghubungi server autentikasi developer. Pastikan backend berjalan.' };
+    return { data: errData, ...errData };
+  }
 };
 
 export const verifyDeveloperSession = async (token) => {
-  const res = await api.post('/mitra/auth/verify', { token });
-  return { data: res.data, ...res.data };
+  try {
+    const res = await axios.post(
+      (import.meta.env.VITE_API_URL || '/api') + '/mitra/auth/verify',
+      { token },
+      { timeout: 8000, headers: { 'Content-Type': 'application/json' } }
+    );
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, valid: false, message: 'Gagal memverifikasi sesi developer.' } };
+  }
 };
 
 export const logoutDeveloper = async (token) => {
-  const res = await api.post('/mitra/auth/logout', { token });
-  return { data: res.data, ...res.data };
+  try {
+    const res = await axios.post(
+      (import.meta.env.VITE_API_URL || '/api') + '/mitra/auth/logout',
+      { token },
+      { timeout: 8000, headers: { 'Content-Type': 'application/json' } }
+    );
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: true, message: 'Sesi dihentikan (offline).' } };
+  }
+};
+
+export const updateDevCredentials = async (data) => {
+  try {
+    const res = await api.put('/mitra/auth/credentials', data, { timeout: 10000 });
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, message: err.response?.data?.message || 'Gagal memperbarui kredensial developer.' } };
+  }
 };
 
 export const getR2Files = async (prefix = '', limit = 100) => {
@@ -661,18 +695,12 @@ export const updateKingDigitalPgConfig = async (data) => {
   }
 };
 
-export const getAllMitraAktif = () => 
+export const getAllMitraAktif = () =>
   runHybrid(
     () => api.get('/mitra/all'),
-    () => ({
-      success: true,
-      data: [
-        { id: 1, namaPondok: 'Pondok Pesantren Darul Rahman Sumbersari', subdomain: 'darulrahman', packageType: 'LIFETIME', status: 'ACTIVE' },
-        { id: 2, namaPondok: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)', subdomain: 'pesantren-terpadu', packageType: 'LIFETIME', status: 'ACTIVE' },
-        { id: 3, namaPondok: 'PP Al-Falah Modern', subdomain: 'al-falah', packageType: 'TAHUNAN', status: 'ACTIVE' }
-      ]
-    })
+    () => ({ success: true, data: [] })   // fallback kosong — data real dari backend
   );
+
 
 // =============================================================================
 // 13. CLOUDFLARE R2 OBJECT STORAGE & 10 GB QUOTA GUARDS

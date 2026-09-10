@@ -87,3 +87,17 @@ sipesand-app/
 ├── package.json                        # Root monorepo configuration
 └── README.md
 ```
+
+## Deploy Otomatis Production
+
+Workflow [`deploy-production.yml`](.github/workflows/deploy-production.yml) berjalan otomatis setiap push ke branch `main`. Workflow ini memperbarui kode di VPS, memasang dependency, menjalankan Prisma, build frontend, dan reload PM2.
+
+Tambahkan secret berikut di GitHub Repository Settings > Secrets and variables > Actions:
+
+- `DEPLOY_HOST`: IP atau hostname VPS
+- `DEPLOY_USER`: user SSH VPS
+- `DEPLOY_SSH_KEY`: private SSH key untuk user tersebut
+- `DEPLOY_PATH`: folder aplikasi, misalnya `/var/www/sipesand-app`
+- `DEPLOY_PORT`: opsional, default `22`
+
+Syarat sekali saja di VPS: repository sudah di-clone di `DEPLOY_PATH`, user SSH memiliki akses folder tersebut, Node.js/npm, Prisma, dan PM2 sudah tersedia. Setelah itu deploy cukup dengan `git push origin main`.

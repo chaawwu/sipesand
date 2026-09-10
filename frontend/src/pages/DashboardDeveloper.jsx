@@ -583,8 +583,12 @@ export default function DashboardDeveloper({
     }
   };
 
-  // Kalkulasi Financial Metrics
-  const paidOrdersList = mitraOrders.filter(o => o.status === 'PAID' || o.status === 'ACTIVE');
+  // Kalkulasi Financial Metrics (gunakan semua status yang menunjukkan sudah bayar)
+  const paidOrdersList = mitraOrders.filter(o => {
+    const s = (o.status || '').toUpperCase();
+    return s === 'PAID' || s === 'ACTIVE';
+  });
+
   const totalPaidRevenue = paidOrdersList.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
   const financialStats = {
     mrr: Math.round(totalPaidRevenue / 12),
@@ -595,19 +599,35 @@ export default function DashboardDeveloper({
     totalGrossRevenue: totalPaidRevenue,
   };
 
-  // Filter Pesanan Mitra
+  // Helper: Normalisasi status order untuk display
+  const normalizeOrderStatus = (status) => {
+    if (!status) return 'PENDING';
+    const s = status.toUpperCase();
+    if (s === 'PAID' || s === 'ACTIVE') return 'ACTIVE';
+    if (s === 'WAITING_VERIFICATION' || s === 'WAITING') return 'WAITING_VERIFICATION';
+    if (s === 'EXPIRED') return 'EXPIRED';
+    if (s === 'CANCELLED') return 'CANCELLED';
+    return 'PENDING'; // default: PENDING, PENDING_PAYMENT
+  };
+
+  // State: Modal Detail Order (riwayat + detail lengkap)
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+
+  // Filter Pesanan Mitra — match semua variasi status dari backend
   const filteredMitraOrders = mitraOrders.filter(ord => {
+    const normalStatus = normalizeOrderStatus(ord.status);
     let matchesStatus = true;
-    if (ordersFilter === 'PENDING') matchesStatus = ord.status === 'PENDING_PAYMENT' || ord.status === 'PENDING';
-    else if (ordersFilter === 'WAITING') matchesStatus = ord.status === 'WAITING_VERIFICATION';
-    else if (ordersFilter === 'PAID') matchesStatus = ord.status === 'PAID' || ord.status === 'ACTIVE';
+    if (ordersFilter === 'PENDING') matchesStatus = normalStatus === 'PENDING';
+    else if (ordersFilter === 'WAITING') matchesStatus = normalStatus === 'WAITING_VERIFICATION';
+    else if (ordersFilter === 'PAID') matchesStatus = normalStatus === 'ACTIVE';
 
     const searchLower = ordersSearch.toLowerCase();
     const matchesSearch = !ordersSearch || 
       (ord.namaPondok && ord.namaPondok.toLowerCase().includes(searchLower)) ||
       (ord.subdomain && ord.subdomain.toLowerCase().includes(searchLower)) ||
       (ord.orderId && ord.orderId.toLowerCase().includes(searchLower)) ||
-      (ord.email && ord.email.toLowerCase().includes(searchLower));
+      (ord.email && ord.email.toLowerCase().includes(searchLower)) ||
+      (ord.noWhatsapp && ord.noWhatsapp.includes(ordersSearch));
 
     return matchesStatus && matchesSearch;
   });
@@ -2544,10 +2564,12 @@ export default function DashboardDeveloper({
                             </p>
                           </td>
                         </tr>
-                      ) : (
-                        filteredMitraOrders.map(ord => {
-                          const isPaid = ord.status === 'PAID' || ord.status === 'ACTIVE';
-                          const isWaiting = ord.status === 'WAITING_VERIFICATION';
+                      ) : filteredMitraOrders.map(ord => {
+                          const normalStatus = normalizeOrderStatus(ord.status);
+
+                          const isPaid = normalStatus === 'ACTIVE';
+                          const isWaiting = normalStatus === 'WAITING_VERIFICATION';
+                          const isExpired = normalStatus === 'EXPIRED';
                           const targetDomain = `${ord.subdomain}.sipesand.web.id`;
                           const cleanWa = (ord.noWhatsapp || '').replace(/[^0-9]/g, '');
 
@@ -2560,6 +2582,11 @@ export default function DashboardDeveloper({
                                 <span className="text-[10px] text-slate-400 block mt-0.5">
                                   {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                                 </span>
+                                {ord.expiredAt && !isPaid && (
+                                  <span className={`text-[10px] block mt-0.5 ${isExpired ? 'text-rose-500 font-semibold' : 'text-slate-400'}`}>
+                                    {isExpired ? '⚠ Kadaluarsa' : `Expired: ${new Date(ord.expiredAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                                  </span>
+                                )}
                               </td>
 
                               {/* Pondok & Domain */}
@@ -2603,8 +2630,8 @@ export default function DashboardDeveloper({
                                 <div className="font-mono font-black text-slate-900 text-xs mt-0.5">
                                   Rp {(Number(ord.amount) || 0).toLocaleString('id-ID')}
                                 </div>
-                                {ord.uniqueCode && (
-                                  <span className="text-[10px] text-slate-400 font-mono block">Kode Unik: {ord.uniqueCode}</span>
+                                {ord.vaNumber && (
+                                  <span className="text-[10px] text-slate-400 font-mono block">VA: {ord.vaNumber}</span>
                                 )}
                               </td>
 
@@ -2645,12 +2672,17 @@ export default function DashboardDeveloper({
                                 {isPaid ? (
                                   <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold inline-flex items-center gap-1">
                                     <CheckCircle2 className="w-3 h-3" />
-                                    <span>Lunas & Aktif</span>
+                                    <span>Lunas &amp; Aktif</span>
                                   </span>
                                 ) : isWaiting ? (
                                   <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold inline-flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
                                     <span>Menunggu Verifikasi</span>
+                                  </span>
+                                ) : isExpired ? (
+                                  <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold inline-flex items-center gap-1">
+                                    <XCircle className="w-3 h-3" />
+                                    <span>Kadaluarsa</span>
                                   </span>
                                 ) : (
                                   <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold inline-flex items-center gap-1">
@@ -2662,6 +2694,16 @@ export default function DashboardDeveloper({
 
                               {/* Actions */}
                               <td className="py-3.5 px-4 align-top text-right space-y-1.5">
+                                {/* Tombol Detail — tampilkan info lengkap + VA + QRIS */}
+                                <button
+                                  onClick={() => setSelectedOrderDetail(ord)}
+                                  className="w-full py-1 px-2 text-slate-600 hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer mb-1"
+                                  title="Lihat detail order lengkap"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  <span>Detail</span>
+                                </button>
+
                                 {!isPaid ? (
                                   <button
                                     onClick={() => handleVerifyOrder(ord.id || ord.orderId)}
@@ -2695,13 +2737,15 @@ export default function DashboardDeveloper({
 
                             </tr>
                           );
-                        })
-                      )}
+                        })}
+
+
                     </tbody>
                   </table>
                 </div>
 
               </div>
+
 
               {/* MODAL 1: PREVIEW BUKTI TRANSFER ZOOM */}
               {selectedProofModal && (
@@ -2736,6 +2780,190 @@ export default function DashboardDeveloper({
                       <button
                         onClick={() => setSelectedProofModal(null)}
                         className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL 1.5: DETAIL ORDER LENGKAP (Riwayat & Info Pembayaran) */}
+              {selectedOrderDetail && (
+                <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[90vh] overflow-hidden text-xs font-sans">
+                    {/* Header Modal */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-3xl">
+                      <div>
+                        <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          Detail Order: {selectedOrderDetail.orderId || selectedOrderDetail.id}
+                        </h3>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Riwayat & Informasi Lengkap Pendaftaran</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedOrderDetail(null)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Body Modal */}
+                    <div className="overflow-y-auto p-6 space-y-4">
+
+                      {/* Status Badge Besar */}
+                      <div className={`flex items-center gap-2 p-3 rounded-xl border font-bold ${
+                        normalizeOrderStatus(selectedOrderDetail.status) === 'ACTIVE'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : normalizeOrderStatus(selectedOrderDetail.status) === 'WAITING_VERIFICATION'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : normalizeOrderStatus(selectedOrderDetail.status) === 'EXPIRED'
+                          ? 'bg-rose-50 border-rose-200 text-rose-700'
+                          : 'bg-amber-50 border-amber-200 text-amber-700'
+                      }`}>
+                        {normalizeOrderStatus(selectedOrderDetail.status) === 'ACTIVE' ? <CheckCircle2 className="w-4 h-4" /> :
+                         normalizeOrderStatus(selectedOrderDetail.status) === 'WAITING_VERIFICATION' ? <Clock className="w-4 h-4" /> :
+                         normalizeOrderStatus(selectedOrderDetail.status) === 'EXPIRED' ? <XCircle className="w-4 h-4" /> :
+                         <AlertTriangle className="w-4 h-4" />}
+                        <span>
+                          {normalizeOrderStatus(selectedOrderDetail.status) === 'ACTIVE' ? '✓ Lunas & Aktif — Tenant telah diprovisioning' :
+                           normalizeOrderStatus(selectedOrderDetail.status) === 'WAITING_VERIFICATION' ? '⏳ Menunggu Verifikasi Admin — Bukti transfer sudah diunggah' :
+                           normalizeOrderStatus(selectedOrderDetail.status) === 'EXPIRED' ? '✕ Kadaluarsa — Invoice melewati batas 24 jam' :
+                           '💳 Menunggu Pembayaran — Kirim ke VA atau QRIS di bawah'}
+                        </span>
+                      </div>
+
+                      {/* Info Pondok & Kontak */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Nama Lembaga</p>
+                          <p className="font-bold text-slate-900">{selectedOrderDetail.namaPondok}</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Pengelola / PIC</p>
+                          <p className="font-bold text-slate-900">{selectedOrderDetail.namaPengelola}</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Email</p>
+                          <a href={`mailto:${selectedOrderDetail.email}`} className="font-semibold text-blue-700 hover:underline break-all">{selectedOrderDetail.email}</a>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">WhatsApp</p>
+                          <a href={`https://wa.me/${(selectedOrderDetail.noWhatsapp || '').replace(/[^0-9]/g,'')}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />
+                            {selectedOrderDetail.noWhatsapp}
+                          </a>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Subdomain / URL</p>
+                          <a href={`https://${selectedOrderDetail.subdomain}.sipesand.web.id`} target="_blank" rel="noopener noreferrer" className="font-mono font-bold text-blue-700 hover:underline flex items-center gap-1">
+                            <ExternalLink className="w-3 h-3" />
+                            {selectedOrderDetail.subdomain}.sipesand.web.id
+                          </a>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Paket & Nominal</p>
+                          <p className="font-bold text-slate-900">{selectedOrderDetail.packageType === 'LIFETIME' ? 'Lifetime' : 'Tahunan'}</p>
+                          <p className="font-mono font-black text-slate-900">Rp {(Number(selectedOrderDetail.amount) || 0).toLocaleString('id-ID')}</p>
+                        </div>
+                      </div>
+
+                      {/* VA Number */}
+                      {selectedOrderDetail.vaNumber && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                          <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wider mb-1">Nomor Virtual Account (VA)</p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-blue-500 text-[10px]">{selectedOrderDetail.vaBank}</p>
+                              <p className="font-mono font-black text-slate-900 text-base tracking-widest">{selectedOrderDetail.vaNumber}</p>
+                            </div>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(selectedOrderDetail.vaNumber); }}
+                              className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors cursor-pointer"
+                              title="Salin nomor VA"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* QRIS */}
+                      {selectedOrderDetail.qrisUrl && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">QRIS Dinamis</p>
+                          <div className="flex items-start gap-4">
+                            <img src={selectedOrderDetail.qrisUrl} alt="QRIS" className="w-32 h-32 rounded-lg border border-slate-200 shadow-sm object-contain" />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-[10px] text-slate-500">Scan QRIS ini menggunakan aplikasi pembayaran apapun (GoPay, OVO, DANA, BSI Mobile, dll)</p>
+                              <p className="font-mono font-black text-slate-900">Rp {(Number(selectedOrderDetail.amount) || 0).toLocaleString('id-ID')}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bukti Transfer yang sudah diunggah */}
+                      {selectedOrderDetail.proofUrl && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                          <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider mb-2">Bukti Transfer / Struk</p>
+                          <div className="flex items-start gap-3">
+                            <img src={selectedOrderDetail.proofUrl} alt="Bukti Transfer" className="w-24 h-24 rounded-lg border border-emerald-200 object-cover cursor-pointer" onClick={() => setSelectedProofModal(selectedOrderDetail.proofUrl)} />
+                            <div>
+                              {selectedOrderDetail.senderName && <p className="font-semibold text-emerald-800">a.n {selectedOrderDetail.senderName}</p>}
+                              {selectedOrderDetail.proofNote && <p className="text-slate-600 mt-1">{selectedOrderDetail.proofNote}</p>}
+                              <button onClick={() => setSelectedProofModal(selectedOrderDetail.proofUrl)} className="mt-2 text-[10px] text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
+                                <Eye className="w-3 h-3" /> Perbesar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Info Tanggal */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Tanggal Daftar</p>
+                          <p className="font-semibold text-slate-900">{selectedOrderDetail.createdAt ? new Date(selectedOrderDetail.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</p>
+                        </div>
+                        {selectedOrderDetail.expiredAt && (
+                          <div className={`rounded-xl p-3 border ${normalizeOrderStatus(selectedOrderDetail.status) === 'EXPIRED' ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Batas Invoice</p>
+                            <p className={`font-semibold ${normalizeOrderStatus(selectedOrderDetail.status) === 'EXPIRED' ? 'text-rose-700' : 'text-slate-900'}`}>
+                              {new Date(selectedOrderDetail.expiredAt).toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        )}
+                        {selectedOrderDetail.licenseKey && (
+                          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 col-span-2">
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">License Key</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-mono text-[11px] text-slate-700 break-all flex-1">{selectedOrderDetail.licenseKey}</p>
+                              <button onClick={() => navigator.clipboard.writeText(selectedOrderDetail.licenseKey)} className="p-1.5 rounded bg-slate-100 hover:bg-slate-200 cursor-pointer"><Copy className="w-3 h-3 text-slate-600" /></button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer Modal */}
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-3xl gap-2">
+                      {normalizeOrderStatus(selectedOrderDetail.status) !== 'ACTIVE' && (
+                        <button
+                          onClick={() => {
+                            setSelectedOrderDetail(null);
+                            handleVerifyOrder(selectedOrderDetail.id || selectedOrderDetail.orderId);
+                          }}
+                          disabled={!!verifyingOrderId}
+                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <Check className="w-4 h-4" />
+                          Verifikasi & Aktifkan Sekarang
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedOrderDetail(null)}
+                        className="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold text-xs cursor-pointer"
                       >
                         Tutup
                       </button>

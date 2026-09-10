@@ -62,24 +62,33 @@ export default function LandingPageSaas({
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
   });
 
+  // ─── Mitra Config: Harga, Hero, Bank (sinkron dengan mitra.sipesand.web.id) ─
+  const [mitraConfig, setMitraConfig] = useState(null);
   const [prices, setPrices] = useState(null);
 
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const res = await getMitraConfig();
-        if (res.data?.success && res.data?.data) {
-          setPrices({
-            tahunanPrice: Number(res.data.data.tahunanPrice),
-            lifetimePrice: Number(res.data.data.lifetimePrice)
-          });
-        }
-      } catch (e) {
-        setPrices(null);
+  const fetchMitraConfig = async () => {
+    try {
+      const res = await getMitraConfig();
+      if (res.data?.success && res.data?.data) {
+        const cfg = res.data.data;
+        setMitraConfig(cfg);
+        setPrices({
+          tahunanPrice: Number(cfg.tahunanPrice) || 1500000,
+          lifetimePrice: Number(cfg.lifetimePrice) || 3500000,
+        });
       }
-    };
-    fetchPrices();
+    } catch (e) {
+      // fallback ke default, tidak error
+    }
+  };
+
+  useEffect(() => {
+    fetchMitraConfig();
+    // Auto-refresh setiap 5 menit agar perubahan dari mitra dashboard langsung tercermin
+    const interval = setInterval(fetchMitraConfig, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
+
 
   // Subdomain Validation State
   const [subdomainStatus, setSubdomainStatus] = useState({
