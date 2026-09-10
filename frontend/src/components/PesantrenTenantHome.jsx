@@ -36,16 +36,9 @@ import {
   Repeat,
   Menu,
   X,
-  Camera,
-  Edit,
-  Save,
-  Upload,
-  Loader2,
-  Sparkles
 } from 'lucide-react';
 import { useSettings, DEFAULT_PENGASUH_AVATAR } from '../context/SettingsContext';
-import { compressImage, normalizeImageUrl } from '../utils/imageCompressor';
-import { uploadFileToR2 } from '../services/api';
+import { normalizeImageUrl } from '../utils/imageCompressor';
 
 export default function PesantrenTenantHome({
   onLoginPetugas,
@@ -57,86 +50,11 @@ export default function PesantrenTenantHome({
   loadingSearch,
   searchError
 }) {
-  const { settings, updateSettings, isNfcEnabled } = useSettings();
+  const { settings, isNfcEnabled } = useSettings();
   const [copiedBank, setCopiedBank] = useState(false);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // State Edit Profil & Kalam Pengasuh
-  const [isEditPengasuhOpen, setIsEditPengasuhOpen] = useState(false);
-  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
-  const [isSavingPengasuh, setIsSavingPengasuh] = useState(false);
-  const [pengasuhToast, setPengasuhToast] = useState('');
-  const [editForm, setEditForm] = useState({
-    NAMA_KEPALA_PONDOK: '',
-    JABATAN_PENGASUH: '',
-    LOKASI_PENGASUH: '',
-    FOTO_PENGASUH_URL: '',
-    KALAM_PENGASUH: '',
-  });
-
-  const openEditPengasuh = () => {
-    setEditForm({
-      NAMA_KEPALA_PONDOK: settings.NAMA_KEPALA_PONDOK || 'K.H. Amir Hasan',
-      JABATAN_PENGASUH: settings.JABATAN_PENGASUH || 'Pengasuh Pondok Pesantren Darul Rahman',
-      LOKASI_PENGASUH: settings.LOKASI_PENGASUH || 'Kencong, Kepung, Kediri',
-      FOTO_PENGASUH_URL: normalizeImageUrl(settings.FOTO_PENGASUH_URL) || DEFAULT_PENGASUH_AVATAR,
-      KALAM_PENGASUH: settings.KALAM_PENGASUH || 'Pondok Pesantren Darul Rahman istiqomah menjaga sanad keilmuan para ulama salafus shalih. Santri kami gembleng membaca dan memaknai kitab kuning, menghafal nadzoman kaidah bahasa dan fiqih (Imrithi & Alfiyah Ibnu Malik), serta mengasah daya nalar melalui tradisi musyawarah dan takror setiap malam. Dengan adab di atas ilmu, santri dipersiapkan menjadi pribadi yang kokoh akidahnya dan bijak dalam mengabdi di masyarakat.',
-    });
-    setIsEditPengasuhOpen(true);
-  };
-
-  const handleQuickPhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsCompressingPhoto(true);
-      const compressedDataUrl = await compressImage(file, {
-        maxWidth: 600,
-        maxHeight: 600,
-        quality: 0.82,
-      });
-
-      let finalPhotoUrl = compressedDataUrl;
-      try {
-        const uploadRes = await uploadFileToR2({
-          fileName: 'foto_pengasuh.jpg',
-          fileBase64: compressedDataUrl,
-          mimeType: 'image/jpeg',
-          folder: 'pengasuh'
-        });
-        if (uploadRes && uploadRes.success && uploadRes.data?.url) {
-          finalPhotoUrl = uploadRes.data.url;
-        }
-      } catch (r2Err) {
-        console.info('R2 upload standby, fallback ke local photo:', r2Err);
-      }
-
-      await updateSettings({ FOTO_PENGASUH_URL: finalPhotoUrl });
-      setPengasuhToast('Foto Pengasuh berhasil diubah!');
-      setTimeout(() => setPengasuhToast(''), 3000);
-    } catch (err) {
-      alert('Gagal memproses foto: ' + (err.message || 'Error'));
-    } finally {
-      setIsCompressingPhoto(false);
-    }
-  };
-
-  const handleSavePengasuhModal = async (e) => {
-    e?.preventDefault();
-    try {
-      setIsSavingPengasuh(true);
-      await updateSettings(editForm);
-      setIsEditPengasuhOpen(false);
-      setPengasuhToast('Profil & Kalam Pengasuh berhasil disimpan!');
-      setTimeout(() => setPengasuhToast(''), 3000);
-    } catch (err) {
-      alert('Gagal menyimpan perubahan: ' + (err.message || 'Error'));
-    } finally {
-      setIsSavingPengasuh(false);
-    }
-  };
 
   const logoPondok = settings.LOGO_PONDOK_URL || '/logo.png';
   const namaLembaga = settings.NAMA_LEMBAGA || 'Pondok Pesantren Darul Rahman Sumbersari';
@@ -494,14 +412,6 @@ export default function PesantrenTenantHome({
       <section id="kalam" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="bg-white rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 border border-stone-200/90 shadow-sm relative">
           
-          {/* Toast Notifikasi Berhasil Simpan */}
-          {pengasuhToast && (
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-lg flex items-center gap-2 animate-bounce">
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>{pengasuhToast}</span>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pb-8 border-b border-stone-100">
             
             {/* Foto & Identitas Pengasuh */}
@@ -516,43 +426,7 @@ export default function PesantrenTenantHome({
                   }}
                 />
 
-                {/* Loading overlay saat kompresi foto */}
-                {isCompressingPhoto && (
-                  <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-white text-xs font-bold gap-1 z-10">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#8CE829]" />
-                    <span>Menyimpan Foto...</span>
-                  </div>
-                )}
-
-                {/* Tombol Kamera Cepat pada Foto (Desktop Hover) */}
-                <label 
-                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer p-2 text-center z-10"
-                  title="Klik untuk langsung ganti foto pengasuh dari HP/Laptop"
-                >
-                  <Camera className="w-6 h-6 mb-1 text-[#8CE829]" />
-                  <span className="text-[10px] font-extrabold bg-[#0B52E2] px-2.5 py-0.5 rounded-full shadow-md">Ganti Foto</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleQuickPhotoUpload} 
-                    className="hidden" 
-                    disabled={isCompressingPhoto}
-                  />
-                </label>
               </div>
-
-              {/* Tombol Ubah Foto Mobile (Terlihat jelas di layar sentuh HP) */}
-              <label className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-[#0B52E2] hover:bg-blue-100 text-[11px] font-bold cursor-pointer transition-colors border border-blue-200 shadow-xs">
-                <Camera className="w-3.5 h-3.5" />
-                <span>{isCompressingPhoto ? 'Menyimpan...' : 'Ganti Foto Pengasuh'}</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleQuickPhotoUpload} 
-                  className="hidden" 
-                  disabled={isCompressingPhoto}
-                />
-              </label>
 
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
@@ -573,21 +447,12 @@ export default function PesantrenTenantHome({
                   <span>Kalam & Nasihat Pengasuh</span>
                 </div>
 
-                {/* Tombol Edit Profil & Kalam Pengasuh */}
-                <button
-                  type="button"
-                  onClick={openEditPengasuh}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 hover:bg-blue-50 text-slate-700 hover:text-[#0B52E2] text-xs font-bold border border-stone-200/80 hover:border-blue-200 transition-all cursor-pointer shadow-xs"
-                  title="Klik untuk mengubah nama, jabatan, foto, dan teks nasihat pengasuh"
-                >
-                  <Edit className="w-3.5 h-3.5 text-[#0B52E2]" />
-                  <span>Edit Profil & Kalam</span>
-                </button>
               </div>
 
               <blockquote className="text-base sm:text-lg font-serif italic text-slate-800 leading-relaxed">
                 "{kalamPengasuh}"
               </blockquote>
+              <p className="text-[10px] text-slate-400 font-medium">Profil dan nasihat ini dikelola oleh administrator pesantren.</p>
 
               <div className="flex items-center gap-3 pt-2 flex-wrap">
                 <button
@@ -1332,7 +1197,7 @@ export default function PesantrenTenantHome({
       {/* ========================================================================= */}
       {/* 10. MODAL EDIT PROFIL, FOTO & KALAM PENGASUH                             */}
       {/* ========================================================================= */}
-      {isEditPengasuhOpen && (
+      {false && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-stone-200 space-y-5 max-h-[90vh] overflow-y-auto">
             
