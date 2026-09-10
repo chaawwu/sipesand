@@ -208,6 +208,9 @@ model MitraPending {
   qrisString     String?
   vaNumber       String?
   vaBank         String   @default("BSI")
+  proofUrl       String?
+  proofNote      String?
+  senderName     String?
   status         String   @default("PENDING") // "PENDING", "PAID", "EXPIRED", "CANCELLED"
   expiredAt      DateTime
   createdAt      DateTime @default(now())

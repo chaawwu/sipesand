@@ -9,6 +9,7 @@ backend/node_modules/
 .env.*.local
 backend/.env
 frontend/.env.local
+.github/.env
 
 # Logs
 logs/

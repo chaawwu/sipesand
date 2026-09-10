@@ -9,6 +9,13 @@ router.get('/check-subdomain/:subdomain', mitraController.checkSubdomainAvailabi
 router.post('/register', mitraController.registerMitra);
 router.get('/status/:orderId', mitraController.getMitraOrderStatus);
 router.get('/all', mitraController.getAllMitraAktif);
+router.get('/tenants', mitraController.getAllMitraAktif);
+router.get('/config', mitraController.getMitraConfig);
+router.post('/config', mitraController.updateMitraConfig);
+router.get('/orders', mitraController.getMitraOrders);
+router.post('/upload-proof', mitraController.uploadMitraPaymentProof);
+router.post('/verify-order', mitraController.verifyMitraOrder);
+router.delete('/orders/:orderId', mitraController.deleteMitraOrder);
 
 // Webhook pembayaran dari payment gateway
 router.post('/webhook/pg-lisensi', mitraController.handlePaymentWebhook);

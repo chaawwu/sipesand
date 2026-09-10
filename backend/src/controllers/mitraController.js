@@ -2,6 +2,43 @@ const prisma = require('../config/prisma');
 const { provisionNewTenant } = require('../services/tenantProvisioner');
 const { sendTenantWelcomeEmail } = require('../services/mailerService');
 
+const DEFAULT_MITRA_CONFIG = {
+  bankName: 'Bank Syariah Indonesia (BSI)',
+  bankAccountNo: '',
+  bankAccountHolder: '',
+  waConfirmationNumber: '',
+  tahunanPrice: 1500000,
+  lifetimePrice: 3500000,
+  qrisImageUrl: '',
+  heroHeadline: 'Kelola Pesantren Tumbuh Tanpa Batas',
+  heroSubheadline: 'Satu platform terintegrasi untuk pesantren.',
+  ctaText: 'Cari Santri',
+  badgeText: 'SiPesand',
+};
+
+async function readMitraConfig() {
+  const rows = await prisma.systemSetting.findMany({ where: { key: { startsWith: 'MITRA_' } } });
+  const values = Object.fromEntries(rows.map((row) => [row.key.replace(/^MITRA_/, ''), row.value]));
+  return {
+    ...DEFAULT_MITRA_CONFIG,
+    ...values,
+    tahunanPrice: Number(values.tahunanPrice || DEFAULT_MITRA_CONFIG.tahunanPrice),
+    lifetimePrice: Number(values.lifetimePrice || DEFAULT_MITRA_CONFIG.lifetimePrice),
+  };
+}
+
+async function saveMitraConfig(config) {
+  for (const key of Object.keys(DEFAULT_MITRA_CONFIG)) {
+    if (config[key] === undefined) continue;
+    await prisma.systemSetting.upsert({
+      where: { key: `MITRA_${key}` },
+      update: { value: String(config[key]) },
+      create: { key: `MITRA_${key}`, value: String(config[key]) },
+    });
+  }
+  return readMitraConfig();
+}
+
 // 0. Cek Ketersediaan Subdomain Real-time (Deteksi jika sudah terdaftar)
 exports.checkSubdomainAvailability = async (req, res) => {
   try {
@@ -114,11 +151,12 @@ exports.registerMitra = async (req, res) => {
       });
     }
 
-    // Tentukan biaya lisensi berdasarkan paket
+    // Tentukan biaya lisensi dari konfigurasi master yang dikelola developer.
+    const config = await readMitraConfig();
     const pkg = packageType === 'LIFETIME' ? 'LIFETIME' : 'TAHUNAN';
-    const amount = pkg === 'LIFETIME' ? 3500000 : 1500000;
+    const amount = pkg === 'LIFETIME' ? config.lifetimePrice : config.tahunanPrice;
 
-    // Generate Mock Payment Gateway (Xendit / Midtrans / King Digital Payment Logic)
+    // Membuat invoice pembayaran. Status lunas hanya berasal dari webhook atau verifikasi admin.
     const timestamp = Date.now().toString();
     const orderId = `KGD-ORD-${cleanSubdomain.toUpperCase()}-${timestamp.slice(-6)}`;
     const vaNumber = `8809${timestamp.slice(-8)}`;
@@ -388,4 +426,54 @@ exports.getAllMitraAktif = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mengambil data mitra aktif', error: err.message });
   }
+};
+
+exports.getMitraConfig = async (req, res) => {
+  try { res.json({ success: true, data: await readMitraConfig() }); }
+  catch (err) { res.status(500).json({ success: false, message: 'Gagal mengambil konfigurasi mitra.', error: err.message }); }
+};
+
+exports.updateMitraConfig = async (req, res) => {
+  try { res.json({ success: true, message: 'Konfigurasi mitra berhasil disimpan.', data: await saveMitraConfig(req.body || {}) }); }
+  catch (err) { res.status(500).json({ success: false, message: 'Gagal menyimpan konfigurasi mitra.', error: err.message }); }
+};
+
+exports.getMitraOrders = async (req, res) => {
+  try {
+    const [pending, active] = await Promise.all([
+      prisma.mitraPending.findMany({ orderBy: { createdAt: 'desc' } }),
+      prisma.mitraAktif.findMany({ orderBy: { provisionedAt: 'desc' } }),
+    ]);
+    const pendingSubdomains = new Set(pending.map((order) => order.subdomain));
+    const activeOrders = active.filter((tenant) => !pendingSubdomains.has(tenant.subdomain)).map((tenant) => ({
+      id: `active-${tenant.id}`, orderId: `ACTIVE-${tenant.subdomain.toUpperCase()}`,
+      namaPondok: tenant.namaPondok, subdomain: tenant.subdomain, namaPengelola: tenant.namaPengelola,
+      email: tenant.email, noWhatsapp: tenant.noWhatsapp, packageType: tenant.packageType,
+      amount: tenant.amount, status: tenant.status, createdAt: tenant.provisionedAt, provisionedAt: tenant.provisionedAt,
+    }));
+    res.json({ success: true, data: [...pending, ...activeOrders] });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal mengambil pendaftaran mitra.', error: err.message }); }
+};
+
+exports.uploadMitraPaymentProof = async (req, res) => {
+  try {
+    const { orderId, proofBase64, proofNote, senderName } = req.body || {};
+    if (!orderId || !proofBase64) return res.status(400).json({ success: false, message: 'Order dan bukti pembayaran wajib diisi.' });
+    const updated = await prisma.mitraPending.update({ where: { orderId }, data: { proofUrl: proofBase64, proofNote: proofNote || null, senderName: senderName || null, status: 'WAITING_VERIFICATION' } });
+    res.json({ success: true, message: 'Bukti pembayaran berhasil disimpan.', data: updated });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal menyimpan bukti pembayaran.', error: err.message }); }
+};
+
+exports.verifyMitraOrder = async (req, res) => {
+  try {
+    const { orderId } = req.body || {};
+    if (!(await prisma.mitraPending.findUnique({ where: { orderId } }))) return res.status(404).json({ success: false, message: 'Pesanan mitra tidak ditemukan.' });
+    req.body = { orderId, status: 'PAID' };
+    return exports.handlePaymentWebhook(req, res);
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal memverifikasi pesanan mitra.', error: err.message }); }
+};
+
+exports.deleteMitraOrder = async (req, res) => {
+  try { await prisma.mitraPending.delete({ where: { orderId: req.params.orderId } }); res.json({ success: true, message: 'Pesanan mitra berhasil dihapus.' }); }
+  catch (err) { res.status(404).json({ success: false, message: 'Pesanan mitra tidak ditemukan.', error: err.message }); }
 };

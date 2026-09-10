@@ -174,24 +174,7 @@ export default function DashboardDeveloper({
   // ---------------------------------------------------------------------------
   // 1. STATE: TENANT MANAGEMENT (100% REAL DARI FIRESTORE - NO FAKE GIMMICKS)
   // ---------------------------------------------------------------------------
-  const [tenants, setTenants] = useState([
-    {
-      id: 'tenant-darulrahman',
-      name: 'Pondok Pesantren Darul Rahman Sumbersari',
-      subdomain: 'darulrahman',
-      status: 'ACTIVE',
-      plan: 'LIFETIME',
-      santriCount: 500,
-      dbSizeMb: 18.5,
-      dbEngine: 'Cloudflare Pages Serverless + Firestore Cloud',
-      adminEmail: 'darulrahmansumbersari@gmail.com',
-      adminPhone: '+62 851-2373-4342',
-      joinedDate: 'Pusat Master',
-      lastActive: 'Aktif',
-      nfcActive: true,
-      liveUrl: 'https://darulrahman.sipesand.web.id'
-    }
-  ]);
+  const [tenants, setTenants] = useState([]);
   const [loadingTenants, setLoadingTenants] = useState(false);
 
   const loadRealTenantsData = async () => {
@@ -411,35 +394,16 @@ export default function DashboardDeveloper({
   // 3. STATE: INFRASTRUCTURE & SERVER MONITORING
   // ---------------------------------------------------------------------------
   const [infraStats] = useState({
-    firestoreReads: 42150,
-    firestoreReadsLimit: 50000,
-    firestoreWrites: 18420,
-    firestoreWritesLimit: 20000,
-    firestoreDeletes: 1240,
-    firestoreDeletesLimit: 20000,
-    totalSqliteStorageMb: 55.0,
-    cloudflareLatencyMs: 14,
-    expressApiLatencyMs: 24,
-    dbLatencyMs: 4,
-    uptimePercent: 99.98,
-    activeSockets: 48,
-    memoryUsageMb: 284,
-    memoryLimitMb: 1024,
-    cpuUsagePercent: 12
+    firestoreReads: 0, firestoreReadsLimit: 0, firestoreWrites: 0, firestoreWritesLimit: 0,
+    firestoreDeletes: 0, firestoreDeletesLimit: 0, totalSqliteStorageMb: 0,
+    cloudflareLatencyMs: null, expressApiLatencyMs: null, dbLatencyMs: null,
+    uptimePercent: null, activeSockets: null, memoryUsageMb: null, memoryLimitMb: null, cpuUsagePercent: null
   });
 
   // ---------------------------------------------------------------------------
   // 4. STATE: WEB DEV BUILDER & GLOBAL CMS
   // ---------------------------------------------------------------------------
-  const [cmsLanding, setCmsLanding] = useState({
-    heroHeadline: 'Kelola Pesantren Tumbuh Tanpa Batas',
-    heroSubheadline: 'Satu platform terintegrasi untuk verifikasi kartu santri digital RFID/NFC, kasir uang saku cashless, perizinan Kamtib, dan transparansi wali santri.',
-    ctaText: 'Cari Santri',
-    badgeText: 'SiPesand (Sistem Informasi Terpadu Pesantren dan Digital)',
-    tahunanPrice: '1.500.000',
-    lifetimePrice: '4.500.000',
-    supportWhatsapp: '0812-3456-7890',
-  });
+  const [cmsLanding, setCmsLanding] = useState({});
   const [cmsSavedToast, setCmsSavedToast] = useState(false);
 
   // Global Announcement Broadcast to all tenants
@@ -465,8 +429,15 @@ export default function DashboardDeveloper({
 
   const handleSaveCms = (e) => {
     e.preventDefault();
-    setCmsSavedToast(true);
-    setTimeout(() => setCmsSavedToast(false), 2500);
+    updateMitraConfig({
+      ...cmsLanding,
+      tahunanPrice: Number(String(cmsLanding.tahunanPrice || '').replace(/\D/g, '')),
+      lifetimePrice: Number(String(cmsLanding.lifetimePrice || '').replace(/\D/g, '')),
+    }).then((res) => {
+      if (res.data?.success) setMitraConfig(res.data.data);
+      setCmsSavedToast(true);
+      setTimeout(() => setCmsSavedToast(false), 2500);
+    });
   };
 
   const handleSaveAnnouncement = (e) => {
@@ -498,6 +469,7 @@ export default function DashboardDeveloper({
       const res = await getMitraConfig();
       if (res.data?.success && res.data?.data) {
         setMitraConfig(prev => ({ ...prev, ...res.data.data }));
+        setCmsLanding(prev => ({ ...prev, ...res.data.data }));
       }
     } catch (e) {
       console.warn('Gagal memuat konfigurasi mitra:', e);
@@ -615,12 +587,12 @@ export default function DashboardDeveloper({
   const paidOrdersList = mitraOrders.filter(o => o.status === 'PAID' || o.status === 'ACTIVE');
   const totalPaidRevenue = paidOrdersList.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
   const financialStats = {
-    mrr: totalPaidRevenue > 0 ? Math.round(totalPaidRevenue / 12) + 24500000 : 24500000,
-    arr: totalPaidRevenue > 0 ? (totalPaidRevenue + 294000000) : 294000000,
+    mrr: Math.round(totalPaidRevenue / 12),
+    arr: totalPaidRevenue,
     activeSubscribers: tenants.filter(t => t.status === 'ACTIVE').length,
-    churnRatePercent: 0.8,
-    retentionPercent: 99.2,
-    totalGrossRevenue: totalPaidRevenue + 48000000,
+    churnRatePercent: null,
+    retentionPercent: null,
+    totalGrossRevenue: totalPaidRevenue,
   };
 
   // Filter Pesanan Mitra
@@ -1858,9 +1830,15 @@ export default function DashboardDeveloper({
 
               {/* 2. sipesand.web.id Landing Page CMS Controller */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="font-bold text-sm text-slate-900">Landing Page Controller (sipesand.web.id)</h3>
-                  <p className="text-xs text-slate-500">Edit teks headline, harga paket, dan tombol CTA halaman depan tanpa redeploy kode.</p>
+                <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">Landing Page Controller (sipesand.web.id)</h3>
+                    <p className="text-xs text-slate-500">Edit teks headline, harga paket, dan tombol CTA halaman depan tanpa redeploy kode.</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold font-mono ${loadingMitraConfig ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${loadingMitraConfig ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`} />
+                    {loadingMitraConfig ? 'MEMUAT DATA' : 'TERSINKRON SERVER'}
+                  </span>
                 </div>
 
                 <form onSubmit={handleSaveCms} className="space-y-4">
@@ -2257,7 +2235,7 @@ export default function DashboardDeveloper({
                   <div className="font-mono font-bold text-2xl text-slate-900">
                     Rp {financialStats.mrr.toLocaleString('id-ID')}
                   </div>
-                  <span className="text-xs text-emerald-600 font-semibold">+18.2% bulan ini</span>
+                    <span className="text-xs text-slate-400">Berdasarkan invoice lunas</span>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
@@ -2265,7 +2243,7 @@ export default function DashboardDeveloper({
                   <div className="font-mono font-bold text-2xl text-slate-900">
                     Rp {financialStats.arr.toLocaleString('id-ID')}
                   </div>
-                  <span className="text-xs text-slate-400">Proyeksi 12 bulan ke depan</span>
+                    <span className="text-xs text-slate-400">Total nilai lisensi lunas</span>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
@@ -2548,7 +2526,15 @@ export default function DashboardDeveloper({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-sans">
-                      {filteredMitraOrders.length === 0 ? (
+                      {loadingMitraOrders ? (
+                        <tr>
+                          <td colSpan="7" className="py-12 text-center text-slate-400">
+                            <RefreshCw className="w-6 h-6 mx-auto mb-2 text-blue-500 animate-spin" />
+                            <div className="font-bold text-slate-600">Menyinkronkan data pendaftaran...</div>
+                            <p className="text-[11px] mt-0.5">Mengambil order terbaru dari database master.</p>
+                          </td>
+                        </tr>
+                      ) : filteredMitraOrders.length === 0 ? (
                         <tr>
                           <td colSpan="7" className="py-12 text-center text-slate-400">
                             <Building2 className="w-8 h-8 mx-auto mb-2 text-slate-300" />
