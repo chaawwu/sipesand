@@ -41,25 +41,25 @@ jobs:
         if: env.CF_TOKEN != '' && env.CF_ACCOUNT != ''
         run: |
           set -euo pipefail
-          PROJECT_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/sipesand-app"
+          PROJECT_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/sipesand"
           PROJECT_STATUS=$(curl --silent --show-error --output /tmp/pages-project.json --write-out "%{http_code}" \
             --header "Authorization: Bearer ${CF_TOKEN}" \
             --header "Content-Type: application/json" \
             "${PROJECT_URL}")
 
           if [ "${PROJECT_STATUS}" = "404" ]; then
-            echo "Cloudflare Pages project belum ada. Membuat sipesand-app..."
+            echo "Cloudflare Pages project belum ada. Membuat sipesand..."
             curl --silent --show-error --fail --request POST \
               --header "Authorization: Bearer ${CF_TOKEN}" \
               --header "Content-Type: application/json" \
-              --data '{"name":"sipesand-app","production_branch":"main"}' \
+              --data '{"name":"sipesand","production_branch":"main"}' \
               "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects"
           elif [ "${PROJECT_STATUS}" != "200" ]; then
             cat /tmp/pages-project.json
             echo "Cloudflare Pages project gagal diperiksa (HTTP ${PROJECT_STATUS})."
             exit 1
           else
-            echo "Cloudflare Pages project sipesand-app sudah tersedia."
+            echo "Cloudflare Pages project sipesand sudah tersedia."
           fi
 
       - name: ☁️ Deploy to Cloudflare Pages via API
@@ -71,7 +71,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: sipesand-app
+          projectName: sipesand
           directory: frontend/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
