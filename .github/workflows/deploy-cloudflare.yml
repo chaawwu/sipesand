@@ -34,6 +34,34 @@ jobs:
         env:
           VITE_API_URL: '/api'
 
+      - name: 🔧 Ensure Cloudflare Pages Project Exists
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        if: env.CF_TOKEN != '' && env.CF_ACCOUNT != ''
+        run: |
+          set -euo pipefail
+          PROJECT_URL="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects/sipesand-app"
+          PROJECT_STATUS=$(curl --silent --show-error --output /tmp/pages-project.json --write-out "%{http_code}" \
+            --header "Authorization: Bearer ${CF_TOKEN}" \
+            --header "Content-Type: application/json" \
+            "${PROJECT_URL}")
+
+          if [ "${PROJECT_STATUS}" = "404" ]; then
+            echo "Cloudflare Pages project belum ada. Membuat sipesand-app..."
+            curl --silent --show-error --fail --request POST \
+              --header "Authorization: Bearer ${CF_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --data '{"name":"sipesand-app","production_branch":"main"}' \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/pages/projects"
+          elif [ "${PROJECT_STATUS}" != "200" ]; then
+            cat /tmp/pages-project.json
+            echo "Cloudflare Pages project gagal diperiksa (HTTP ${PROJECT_STATUS})."
+            exit 1
+          else
+            echo "Cloudflare Pages project sipesand-app sudah tersedia."
+          fi
+
       - name: ☁️ Deploy to Cloudflare Pages via API
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
