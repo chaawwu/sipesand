@@ -899,6 +899,41 @@ export default function LandingPageSaas({
                   </div>
 
                 </div>
+
+                <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-[11px] text-slate-600">
+                  <h4 className="font-extrabold text-slate-900">Ketentuan Paket SiPesand</h4>
+
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="font-bold text-slate-800">Paket Lisensi 1 Tahun</p>
+                      <p className="mt-1 font-semibold text-slate-700">Termasuk:</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        <li>Lisensi SiPesand selama 1 tahun.</li>
+                        <li>Subdomain aktif 1 tahun.</li>
+                        <li>VPS / Cloud Server aktif 1 tahun.</li>
+                        <li>Database / Cloud Server aktif 1 tahun.</li>
+                      </ul>
+                      <p className="mt-2"><strong>Perpanjangan (PPJ):</strong> Setelah masa aktif 1 tahun berakhir, pelanggan wajib melakukan perpanjangan lisensi, domain, VPS, dan Cloud Server agar sistem tetap aktif.</p>
+                    </div>
+
+                    <div className="border-t border-blue-100 pt-3">
+                      <p className="font-bold text-slate-800">Paket Lisensi Lifetime</p>
+                      <p className="mt-1 font-semibold text-slate-700">Termasuk:</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        <li>Lisensi SiPesand Lifetime (Seumur Hidup).</li>
+                        <li>Subdomain aktif 1 tahun.</li>
+                        <li>VPS / Cloud Server aktif 1 tahun.</li>
+                        <li>Database / Cloud Server aktif 1 tahun.</li>
+                      </ul>
+                      <p className="mt-2"><strong>Perpanjangan (PPJ):</strong> Lisensi tidak perlu diperpanjang. Pelanggan hanya membayar perpanjangan domain, VPS, dan Cloud Server setiap tahun sesuai tarif provider.</p>
+                    </div>
+
+                    <div className="border-t border-blue-100 pt-3">
+                      <p className="font-bold text-slate-800">Maintenance</p>
+                      <p className="mt-1">Perbaikan akibat bug atau kesalahan sistem dari Developer ditangani tanpa biaya selama masa garansi. Maintenance atau perubahan di luar kesalahan sistem Developer dikenakan biaya sesuai jenis pekerjaan.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Submit Button */}
