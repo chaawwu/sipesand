@@ -1368,9 +1368,9 @@ export async function onRequest(context) {
       }
 
       // Kredensial developer default
-      const DEFAULT_DEV_PASS = 'SipesandDev-2026!#';
-      let isValidUser = (cleanEmail === 'dev@sipesand.web.id' || cleanEmail === 'admin' || cleanEmail === 'superadmin');
-      let isCorrectPass = (cleanPass === DEFAULT_DEV_PASS || cleanPass === 'Pesand-2026!');
+      const DEFAULT_DEV_PASS = 'KingDigital2026#';
+      let isValidUser = (cleanEmail === 'admin_dev' || cleanEmail === 'dev@sipesand.web.id' || cleanEmail === 'admin' || cleanEmail === 'superadmin');
+      let isCorrectPass = cleanPass === DEFAULT_DEV_PASS;
 
       // Cek apakah ada kustomisasi kredensial di Firestore master
       try {
@@ -1425,7 +1425,9 @@ export async function onRequest(context) {
         message: 'Autentikasi developer berhasil.',
         token: sessionToken,
         expiresAt,
+        username: cleanEmail,
         user: {
+          username: cleanEmail,
           email: cleanEmail,
           role: 'SUPERADMIN_DEVELOPER',
           name: 'Lead SaaS Architect'
