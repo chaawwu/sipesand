@@ -35,10 +35,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
   });
 
-  const [prices, setPrices] = useState({
-    tahunanPrice: 1500000,
-    lifetimePrice: 3500000
-  });
+  const [prices, setPrices] = useState(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -46,11 +43,13 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
         const res = await getMitraConfig();
         if (res.data?.success && res.data?.data) {
           setPrices({
-            tahunanPrice: Number(res.data.data.tahunanPrice) || 1500000,
-            lifetimePrice: Number(res.data.data.lifetimePrice) || 3500000
+            tahunanPrice: Number(res.data.data.tahunanPrice),
+            lifetimePrice: Number(res.data.data.lifetimePrice)
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        setPrices(null);
+      }
     };
     fetchConfig();
   }, []);
@@ -401,7 +400,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                       <span className="font-extrabold text-slate-900 text-xs">Paket Lisensi Tahunan</span>
                       <span className="px-2 py-0.5 bg-blue-600 text-white rounded font-bold text-[9px]">Populer</span>
                     </div>
-                    <div className="font-black text-base text-blue-700 font-mono">Rp {prices.tahunanPrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span></div>
+                    <div className="font-black text-base text-blue-700 font-mono">{prices ? `Rp ${prices.tahunanPrice.toLocaleString('id-ID')}` : 'Memuat harga...'} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span></div>
                     <p className="text-[10px] text-slate-500 mt-1">Database instans terisolasi, KTSD Smart NFC, Portal Wali, & Update fitur 1 tahun.</p>
                   </div>
 
@@ -418,7 +417,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                       <span className="font-extrabold text-slate-900 text-xs">Paket Lifetime Selamanya</span>
                       <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded font-bold text-[9px]">Hemat</span>
                     </div>
-                    <div className="font-black text-base text-slate-900 font-mono">Rp {prices.lifetimePrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span></div>
+                    <div className="font-black text-base text-slate-900 font-mono">{prices ? `Rp ${prices.lifetimePrice.toLocaleString('id-ID')}` : 'Memuat harga...'} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span></div>
                     <p className="text-[10px] text-slate-500 mt-1">Lisensi permanen seumur hidup tanpa biaya tahunan + support prioritas.</p>
                   </div>
 

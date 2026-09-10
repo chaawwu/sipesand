@@ -540,7 +540,7 @@ export const checkSubdomainAvailability = async (subdomain) => {
 
 export const getMitraConfig = async () => {
   try {
-    const res = await api.get('/mitra/config');
+    const res = await api.get('/mitra/config', { params: { _ts: Date.now() } });
     return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: false, message: 'Konfigurasi pembayaran mitra tidak dapat dimuat.' } };

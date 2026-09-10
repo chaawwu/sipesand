@@ -62,10 +62,7 @@ export default function LandingPageSaas({
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
   });
 
-  const [prices, setPrices] = useState({
-    tahunanPrice: 1500000,
-    lifetimePrice: 3500000
-  });
+  const [prices, setPrices] = useState(null);
 
   useEffect(() => {
     const fetchPrices = async () => {
@@ -73,11 +70,13 @@ export default function LandingPageSaas({
         const res = await getMitraConfig();
         if (res.data?.success && res.data?.data) {
           setPrices({
-            tahunanPrice: Number(res.data.data.tahunanPrice) || 1500000,
-            lifetimePrice: Number(res.data.data.lifetimePrice) || 3500000
+            tahunanPrice: Number(res.data.data.tahunanPrice),
+            lifetimePrice: Number(res.data.data.lifetimePrice)
           });
         }
-      } catch (e) {}
+      } catch (e) {
+        setPrices(null);
+      }
     };
     fetchPrices();
   }, []);
@@ -875,7 +874,7 @@ export default function LandingPageSaas({
                       <span className="px-2 py-0.5 bg-[#0052FF] text-white rounded-full font-bold text-[9px]">Pilihan Populer</span>
                     </div>
                     <div className="font-black text-base text-[#0052FF] font-mono">
-                      Rp {prices.tahunanPrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span>
+                      {prices ? `Rp ${prices.tahunanPrice.toLocaleString('id-ID')}` : 'Memuat harga...'} <span className="text-[10px] font-sans text-slate-500 font-normal">/ tahun</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Database mandiri, hingga 1.000 santri, King Digital PG Ready, & Update 1 tahun.</p>
                   </div>
@@ -894,7 +893,7 @@ export default function LandingPageSaas({
                       <span className="px-2 py-0.5 bg-[#8CE829] text-slate-950 rounded-full font-bold text-[9px]">Hemat Permanen</span>
                     </div>
                     <div className="font-black text-base text-slate-900 font-mono">
-                      Rp {prices.lifetimePrice.toLocaleString('id-ID')} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span>
+                      {prices ? `Rp ${prices.lifetimePrice.toLocaleString('id-ID')}` : 'Memuat harga...'} <span className="text-[10px] font-sans text-slate-500 font-normal">sekali bayar</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">Lisensi permanen tanpa biaya tahunan, kapasitas unlimited santri, & support prioritas.</p>
                   </div>
