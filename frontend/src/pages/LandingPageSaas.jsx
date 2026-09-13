@@ -41,6 +41,7 @@ import { registerMitraTenant, checkSubdomainAvailability, getMitraConfig } from 
 import PaymentCheckout from '../components/PaymentCheckout';
 import AestheticToast from '../components/AestheticToast';
 import DeveloperFooter from '../components/DeveloperFooter';
+import MobileAppInstallModal from '../components/MobileAppInstallModal';
 
 export default function LandingPageSaas({ 
   onBackToPesantrenDemo, 
@@ -104,6 +105,7 @@ export default function LandingPageSaas({
   const [createdOrder, setCreatedOrder] = useState(null);
   const [activeIllustrationTab, setActiveIllustrationTab] = useState('ktsd');
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
 
   // Toast Notification
   const [toast, setToast] = useState({
@@ -316,7 +318,18 @@ export default function LandingPageSaas({
             <a href="#faq" className="hover:text-[#0052FF] transition-colors">Tanya Jawab</a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Tombol Unduh APK Android */}
+            <button
+              onClick={() => setIsMobileModalOpen(true)}
+              className="px-3.5 py-2 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold transition-all flex items-center gap-1.5 text-xs cursor-pointer shadow-xs"
+              title="Download Aplikasi Android (.APK)"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Download APK</span>
+              <span className="sm:hidden">APK</span>
+            </button>
+
             {/* Tombol Masuk Portal Tenant (app.sipesand.web.id) */}
             <button
               onClick={onGoToAppGateway}
@@ -1077,6 +1090,12 @@ export default function LandingPageSaas({
         title={toast.title}
         message={toast.message}
         onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Mobile App & APK Download Modal */}
+      <MobileAppInstallModal
+        isOpen={isMobileModalOpen}
+        onClose={() => setIsMobileModalOpen(false)}
       />
 
       {/* Footer */}

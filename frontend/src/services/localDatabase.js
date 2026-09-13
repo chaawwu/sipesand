@@ -7,20 +7,48 @@
  * baik saat backend live maupun ketika berjalan murni di Cloudflare Pages/offline.
  */
 
+export function cleanTenantInput(input) {
+  if (!input) return null;
+  let clean = String(input).trim().toLowerCase();
+  // Strip protocol
+  clean = clean.replace(/^https?:\/\//i, '');
+  // Strip path or query
+  clean = clean.split('/')[0].split('?')[0];
+  // If user entered e.g. "namapondok.sipesand.web.id", extract "namapondok"
+  if (clean.includes('.sipesand.web.id')) {
+    clean = clean.replace('.sipesand.web.id', '').split('.')[0];
+  }
+  // Strip invalid characters
+  clean = clean.replace(/[^a-z0-9-_]/g, '');
+  const ignored = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost'];
+  return (clean && !ignored.includes(clean)) ? clean : null;
+}
+
+export function isCapacitorNative() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.Capacitor?.isNativePlatform?.() ||
+    window.location.hostname === 'localhost' ||
+    window.location.protocol === 'capacitor:'
+  );
+}
+
 export function getCurrentTenant() {
   if (typeof window === 'undefined') return 'darulrahman';
   const searchParams = new URLSearchParams(window.location.search);
   const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
-  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'];
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost'];
 
-  // 1. URL search params (e.g. ?tenant=darulrahman)
-  if (tenantQuery && !ignoredSubdomains.includes(tenantQuery.toLowerCase().trim())) {
-    const t = tenantQuery.toLowerCase().trim();
-    try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
-    return t;
+  // 1. URL search params (e.g. ?tenant=namapondok)
+  if (tenantQuery) {
+    const cleaned = cleanTenantInput(tenantQuery);
+    if (cleaned) {
+      try { localStorage.setItem('sipesand_active_tenant', cleaned); } catch (e) {}
+      return cleaned;
+    }
   }
 
-  // 2. Subdomain on sipesand.web.id (e.g. darulrahman.sipesand.web.id)
+  // 2. Subdomain on sipesand.web.id (e.g. namapondok.sipesand.web.id)
   const hostname = window.location.hostname.toLowerCase();
   if (hostname.includes('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
@@ -31,7 +59,7 @@ export function getCurrentTenant() {
     }
   }
 
-  // 3. Subdomain on localhost (e.g. darulrahman.localhost)
+  // 3. Subdomain on localhost (e.g. namapondok.localhost)
   if (hostname.endsWith('.localhost')) {
     const parts = hostname.replace('.localhost', '').split('.');
     if (parts.length > 0 && parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
@@ -41,27 +69,28 @@ export function getCurrentTenant() {
     }
   }
 
-  // 4. Stored active tenant in localStorage for multi-device session continuity
+  // 4. Stored active tenant in localStorage (Sangat penting untuk Aplikasi Mobile / Capacitor)
   try {
     const stored = localStorage.getItem('sipesand_active_tenant');
-    if (stored && !ignoredSubdomains.includes(stored.toLowerCase().trim())) {
-      return stored.toLowerCase().trim();
+    if (stored) {
+      const cleaned = cleanTenantInput(stored);
+      if (cleaned) return cleaned;
     }
   } catch (e) {}
 
-  // 5. Stored user session tenant
+  // 5. Stored user session tenant (Jika user santri/wali/admin sudah login ke pondok tertentu)
   try {
     const rawUser = localStorage.getItem('sipesand_user') || sessionStorage.getItem('sipesand_user');
     if (rawUser) {
       const u = JSON.parse(rawUser);
-      if (u.tenant && !ignoredSubdomains.includes(u.tenant.toLowerCase().trim())) {
-        return u.tenant.toLowerCase().trim();
+      if (u.tenant) {
+        const cleaned = cleanTenantInput(u.tenant);
+        if (cleaned) return cleaned;
       }
     }
   } catch (e) {}
 
-  // 6. Default active pesantren tenant across all devices:
-  // Selalu menghubungkan ke 'darulrahman' sebagai tenant operasional utama
+  // 6. Default active pesantren tenant:
   return 'darulrahman';
 }
 

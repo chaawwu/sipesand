@@ -33,6 +33,9 @@ import BlogPage from './pages/BlogPage';
 import SantriDigitalCardPage from './pages/SantriDigitalCardPage';
 import { SEO_PILLAR_PAGES } from './data/seoData';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
+import MobileTenantSwitcherModal from './components/MobileTenantSwitcherModal';
+import { initMobileAppBridge, isMobileNative } from './services/mobileAppService';
+import { getCurrentTenant } from './services/localDatabase';
 
 function resolveInitialView() {
   if (typeof window === 'undefined') return 'landing-saas';
@@ -84,6 +87,21 @@ function resolveInitialView() {
   if (tenant && !['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'].includes(tenant.toLowerCase().trim())) {
     return 'landing';
   }
+
+  // 6b. Mobile Native App (Capacitor / Android APK)
+  try {
+    const isCapacitorApp = Boolean(
+      window.Capacitor?.isNativePlatform?.() ||
+      window.location.protocol === 'capacitor:' ||
+      (hostname === 'localhost' && window.navigator?.userAgent?.includes('Android'))
+    );
+    if (isCapacitorApp) {
+      const storedTenant = localStorage.getItem('sipesand_active_tenant');
+      if (storedTenant && !['master', 'saas', 'app', 'mitra'].includes(storedTenant)) {
+        return 'landing';
+      }
+    }
+  } catch (e) {}
 
   if (hostname.endsWith('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
@@ -151,8 +169,18 @@ function MainAppContent() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isTenantSwitcherOpen, setIsTenantSwitcherOpen] = useState(false);
 
   const { isNfcEnabled, isTenantInstance, activeTenantSubdomain } = useSettings();
+
+  // Inisialisasi Mobile App Native Bridge & Deep Links
+  React.useEffect(() => {
+    initMobileAppBridge((detectedTenant) => {
+      if (detectedTenant) {
+        window.location.reload();
+      }
+    });
+  }, []);
 
   // Otomatis Deteksi Subdomain, Path Legal, Blog & SEO Pillars
   React.useEffect(() => {
@@ -775,6 +803,25 @@ function MainAppContent() {
           onClose={() => setIsNfcModalOpen(false)}
           onSuccess={handleNfcSuccess}
         />
+      )}
+
+      {/* Global Mobile Multi-Tenant Switcher Modal */}
+      <MobileTenantSwitcherModal
+        isOpen={isTenantSwitcherOpen}
+        onClose={() => setIsTenantSwitcherOpen(false)}
+        onTenantChanged={() => setIsTenantSwitcherOpen(false)}
+      />
+
+      {/* Floating Native Mobile Tenant Indicator */}
+      {isMobileNative() && (
+        <button
+          onClick={() => setIsTenantSwitcherOpen(true)}
+          className="fixed bottom-4 left-4 z-40 px-3 py-1.5 bg-blue-900/90 hover:bg-blue-900 text-white rounded-full shadow-lg border border-blue-400/30 flex items-center gap-1.5 text-[11px] font-bold backdrop-blur-md"
+          title="Pilih / Ganti Lembaga Pondok Pesantren"
+        >
+          <span>🏛️ {getCurrentTenant()}</span>
+          <span className="text-[9px] bg-blue-500/40 text-blue-200 px-1.5 py-0.5 rounded-full uppercase">Ganti</span>
+        </button>
       )}
     </div>
   );

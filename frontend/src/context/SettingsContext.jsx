@@ -53,10 +53,12 @@ export function getActiveTenantSubdomain() {
   if (typeof window === 'undefined') return null;
   const searchParams = new URLSearchParams(window.location.search);
   const qTenant = searchParams.get('tenant') || searchParams.get('subdomain');
-  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin'];
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost'];
 
   if (qTenant && !ignoredSubdomains.includes(qTenant.toLowerCase().trim())) {
-    return qTenant.toLowerCase().trim();
+    const t = qTenant.toLowerCase().trim();
+    try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+    return t;
   }
 
   const hostname = window.location.hostname.toLowerCase();
@@ -80,7 +82,9 @@ export function getActiveTenantSubdomain() {
   if (hostname.endsWith('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
     if (parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
-      return parts[0].trim();
+      const t = parts[0].trim();
+      try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+      return t;
     }
     return null;
   }
@@ -89,12 +93,32 @@ export function getActiveTenantSubdomain() {
   if (hostname.endsWith('.localhost')) {
     const parts = hostname.replace('.localhost', '').split('.');
     if (parts[0] && !ignoredSubdomains.includes(parts[0].trim())) {
-      return parts[0].trim();
+      const t = parts[0].trim();
+      try { localStorage.setItem('sipesand_active_tenant', t); } catch (e) {}
+      return t;
     }
     return null;
   }
 
-  // Default non-tenant for root preview (pages.dev, IP, or plain localhost without ?tenant=)
+  // Check stored active tenant (Crucial for Capacitor Mobile App where hostname is localhost)
+  try {
+    const stored = localStorage.getItem('sipesand_active_tenant');
+    if (stored && !ignoredSubdomains.includes(stored.toLowerCase().trim())) {
+      return stored.toLowerCase().trim();
+    }
+  } catch (e) {}
+
+  // Check stored user session tenant
+  try {
+    const rawUser = localStorage.getItem('sipesand_user') || sessionStorage.getItem('sipesand_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u.tenant && !ignoredSubdomains.includes(u.tenant.toLowerCase().trim())) {
+        return u.tenant.toLowerCase().trim();
+      }
+    }
+  } catch (e) {}
+
   return null;
 }
 

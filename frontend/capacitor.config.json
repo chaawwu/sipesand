@@ -1,0 +1,31 @@
+{
+  "appId": "id.web.sipesand.app",
+  "appName": "SiPesand",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "*.sipesand.web.id",
+      "sipesand.web.id",
+      "firestore.googleapis.com",
+      "identitytoolkit.googleapis.com",
+      "securetoken.googleapis.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#0052FF",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0052FF"
+    }
+  }
+}

@@ -1,0 +1,94 @@
+name: Build SiPesand Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 🚀 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📱 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: 🏗️ Build Vite Frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: 🔄 Sync Capacitor Android
+        working-directory: ./frontend
+        run: npx cap sync android
+
+      - name: 🔑 Make Gradlew Executable
+        working-directory: ./frontend/android
+        run: chmod +x ./gradlew
+
+      - name: 🔨 Compile Android APK (Debug / Direct Installable)
+        working-directory: ./frontend/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: 📂 Prepare APK Output
+        run: |
+          mkdir -p dist-apk
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-app.apk
+          ls -la dist-apk/
+
+      - name: 📤 Upload APK Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: sipesand-apk
+          path: dist-apk/sipesand-app.apk
+          retention-days: 30
+
+      - name: 🏷️ Publish APK to GitHub Releases (Optional / Automated)
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: "mobile-apk-latest"
+          name: "SiPesand Mobile App (Android APK)"
+          body: |
+            ### 📱 Aplikasi SiPesand Mobile (Android APK)
+            
+            Unduh file APK resmi SiPesand untuk dipasang di smartphone Android Anda.
+            
+            #### Fitur Utama:
+            - **Multi-Tenant Otomatis**: Hubungkan ke subdomain pondok Anda (contoh: `namapondok.sipesand.web.id`). Database terisolasi penuh.
+            - **Native Performance**: Akses cepat, kamera scan bukti bayar & QR KTSD santri.
+            - **Offline-First Sync**: Tersinkronisasi aman dengan Firebase Cloud Firestore.
+            
+            #### Cara Pasang:
+            1. Unduh file `sipesand-app.apk` di bawah.
+            2. Buka file di HP Android dan izinkan instalasi dari sumber tidak dikenal.
+            3. Masukkan kode/domain pondok Anda dan nikmati aplikasi.
+          files: dist-apk/sipesand-app.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
