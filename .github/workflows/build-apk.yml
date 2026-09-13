@@ -90,10 +90,10 @@ jobs:
       - name: 🏷️ Publish APK to GitHub Releases (Optional / Automated)
         continue-on-error: true
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: "mobile-apk-latest"
-          name: "SiPesand Mobile App (Android APK)"
+          tag_name: "v1.0.0-apk"
+          name: "SiPesand Mobile App v1.0.0 (Android APK)"
           body: |
             ### 📱 Aplikasi SiPesand Mobile (Android APK)
             
