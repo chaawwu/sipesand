@@ -58,8 +58,10 @@ jobs:
       - name: 🔨 Compile Android APK (Debug / Direct Installable)
         working-directory: ./frontend/android
         run: |
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon > build.log 2>&1 || (cat build.log && exit 1)
 
       - name: 📂 Prepare APK Output
         run: |
@@ -73,6 +75,14 @@ jobs:
           name: sipesand-apk
           path: dist-apk/sipesand-app.apk
           retention-days: 30
+
+      - name: 📝 Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: frontend/android/build.log
+          retention-days: 7
 
       - name: 🏷️ Publish APK to GitHub Releases (Optional / Automated)
         continue-on-error: true
