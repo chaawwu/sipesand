@@ -63,16 +63,7 @@ jobs:
         run: |
           echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
           chmod +x ./gradlew
-          if ! ./gradlew assembleDebug --stacktrace --no-daemon > error.txt 2>&1; then
-            cat error.txt
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git checkout -b build-log
-            git add error.txt
-            git commit -m "ci: capture gradle build error"
-            git push origin build-log -f || true
-            exit 1
-          fi
+          ./gradlew assembleDebug --no-daemon
 
       - name: 📂 Prepare APK Output
         run: |
