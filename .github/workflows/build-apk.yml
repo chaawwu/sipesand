@@ -48,17 +48,18 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: 🔑 Make Gradlew Executable
-        run: |
-          chmod +x frontend/android/gradlew || true
-
-      - name: 🔄 Sync Capacitor Android
+      - name: 🔄 Copy Web Assets & Sync Capacitor
         working-directory: ./frontend
-        run: npx cap sync android
+        run: |
+          chmod +x android/gradlew || true
+          npx --yes @capacitor/cli copy android
+          npx --yes @capacitor/cli sync android || true
 
       - name: 🔨 Compile Android APK (Debug / Direct Installable)
         working-directory: ./frontend/android
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: 📂 Prepare APK Output
         run: |
