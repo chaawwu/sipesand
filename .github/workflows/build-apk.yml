@@ -48,13 +48,12 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: 🔄 Copy Web Assets & Sync Capacitor
-        working-directory: ./frontend
+      - name: 🔄 Copy Web Assets to Android Project
         run: |
-          mkdir -p android/app/src/main/assets
-          chmod +x android/gradlew || true
-          ./node_modules/.bin/cap copy android
-          ./node_modules/.bin/cap sync android || true
+          mkdir -p frontend/android/app/src/main/assets/public
+          cp -r frontend/dist/* frontend/android/app/src/main/assets/public/
+          cp frontend/capacitor.config.json frontend/android/app/src/main/assets/capacitor.config.json
+          chmod +x frontend/android/gradlew
 
       - name: 🔨 Compile Android APK (Debug / Direct Installable)
         working-directory: ./frontend/android
