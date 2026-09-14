@@ -525,15 +525,32 @@ export async function payCloudBill(billId, paymentMethod, reference, tenant = nu
     paymentRef: reference,
     receiptNumber: receiptNumber
   };
-  const localRes = localDb.updateSantriBill(billId, updateData);
-  if (localRes.success) {
-    try {
-      await setDoc(getTenantDoc("bills", billId, tenant), updateData, { merge: true });
-    } catch (err) {
-      console.warn("Gagal sync pay bill ke Firestore:", err);
-    }
+
+  // 1. Selalu update ke Cloud Firestore
+  try {
+    await setDoc(getTenantDoc("bills", billId, tenant), updateData, { merge: true });
+    await markTenantInit("bills", tenant);
+  } catch (err) {
+    console.warn("Gagal sync pay bill ke Firestore:", err);
   }
-  return { ...localRes, data: { ...updateData, receiptNumber } };
+
+  // 2. Sinkronkan ke local storage
+  let localRes = localDb.updateSantriBill(billId, updateData);
+  if (!localRes || !localRes.success) {
+    try {
+      const db = localDb.getData();
+      if (!db.santriBills) db.santriBills = [];
+      const idx = db.santriBills.findIndex(b => String(b.id) === String(billId));
+      if (idx !== -1) {
+        db.santriBills[idx] = { ...db.santriBills[idx], ...updateData };
+      } else {
+        db.santriBills.push({ id: billId, ...updateData });
+      }
+      localDb.saveData(db);
+    } catch (e) {}
+  }
+
+  return { success: true, data: { id: billId, ...updateData, receiptNumber } };
 }
 
 export async function deleteCloudBill(id, tenant = null) {

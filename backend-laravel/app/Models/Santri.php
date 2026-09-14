@@ -2,30 +2,52 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Santri extends Model
 {
-    protected $fillable = [
-        'tenant_subdomain',
-        'nis',
-        'nama',
-        'kelas',
-        'kamar',
-        'nfc_uid',
-        'status_kehadiran',
-        'saldo_saku',
-        'wali_nama',
-        'wali_phone',
-    ];
+    use HasFactory;
 
-    public function attendances()
+    protected $guarded = ['id'];
+
+    public function pesantren()
     {
-        return $this->hasMany(NfcAttendance::class);
+        return $this->belongsTo(Pesantren::class);
     }
 
-    public function payments()
+    public function wali()
     {
-        return $this->hasMany(KaserapayPayment::class);
+        return $this->belongsTo(WaliSantri::class, 'wali_id');
+    }
+
+    public function pembayarans()
+    {
+        return $this->hasMany(Pembayaran::class);
+    }
+
+    public function uangSakus()
+    {
+        return $this->hasMany(UangSaku::class);
+    }
+
+    public function nilais()
+    {
+        return $this->hasMany(Nilai::class);
+    }
+
+    public function hafalans()
+    {
+        return $this->hasMany(Hafalan::class);
+    }
+
+    public function absensis()
+    {
+        return $this->hasMany(Absensi::class);
+    }
+
+    public function perizinans()
+    {
+        return $this->hasMany(Perizinan::class);
     }
 }

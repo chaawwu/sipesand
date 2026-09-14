@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="royal_blue_dark">#07266E</color>
+    <color name="royal_blue_primary">#0A389C</color>
+    <color name="royal_blue_light">#1E40AF</color>
+    <color name="surface_bg">#F8FAFC</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="accent_green">#16A34A</color>
+    <color name="accent_amber">#D97706</color>
+</resources>
