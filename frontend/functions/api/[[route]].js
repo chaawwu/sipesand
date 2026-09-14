@@ -868,6 +868,7 @@ export async function onRequest(context) {
       }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
       let filtered = enriched;
+      const searchParams = url.searchParams;
       const statusParam = searchParams.get('status');
       const santriIdParam = searchParams.get('santriId');
       const monthParam = searchParams.get('hijriMonth');
