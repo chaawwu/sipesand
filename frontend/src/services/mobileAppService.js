@@ -107,8 +107,7 @@ export function getApkDownloadUrl() {
       return `${origin}/download/sipesand.apk`;
     }
   }
-  // 2. Default link GitHub Releases atau direct web
-  return 'https://github.com/chaawwu/sipesand/releases/latest/download/sipesand-release.apk';
+  return 'https://github.com/chaawwu/sipesand/releases/download/v1.0.0-apk/sipesand-app.apk';
 }
 
 /**
