@@ -447,15 +447,17 @@ export async function getCloudBills(tenant = null) {
       const dbLocal = localDb.getData();
       dbLocal.santriBills = items;
       localDb.saveData(dbLocal);
-      return { success: true, data: items };
-    } else {
-      const initialized = await isTenantInit("bills", tenant);
-      if (initialized) {
-        const dbLocal = localDb.getData();
-        dbLocal.santriBills = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
-      }
+
+      const enriched = items.map(b => {
+        const s = (dbLocal.santri || []).find(santri => String(santri.id) === String(b.santriId));
+        const m = (dbLocal.masterBills || []).find(master => String(master.id) === String(b.masterBillId));
+        return {
+          ...b,
+          santri: s || b.santri || null,
+          masterBill: m || b.masterBill || null
+        };
+      });
+      return { success: true, data: enriched };
     }
   } catch (err) {
     console.warn("Firebase getCloudBills fallback local:", err);
@@ -467,13 +469,26 @@ export function subscribeCloudBills(tenant = null, callback) {
   try {
     const colRef = getTenantCol("bills", tenant);
     return onSnapshot(colRef, (snapshot) => {
-      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (items.length > 0) {
-        const dbLocal = localDb.getData();
+      const dbLocal = localDb.getData();
+      if (!snapshot.empty) {
+        const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         dbLocal.santriBills = items;
         localDb.saveData(dbLocal);
+
+        const enriched = items.map(b => {
+          const s = (dbLocal.santri || []).find(santri => String(santri.id) === String(b.santriId));
+          const m = (dbLocal.masterBills || []).find(master => String(master.id) === String(b.masterBillId));
+          return {
+            ...b,
+            santri: s || b.santri || null,
+            masterBill: m || b.masterBill || null
+          };
+        });
+        callback(enriched);
+      } else {
+        const localRes = localDb.getSantriBills();
+        callback(localRes.data || []);
       }
-      callback(items);
     }, (err) => {
       console.warn("subscribeCloudBills snapshot error:", err);
     });

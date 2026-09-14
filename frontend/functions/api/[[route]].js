@@ -513,6 +513,381 @@ export async function onRequest(context) {
       });
     }
 
+    // -------------------------------------------------------------------------
+    // 5B. /api/bills/master (GET / POST / PUT / DELETE Master Pos Tagihan)
+    // -------------------------------------------------------------------------
+    if (route === 'bills/master') {
+      if (method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills`);
+        let list = [];
+        if (res.ok) {
+          const json = await res.json();
+          list = (json.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+        }
+
+        // Auto-seed template master tagihan standar pesantren jika masih kosong
+        if (list.length === 0) {
+          const defaultMasters = [
+            { id: '1', name: 'SPP Syahriyah Pesantren', amount: 1200000, type: 'BULANAN_HIJRIYAH', description: 'SPP Pendidikan, Muhafadzoh, & Asrama Bulanan', isActive: true, createdAt: new Date().toISOString() },
+            { id: '2', name: 'Biaya Konsumsi Dapur Santri', amount: 650000, type: 'BULANAN_HIJRIYAH', description: 'Konsumsi dapur santri 3x sehari berstandar gizi', isActive: true, createdAt: new Date().toISOString() },
+            { id: '3', name: 'Paket Kitab & Modul Salafiyah', amount: 350000, type: 'TAHUNAN', description: 'Kitab Salafiyah, Kamus Bahasa, & Buku Panduan Tahunan', isActive: true, createdAt: new Date().toISOString() }
+          ];
+          for (const m of defaultMasters) {
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${m.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc(m))
+            });
+          }
+          list = defaultMasters;
+        }
+
+        return jsonResponse({ success: true, data: list });
+      }
+
+      if (method === 'POST') {
+        const body = await request.json();
+        const docId = String(body.id || Date.now());
+        const masterData = {
+          id: docId,
+          name: body.name || 'Pos Tagihan Baru',
+          amount: parseFloat(body.amount || 0),
+          type: body.type || 'BULANAN_HIJRIYAH',
+          description: body.description || '',
+          isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
+          createdAt: new Date().toISOString()
+        };
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(masterData))
+        });
+        return jsonResponse({ success: true, message: 'Master tagihan berhasil disimpan', data: masterData }, 201);
+      }
+    }
+
+    if (route.startsWith('bills/master/') && method === 'PUT') {
+      const masterId = route.replace('bills/master/', '').trim();
+      const body = await request.json();
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${masterId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({ ...body, updatedAt: new Date().toISOString() }))
+      });
+      return jsonResponse({ success: true, message: 'Master tagihan berhasil diperbarui' });
+    }
+
+    if (route.startsWith('bills/master/') && method === 'DELETE') {
+      const masterId = route.replace('bills/master/', '').trim();
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${masterId}`, { method: 'DELETE' });
+      return jsonResponse({ success: true, message: 'Master tagihan berhasil dihapus' });
+    }
+
+    // -------------------------------------------------------------------------
+    // 5C. /api/bills/generate-mass & /api/bills/auto-generate-hijri
+    // -------------------------------------------------------------------------
+    if ((route === 'bills/generate-mass' || route === 'bills/auto-generate-hijri') && method === 'POST') {
+      const body = await request.json();
+      const { masterBillId, hijriMonth = 'Ramadhan', hijriYear = '1447 H', targetSantriIds, customBillTitle, customBillAmount, dueDate } = body;
+
+      const santriRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+      let allSantri = [];
+      if (santriRes.ok) {
+        const sJson = await santriRes.json();
+        allSantri = (sJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }))
+          .filter(s => s.status === 'AKTIF' || !s.status);
+      }
+
+      const targetList = Array.isArray(targetSantriIds) && targetSantriIds.length > 0
+        ? allSantri.filter(s => targetSantriIds.map(String).includes(String(s.id)))
+        : allSantri;
+
+      let masterName = customBillTitle || 'Tagihan Syahriyah Santri';
+      let masterAmount = parseFloat(customBillAmount || 0);
+
+      if (masterBillId) {
+        const mRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${masterBillId}`);
+        if (mRes.ok) {
+          const mJson = await mRes.json();
+          const mData = decodeFields(mJson.fields);
+          masterName = customBillTitle || mData.name;
+          if (!masterAmount) masterAmount = parseFloat(mData.amount || 0);
+        }
+      }
+
+      const createdBills = [];
+      for (const s of targetList) {
+        const billId = `BILL-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const billCode = `SPP-${Date.now().toString().slice(-6)}`;
+        const newBill = {
+          id: billId,
+          billCode,
+          santriId: String(s.id),
+          masterBillId: masterBillId ? String(masterBillId) : '1',
+          title: `${masterName} - ${hijriMonth} ${hijriYear}`,
+          hijriMonth,
+          hijriYear,
+          amount: masterAmount,
+          dueDate: dueDate || new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().split('T')[0],
+          status: 'UNPAID',
+          createdAt: new Date().toISOString()
+        };
+
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(newBill))
+        });
+
+        createdBills.push({ ...newBill, santri: s });
+      }
+
+      return jsonResponse({
+        success: true,
+        message: `Berhasil menerbitkan ${createdBills.length} tagihan santri untuk periode ${hijriMonth} ${hijriYear}.`,
+        count: createdBills.length,
+        data: { bills: createdBills }
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 5D. /api/bills/verify-payment/:id (ACC Verifikasi & Terbitkan Kwitansi Sah)
+    // -------------------------------------------------------------------------
+    if (route.startsWith('bills/verify-payment/') && method === 'POST') {
+      const billId = route.replace('bills/verify-payment/', '').trim();
+      const body = await request.json().catch(() => ({}));
+      const billRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`);
+      if (!billRes.ok) {
+        return jsonResponse({ success: false, message: 'Tagihan tidak ditemukan' }, 404);
+      }
+      const bDoc = await billRes.json();
+      const bData = decodeFields(bDoc.fields);
+      const nowIso = new Date().toISOString();
+      const receiptNumber = bData.receiptNumber || `KWT-${bData.billCode || Date.now().toString().slice(-6)}`;
+
+      const updateData = {
+        status: 'PAID',
+        verifiedAt: nowIso,
+        paidAt: nowIso,
+        paymentMethod: body.paymentMethod || 'MANUAL_TRANSFER',
+        receiptNumber
+      };
+
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(updateData))
+      });
+
+      // Catat otomatis ke Buku Kas Umum (Ledger)
+      const ledgerId = `TX-${Date.now()}`;
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          id: ledgerId,
+          type: 'INCOME',
+          category: 'SPP',
+          amount: parseFloat(bData.amount || 0),
+          description: `Pembayaran ${bData.title} - No. Kwitansi: ${receiptNumber}`,
+          reference: receiptNumber,
+          date: nowIso,
+          createdAt: nowIso
+        }))
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Pembayaran tagihan berhasil diverifikasi dan kwitansi sah diterbitkan',
+        data: { ...bData, ...updateData }
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 5E. /api/bills/pay-online (Upload bukti transfer dari Portal Wali)
+    // -------------------------------------------------------------------------
+    if (route === 'bills/pay-online' && method === 'POST') {
+      const body = await request.json();
+      const { billId, proofUrl, proofNote, senderName } = body;
+      if (!billId) return jsonResponse({ success: false, message: 'ID tagihan wajib disertakan' }, 400);
+
+      const updateData = {
+        status: 'PENDING_VERIFICATION',
+        proofUrl: proofUrl || '',
+        proofNote: proofNote || 'Upload Bukti Pembayaran Portal Wali',
+        senderName: senderName || 'Wali Santri',
+        updatedAt: new Date().toISOString()
+      };
+
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(updateData))
+      });
+
+      return jsonResponse({ success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' });
+    }
+
+    // -------------------------------------------------------------------------
+    // 5F. /api/bills/:id (PUT / DELETE tagihan santri)
+    // -------------------------------------------------------------------------
+    if (route.startsWith('bills/') && !route.includes('master') && !route.includes('generate') && !route.includes('verify') && !route.includes('pay-online')) {
+      const billId = route.replace('bills/', '').trim();
+      if (method === 'PUT') {
+        const body = await request.json();
+        const nowIso = new Date().toISOString();
+        const updatePayload = { ...body, updatedAt: nowIso };
+        if (body.status === 'PAID' && !body.receiptNumber) {
+          updatePayload.receiptNumber = `KWT-${Date.now().toString().slice(-6)}`;
+          updatePayload.paidAt = body.paidAt || nowIso;
+          updatePayload.verifiedAt = body.verifiedAt || nowIso;
+        }
+
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(updatePayload))
+        });
+
+        return jsonResponse({ success: true, message: 'Tagihan santri berhasil diperbarui', data: updatePayload });
+      }
+
+      if (method === 'DELETE') {
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, { method: 'DELETE' });
+        return jsonResponse({ success: true, message: 'Tagihan santri berhasil dihapus' });
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 5G. /api/bills (GET daftar tagihan santri & riwayat kwitansi sah)
+    // -------------------------------------------------------------------------
+    if (route === 'bills' && method === 'GET') {
+      const [billsRes, santriRes, masterRes] = await Promise.all([
+        fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills`),
+        fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`),
+        fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills`)
+      ]);
+
+      let bills = [];
+      let santriList = [];
+      let masterList = [];
+
+      if (santriRes.ok) {
+        const sJson = await santriRes.json();
+        santriList = (sJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+      }
+      if (masterRes.ok) {
+        const mJson = await masterRes.json();
+        masterList = (mJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+      }
+      if (billsRes.ok) {
+        const bJson = await billsRes.json();
+        bills = (bJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+      }
+
+      // Jika belum ada tagihan di Firestore DAN ada data santri, auto-seed tagihan awal
+      if (bills.length === 0 && santriList.length > 0) {
+        const initialBills = [];
+        for (const s of santriList) {
+          const now = new Date();
+          const lastMonth = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+
+          // 1. Tagihan SPP Bulan Ini (UNPAID)
+          const b1Id = `BILL-${Date.now().toString(36).toUpperCase()}-1`;
+          const b1 = {
+            id: b1Id,
+            billCode: `SPP-${Math.floor(100000 + Math.random() * 900000)}`,
+            santriId: String(s.id),
+            masterBillId: '1',
+            title: 'SPP Syahriyah Ramadhan 1447 H',
+            hijriMonth: 'Ramadhan',
+            hijriYear: '1447 H',
+            amount: 1200000,
+            dueDate: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            status: 'UNPAID',
+            createdAt: now.toISOString()
+          };
+
+          // 2. Tagihan Konsumsi Bulan Ini (UNPAID)
+          const b2Id = `BILL-${Date.now().toString(36).toUpperCase()}-2`;
+          const b2 = {
+            id: b2Id,
+            billCode: `KNS-${Math.floor(100000 + Math.random() * 900000)}`,
+            santriId: String(s.id),
+            masterBillId: '2',
+            title: 'Biaya Konsumsi Dapur Ramadhan 1447 H',
+            hijriMonth: 'Ramadhan',
+            hijriYear: '1447 H',
+            amount: 650000,
+            dueDate: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            status: 'UNPAID',
+            createdAt: now.toISOString()
+          };
+
+          // 3. Tagihan Bulan Lalu (PAID) - Untuk Riwayat Kwitansi Sah
+          const b3Id = `BILL-${Date.now().toString(36).toUpperCase()}-PAID`;
+          const b3 = {
+            id: b3Id,
+            billCode: `SPP-144708`,
+            receiptNumber: `KWT-SPP-144708-001`,
+            santriId: String(s.id),
+            masterBillId: '1',
+            title: 'SPP Syahriyah Sya\'ban 1447 H',
+            hijriMonth: 'Sya\'ban',
+            hijriYear: '1447 H',
+            amount: 1200000,
+            dueDate: lastMonth.toISOString().split('T')[0],
+            status: 'PAID',
+            paymentMethod: 'TRANSFER_BANK_BSI',
+            paidAt: lastMonth.toISOString(),
+            verifiedAt: lastMonth.toISOString(),
+            createdAt: lastMonth.toISOString()
+          };
+
+          for (const b of [b1, b2, b3]) {
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${b.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc(b))
+            });
+            initialBills.push(b);
+          }
+        }
+        bills = initialBills;
+      }
+
+      // Hubungkan relasi santri dan masterBill ke setiap tagihan
+      const enriched = bills.map(b => {
+        const s = santriList.find(s => String(s.id) === String(b.santriId));
+        const m = masterList.find(m => String(m.id) === String(b.masterBillId));
+        return {
+          ...b,
+          santri: s || null,
+          masterBill: m || null
+        };
+      }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+      let filtered = enriched;
+      const statusParam = searchParams.get('status');
+      const santriIdParam = searchParams.get('santriId');
+      const monthParam = searchParams.get('hijriMonth');
+      const qParam = searchParams.get('search');
+
+      if (statusParam) filtered = filtered.filter(b => b.status === statusParam);
+      if (santriIdParam) filtered = filtered.filter(b => String(b.santriId) === String(santriIdParam));
+      if (monthParam) filtered = filtered.filter(b => b.hijriMonth === monthParam);
+      if (qParam) {
+        const q = qParam.toLowerCase();
+        filtered = filtered.filter(b => 
+          (b.title && b.title.toLowerCase().includes(q)) ||
+          (b.santri?.nama && b.santri.nama.toLowerCase().includes(q)) ||
+          (b.santri?.nis && b.santri.nis.toLowerCase().includes(q))
+        );
+      }
+
+      return jsonResponse({ success: true, data: filtered });
+    }
+
     // 6. /api/ledger
     if (route === 'ledger') {
       if (method === 'GET') {
@@ -1113,18 +1488,143 @@ export async function onRequest(context) {
         redirectUrl: `https://${cleanSub}.sipesand.web.id`
       };
 
+      // -----------------------------------------------------------------------
+      // KASERAPAY GATEWAY: Terbitkan Transaksi & Checkout Link Otomatis
+      // -----------------------------------------------------------------------
+      const apiKey = context.env?.KASERAPAY_API_KEY || '';
+      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      let checkoutUrl = `https://pay.kasera.id/checkout/${orderId}?amount=${totalAmount}`;
+      let qrString = cfg.qrisString;
+
+      if (apiKey) {
+        try {
+          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              external_id: orderId,
+              amount: parseInt(totalAmount, 10),
+              customer_name: namaPengelola,
+              customer_phone: noWhatsapp,
+              customer_email: email,
+              description: `Langganan SiPesand - ${namaPondok} (${packageType})`,
+              payment_method: 'ALL',
+              callback_url: `https://sipesand.web.id/api/payments/status/${orderId}`
+            })
+          });
+          if (kaseraRes.ok) {
+            const kJson = await kaseraRes.json();
+            checkoutUrl = kJson.checkout_url || kJson.payment_url || checkoutUrl;
+            if (kJson.qr_string) qrString = kJson.qr_string;
+          }
+        } catch (e) {
+          console.warn('KaseraPay subscription create error:', e);
+        }
+      }
+
+      orderData.checkoutUrl = checkoutUrl;
+      orderData.qrString = qrString;
+
       await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(encodeDoc(orderData))
       });
 
+      // Simpan juga referensi payment di koleksi master/payments
+      await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          id: orderId,
+          external_id: orderId,
+          order_id: orderId,
+          tenant_subdomain: cleanSub,
+          nama_pondok: namaPondok,
+          amount: parseFloat(totalAmount),
+          title: `Langganan SiPesand Paket ${packageType}`,
+          customer_name: namaPengelola,
+          customer_email: email,
+          customer_phone: noWhatsapp,
+          status: 'PENDING',
+          checkout_url: checkoutUrl,
+          qr_string: qrString,
+          createdAt: new Date().toISOString()
+        }))
+      });
+
       await logAuditEvent('ORDER_CREATED', `Pendaftaran baru: ${namaPondok} (${cleanSub}) paket ${packageType} Rp ${totalAmount.toLocaleString('id-ID')}`, email);
 
       return jsonResponse({
         success: true,
-        message: 'Invoice pendaftaran berhasil diterbitkan',
+        message: 'Invoice pendaftaran & gateway KaseraPay berhasil diterbitkan',
         data: orderData
+      });
+    }
+
+    // C2. /api/mitra/pay-kaserapay - Ambil atau buat ulang link pembayaran KaseraPay
+    if (route === 'mitra/pay-kaserapay' && method === 'POST') {
+      const body = await request.json();
+      const { orderId } = body;
+      if (!orderId) return jsonResponse({ success: false, message: 'Order ID wajib disertakan' }, 400);
+
+      const ordRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`);
+      if (!ordRes.ok) return jsonResponse({ success: false, message: 'Data pesanan tidak ditemukan' }, 404);
+      const ordJson = await ordRes.json();
+      const ord = decodeFields(ordJson.fields);
+
+      const apiKey = context.env?.KASERAPAY_API_KEY || '';
+      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      let checkoutUrl = ord.checkoutUrl || `https://pay.kasera.id/checkout/${orderId}?amount=${ord.amount}`;
+      let qrString = ord.qrString || ord.qrisString || null;
+
+      if (apiKey && !ord.checkoutUrl) {
+        try {
+          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              external_id: orderId,
+              amount: parseInt(ord.amount, 10),
+              customer_name: ord.namaPengelola || 'Pengelola Pesantren',
+              customer_phone: ord.noWhatsapp || '08123456789',
+              customer_email: ord.email || 'admin@sipesand.web.id',
+              description: `Langganan SiPesand - ${ord.namaPondok}`,
+              payment_method: 'ALL',
+              callback_url: `https://sipesand.web.id/api/payments/status/${orderId}`
+            })
+          });
+          if (kaseraRes.ok) {
+            const kJson = await kaseraRes.json();
+            checkoutUrl = kJson.checkout_url || kJson.payment_url || checkoutUrl;
+            if (kJson.qr_string) qrString = kJson.qr_string;
+
+            await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc({ checkoutUrl, qrString }))
+            });
+          }
+        } catch (e) {
+          console.warn('KaseraPay regenerator error:', e);
+        }
+      }
+
+      return jsonResponse({
+        success: true,
+        orderId,
+        checkoutUrl,
+        qrString,
+        amount: ord.amount,
+        status: ord.status
       });
     }
 
@@ -1789,12 +2289,95 @@ export async function onRequest(context) {
         return jsonResponse({ success: false, message: 'Missing external_id' }, 400);
       }
 
-      // Cari transaksi di semua tenant atau master
-      const paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`);
-      if (paymentRes.ok) {
-        const isPaid = ['payment.paid', 'paid', 'success', 'settled'].includes(event);
-        const nowIso = new Date().toISOString();
+      // 1. Periksa apakah transaksi ini adalah pesanan langganan SaaS (sipesand.web.id)
+      const isMitraOrder = externalId.startsWith('KGD-ORD-');
+      const mitraRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${externalId}`);
+      const isPaid = ['payment.paid', 'paid', 'success', 'settled'].includes(event);
+      const nowIso = new Date().toISOString();
 
+      if (isMitraOrder || mitraRes.ok) {
+        if (mitraRes.ok && isPaid) {
+          const ordDoc = await mitraRes.json();
+          const ord = decodeFields(ordDoc.fields);
+          const targetSubdomain = ord.subdomain;
+
+          // A. Update status pesanan di Firestore
+          const updatePayload = encodeDoc({
+            status: 'PAID',
+            verifiedAt: nowIso,
+            activeData: {
+              subdomain: targetSubdomain,
+              adminUsername: 'admin',
+              tempPassword: 'Pesand-2026!',
+              licenseKey: `KGD-${targetSubdomain.toUpperCase()}-VERIFIED`,
+              activatedAt: nowIso
+            }
+          });
+          await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${externalId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatePayload)
+          });
+
+          // B. Auto-Provisioning: Deploy config tenant baru di Firestore
+          await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/settings/config`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({
+              NAMA_LEMBAGA: ord.namaPondok,
+              NAMA_KEPALA_PONDOK: ord.namaPengelola || 'Pengasuh Pesantren',
+              EMAIL_LEMBAGA: ord.email,
+              WHATSAPP_CENTER: ord.noWhatsapp,
+              PACKAGE_TYPE: ord.packageType,
+              LICENSE_KEY: `KGD-${targetSubdomain.toUpperCase()}-VERIFIED`,
+              SUBDOMAIN: targetSubdomain,
+              IS_ACTIVE: true,
+              CREATED_AT: nowIso,
+              TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Pesantren Modern Terpadu'
+            }))
+          });
+
+          // C. Buat Akun Super Admin di tenant tersebut
+          await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/user_accounts/acc_admin_root`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({
+              id: 'acc_admin_root',
+              username: 'admin',
+              password: 'Pesand-2026!',
+              name: ord.namaPengelola || 'Super Admin Lembaga',
+              role: 'SUPER_ADMIN',
+              division: 'PUSAT',
+              createdAt: nowIso
+            }))
+          });
+
+          // D. Update juga di koleksi master/payments jika ada
+          await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${externalId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({ status: 'PAID', paid_at: nowIso, updatedAt: nowIso }))
+          }).catch(() => {});
+
+          await logAuditEvent('SUBSCRIPTION_PAID_KASERAPAY', `Langganan ${ord.namaPondok} (${targetSubdomain}) otomatis aktif via KaseraPay`, ord.email);
+
+          return jsonResponse({
+            success: true,
+            message: 'Langganan berhasil diaktifkan otomatis via KaseraPay',
+            orderId: externalId,
+            subdomain: targetSubdomain,
+            status: 'PAID'
+          });
+        }
+      }
+
+      // 2. Periksa apakah transaksi ini adalah pembayaran tagihan santri tenant
+      let paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`);
+      if (!paymentRes.ok) {
+        paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${externalId}`);
+      }
+
+      if (paymentRes.ok) {
         if (isPaid) {
           await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
             method: 'PATCH',

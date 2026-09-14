@@ -506,7 +506,63 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
         </div>
       </div>
 
-      {/* Bento 2 Kolom: Rekening Transfer Bank & QRIS Dinamis */}
+      {/* KASERAPAY INSTANT PAYMENT GATEWAY BANNER */}
+      <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white rounded-3xl p-6 sm:p-7 border border-blue-500/40 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
+        <div className="space-y-1.5 z-10 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 bg-white/20 text-white rounded-md font-bold text-[10px] uppercase tracking-wider backdrop-blur-xs flex items-center gap-1">
+              <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
+              <span>Rekomendasi • KaseraPay Gateway</span>
+            </span>
+            <span className="text-emerald-300 font-bold text-[11px] flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Aktivasi Otomatis (0 Menit)</span>
+            </span>
+          </div>
+          <h3 className="text-lg sm:text-xl font-black text-white">
+            Bayar Otomatis via KaseraPay Payment Gateway
+          </h3>
+          <p className="text-blue-100 text-xs leading-relaxed">
+            Mendukung pembayaran instan melalui <strong>QRIS Nasional, Virtual Account (BCA, Mandiri, BRI, BSI, BNI), dan E-Wallet</strong>. Sistem akan langsung aktif seketika tanpa perlu mengunggah bukti transfer manual.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2.5 z-10 flex-shrink-0 w-full md:w-auto">
+          {order.checkoutUrl ? (
+            <a
+              href={order.checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
+            >
+              <CreditCard className="w-4 h-4 text-blue-600" />
+              <span>Bayar via KaseraPay Sekarang</span>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+            </a>
+          ) : (
+            <a
+              href={`https://pay.kasera.id/checkout/${order.orderId}?amount=${order.amount}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
+            >
+              <CreditCard className="w-4 h-4 text-blue-600" />
+              <span>Buka Gateway KaseraPay</span>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+            </a>
+          )}
+          <button
+            onClick={handleManualCheckStatus}
+            disabled={checking}
+            className="px-4 py-2 bg-blue-900/50 hover:bg-blue-900/80 border border-white/20 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
+            <span>{checking ? 'Memeriksa...' : 'Cek Status Pembayaran'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Bento 2 Kolom: Rekening Transfer Bank & QRIS Dinamis (Alternatif Manual) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
         
         {/* Kolom Kiri (6/12): Transfer Bank / Virtual Account */}

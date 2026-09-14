@@ -90,7 +90,7 @@ export default function BillsAndInvoices() {
 
     // Multi-Device Cloud Real-Time Sync: Otomatis sinkronisasi tagihan antar laptop/HP
     const unsubscribe = subscribeCloudBills(null, (cloudBills) => {
-      if (Array.isArray(cloudBills)) {
+      if (Array.isArray(cloudBills) && cloudBills.length > 0) {
         let filtered = [...cloudBills];
         if (statusFilter) filtered = filtered.filter(b => b.status === statusFilter);
         if (monthFilter) filtered = filtered.filter(b => b.hijriMonth === monthFilter);
@@ -125,14 +125,29 @@ export default function BillsAndInvoices() {
         getSantriList(),
       ]);
 
-      if (masterRes.data.success) {
+      let currentSantri = [];
+      if (santriRes.data?.success && Array.isArray(santriRes.data?.data)) {
+        currentSantri = santriRes.data.data;
+        setSantriList(currentSantri);
+      }
+
+      if (masterRes.data?.success && Array.isArray(masterRes.data?.data)) {
         setMasterBills(masterRes.data.data);
         if (!selectedMasterBillId && masterRes.data.data.length > 0) {
           setSelectedMasterBillId(masterRes.data.data[0].id.toString());
         }
       }
-      if (billsRes.data.success) setSantriBills(billsRes.data.data);
-      if (santriRes.data.success) setSantriList(santriRes.data.data);
+
+      if (billsRes.data?.success && Array.isArray(billsRes.data?.data)) {
+        const enriched = billsRes.data.data.map(b => {
+          if (!b.santri && b.santriId) {
+            const found = currentSantri.find(s => String(s.id) === String(b.santriId));
+            if (found) return { ...b, santri: found };
+          }
+          return b;
+        });
+        setSantriBills(enriched);
+      }
     } catch (err) {
       console.error('Error loadAllData:', err);
     } finally {
