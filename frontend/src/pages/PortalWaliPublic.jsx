@@ -260,7 +260,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
       setPgTransaction({
         id: extId,
         external_id: extId,
-        checkout_url: `https://pay.kasera.id/checkout/${extId}?amount=${totalPaymentAmount}`,
+        checkout_url: null,
         amount: totalPaymentAmount,
         status: 'PENDING'
       });
@@ -1134,7 +1134,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
 
                           {/* Tombol Aksi Gateway */}
                           <div className="space-y-2 pt-1">
-                            {pgTransaction?.checkout_url && (
+                            {pgTransaction?.checkout_url ? (
                               <a
                                 href={pgTransaction.checkout_url}
                                 target="_blank"
@@ -1145,6 +1145,11 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                                 <span>Buka Halaman Pembayaran KaseraPay (QRIS / VA)</span>
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
+                            ) : (
+                              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] text-center space-y-1">
+                                <span className="font-bold block">Gateway Beroperasi dalam Mode Sandbox / Demo</span>
+                                <span className="text-stone-600 block text-[10px]">Klik tombol <strong>Simulasi Sukses (Demo)</strong> di bawah untuk menguji pelunasan otomatis atau kembali untuk transfer manual.</span>
+                              </div>
                             )}
 
                             <div className="grid grid-cols-2 gap-2">

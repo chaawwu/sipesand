@@ -28,7 +28,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { 
   getMitraConfig, 
   getMitraOrderStatus, 
-  uploadMitraPaymentProof 
+  uploadMitraPaymentProof,
+  simulateMitraPayment 
 } from '../services/api';
 import { compressImage } from '../utils/imageCompressor';
 import AestheticToast from './AestheticToast';
@@ -286,6 +287,35 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
     }
   };
 
+  const handleManualCheckStatus = handleManualCheck;
+
+  const handleSimulatePayment = async () => {
+    try {
+      setChecking(true);
+      const res = await simulateMitraPayment(order.orderId);
+      if (res.data?.success || res.success) {
+        setProvisionResult(res.data?.data?.activeData || res.data?.data || res.data);
+        setToast({
+          isOpen: true,
+          type: 'success',
+          title: 'Simulasi Lunas Berhasil!',
+          message: 'Instans pesantren Anda telah berhasil diaktifkan secara otomatis!'
+        });
+      } else {
+        throw new Error(res.data?.message || res.message || 'Gagal memproses simulasi');
+      }
+    } catch (err) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Simulasi Gagal',
+        message: err.message || 'Terjadi kesalahan saat memproses simulasi.'
+      });
+    } finally {
+      setChecking(false);
+    }
+  };
+
   // =========================================================================
   // TAMPILAN 1: SUKSES AKTIVASI & KREDENSIAL TENANT TER-PROVISIONING
   // =========================================================================
@@ -529,7 +559,7 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
         </div>
 
         <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2.5 z-10 flex-shrink-0 w-full md:w-auto">
-          {order.checkoutUrl ? (
+          {order.checkoutUrl && !order.checkoutUrl.includes(`/checkout/${order.orderId}`) ? (
             <a
               href={order.checkoutUrl}
               target="_blank"
@@ -541,30 +571,46 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
               <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
             </a>
           ) : (
-            <a
-              href={`https://pay.kasera.id/checkout/${order.orderId}?amount=${order.amount}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('transfer-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
               className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
             >
               <CreditCard className="w-4 h-4 text-blue-600" />
-              <span>Buka Gateway KaseraPay</span>
-              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-            </a>
+              <span>Bayar via Rekening Bank / QRIS</span>
+            </button>
           )}
-          <button
-            onClick={handleManualCheckStatus}
-            disabled={checking}
-            className="px-4 py-2 bg-blue-900/50 hover:bg-blue-900/80 border border-white/20 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
-            <span>{checking ? 'Memeriksa...' : 'Cek Status Pembayaran'}</span>
-          </button>
+
+          <div className="flex items-center gap-2 w-full justify-end">
+            <button
+              type="button"
+              onClick={handleSimulatePayment}
+              disabled={checking}
+              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold text-[11px] shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Gunakan untuk uji coba aktivasi instan tanpa transfer riil"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Simulasi Lunas (Sandbox)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleManualCheckStatus}
+              disabled={checking}
+              className="px-4 py-2 bg-blue-900/50 hover:bg-blue-900/80 border border-white/20 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
+              <span>{checking ? 'Memeriksa...' : 'Cek Status'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Bento 2 Kolom: Rekening Transfer Bank & QRIS Dinamis (Alternatif Manual) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+      <div id="transfer-section" className="grid grid-cols-1 md:grid-cols-12 gap-5">
         
         {/* Kolom Kiri (6/12): Transfer Bank / Virtual Account */}
         <div className="md:col-span-6 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">

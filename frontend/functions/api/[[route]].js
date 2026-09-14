@@ -1707,9 +1707,9 @@ export async function onRequest(context) {
       // -----------------------------------------------------------------------
       // KASERAPAY GATEWAY: Terbitkan Transaksi & Checkout Link Otomatis
       // -----------------------------------------------------------------------
-      const apiKey = context.env?.KASERAPAY_API_KEY || '';
-      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
-      let checkoutUrl = `https://pay.kasera.id/checkout/${orderId}?amount=${totalAmount}`;
+      const apiKey = context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
+      const baseUrl = (context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      let checkoutUrl = null;
       let qrString = cfg.qrisString;
 
       if (apiKey) {
@@ -1734,7 +1734,7 @@ export async function onRequest(context) {
           });
           if (kaseraRes.ok) {
             const kJson = await kaseraRes.json();
-            checkoutUrl = kJson.checkout_url || kJson.payment_url || checkoutUrl;
+            checkoutUrl = kJson.checkout_url || kJson.payment_url || null;
             if (kJson.qr_string) qrString = kJson.qr_string;
           }
         } catch (e) {
@@ -1793,12 +1793,21 @@ export async function onRequest(context) {
       const ordJson = await ordRes.json();
       const ord = decodeFields(ordJson.fields);
 
-      const apiKey = context.env?.KASERAPAY_API_KEY || '';
-      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
-      let checkoutUrl = ord.checkoutUrl || `https://pay.kasera.id/checkout/${orderId}?amount=${ord.amount}`;
+      let cfg = {};
+      try {
+        const cfgRes = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
+        if (cfgRes.ok) {
+          const cfgDoc = await cfgRes.json();
+          cfg = decodeFields(cfgDoc.fields);
+        }
+      } catch (e) {}
+
+      const apiKey = context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
+      const baseUrl = (context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      let checkoutUrl = ord.checkoutUrl && !ord.checkoutUrl.includes(`/checkout/${orderId}`) ? ord.checkoutUrl : null;
       let qrString = ord.qrString || ord.qrisString || null;
 
-      if (apiKey && !ord.checkoutUrl) {
+      if (apiKey && !checkoutUrl) {
         try {
           const kaseraRes = await fetch(`${baseUrl}/transactions`, {
             method: 'POST',
@@ -1820,7 +1829,7 @@ export async function onRequest(context) {
           });
           if (kaseraRes.ok) {
             const kJson = await kaseraRes.json();
-            checkoutUrl = kJson.checkout_url || kJson.payment_url || checkoutUrl;
+            checkoutUrl = kJson.checkout_url || kJson.payment_url || null;
             if (kJson.qr_string) qrString = kJson.qr_string;
 
             await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
@@ -2038,16 +2047,19 @@ export async function onRequest(context) {
       const targetSubdomain = ord.subdomain;
       const verifiedAt = new Date().toISOString();
 
+      const licenseKey = `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`;
+      const activeData = {
+        subdomain: targetSubdomain,
+        adminUsername: 'admin',
+        tempPassword: 'Pesand-2026!',
+        licenseKey,
+        activatedAt: verifiedAt
+      };
+
       const updateOrderPayload = encodeDoc({
         status: 'PAID',
         verifiedAt,
-        activeData: {
-          subdomain: targetSubdomain,
-          adminUsername: 'admin',
-          tempPassword: 'Pesand-2026!',
-          licenseKey: `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`,
-          activatedAt: verifiedAt
-        }
+        activeData
       });
       await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
         method: 'PATCH',
@@ -2055,15 +2067,47 @@ export async function onRequest(context) {
         body: JSON.stringify(updateOrderPayload)
       });
 
+      // Auto-Provisioning: Buat profil tenant di Firestore
+      const tenantConfigPayload = encodeDoc({
+        NAMA_LEMBAGA: ord.namaPondok || 'Pondok Pesantren Mitra',
+        NAMA_KEPALA_PONDOK: ord.namaPengelola || 'Pengasuh Pesantren',
+        EMAIL_LEMBAGA: ord.email || 'admin@sipesand.web.id',
+        WHATSAPP_CENTER: ord.noWhatsapp || '08123456789',
+        PACKAGE_TYPE: ord.packageType || 'LIFETIME',
+        LICENSE_KEY: licenseKey,
+        SUBDOMAIN: targetSubdomain,
+        IS_ACTIVE: true,
+        CREATED_AT: verifiedAt,
+        TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Pesantren Modern Terpadu'
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/settings/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tenantConfigPayload)
+      });
+
+      // Buat Akun Super Admin di tenant tersebut
+      const adminAccountPayload = encodeDoc({
+        id: 'acc_admin_root',
+        username: 'admin',
+        password: 'Pesand-2026!',
+        name: ord.namaPengelola || 'Super Admin Lembaga',
+        role: 'SUPER_ADMIN',
+        division: 'PUSAT',
+        createdAt: verifiedAt
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/user_accounts/acc_admin_root`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminAccountPayload)
+      });
+
+      await logAuditEvent('TENANT_SIMULATED', `Pesantren ${ord.namaPondok} (${targetSubdomain}) disimulasikan lunas & akun Super Admin aktif`, 'Superadmin Dev');
+
       return jsonResponse({
         success: true,
         message: 'Simulasi pembayaran sukses',
-        data: {
-          subdomain: targetSubdomain,
-          adminUsername: 'admin',
-          tempPassword: 'Pesand-2026!',
-          licenseKey: `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`
-        }
+        data: activeData
       });
     }
 
@@ -2406,7 +2450,7 @@ export async function onRequest(context) {
       const apiKey = context.env?.KASERAPAY_API_KEY || '';
       const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
 
-      let checkoutUrl = `https://pay.kasera.id/checkout/${externalId}?amount=${amount}`;
+      let checkoutUrl = null;
       let qrString = null;
       let remoteData = null;
 
@@ -2435,7 +2479,7 @@ export async function onRequest(context) {
           if (kaseraRes.ok) {
             const kaseraJson = await kaseraRes.json();
             remoteData = kaseraJson;
-            checkoutUrl = kaseraJson.checkout_url || kaseraJson.payment_url || checkoutUrl;
+            checkoutUrl = kaseraJson.checkout_url || kaseraJson.payment_url || null;
             qrString = kaseraJson.qr_string || null;
           }
         } catch (e) {

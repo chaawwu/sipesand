@@ -2441,6 +2441,52 @@ export default function DashboardDeveloper({
                     </div>
                   </div>
 
+                  {/* KaseraPay Gateway Configuration */}
+                  <div className="pt-4 border-t border-slate-100 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-bold text-[10px] uppercase">
+                        Payment Gateway
+                      </span>
+                      <label className="font-bold text-slate-800 text-xs">
+                        KaseraPay Merchant Integration (Aktivasi Otomatis):
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          KaseraPay API Key (Secret Key):
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="kp_live_xxxxxxxxxxxxxxxx"
+                          value={mitraConfig.kaserapayApiKey || ''}
+                          onChange={(e) => setMitraConfig({ ...mitraConfig, kaserapayApiKey: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          Jika diisi, link pembayaran instan KaseraPay akan diterbitkan otomatis saat mitra mendaftar.
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          KaseraPay Base URL (Opsional):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="https://pay.kasera.id/v1"
+                          value={mitraConfig.kaserapayBaseUrl || ''}
+                          onChange={(e) => setMitraConfig({ ...mitraConfig, kaserapayBaseUrl: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          Default: https://pay.kasera.id/v1
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Submit Button */}
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
                     <button
