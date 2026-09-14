@@ -34,6 +34,20 @@ export default function NfcScannerModal({ isOpen, onClose, onSuccess }) {
     if (isOpen) {
       resetForm();
     }
+
+    // Listener Event Native NFC dari Android Java Bridge
+    const handleNativeNfc = (e) => {
+      if (e?.detail?.uid) {
+        const cleanUid = e.detail.uid.toUpperCase();
+        setNfcUidInput(cleanUid);
+        handleScan(cleanUid);
+      }
+    };
+
+    window.addEventListener('nativeNfcScanned', handleNativeNfc);
+    return () => {
+      window.removeEventListener('nativeNfcScanned', handleNativeNfc);
+    };
   }, [isOpen]);
 
   const resetForm = () => {
