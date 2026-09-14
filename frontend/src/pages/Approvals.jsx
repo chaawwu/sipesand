@@ -94,15 +94,15 @@ export default function Approvals() {
         notes: accNotes || 'Pembayaran online diverifikasi sah',
       });
 
-      if (res.data.success) {
-        setActionMessage({ type: 'success', text: res.data.message });
+      if (res.data?.success || res.success) {
+        setActionMessage({ type: 'success', text: res.data?.message || res.message || 'Pembayaran berhasil di-ACC!' });
         setSelectedPaymentForAcc(null);
         setAccNotes('');
         loadData();
         
         // Tawarkan buka kwitansi
         setActiveReceiptData({
-          code: res.data.data?.receiptNumber || `KWT-${bill.billCode}`,
+          code: res.data?.data?.receiptNumber || res.data?.receiptNumber || res.receiptNumber || `KWT-${bill.billCode}`,
           date: new Date(),
           santriName: bill.santri?.nama,
           waliName: bill.santri?.namaWali || 'Wali Santri',
@@ -274,9 +274,9 @@ export default function Approvals() {
                         Rp {bill.amount.toLocaleString('id-ID')}
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        {bill.proofImage ? (
+                        {(bill.proofImage || bill.proofUrl) ? (
                           <a
-                            href={bill.proofImage}
+                            href={bill.proofImage || bill.proofUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200"
@@ -428,11 +428,11 @@ export default function Approvals() {
                 </div>
               </div>
 
-              {selectedPaymentForAcc.proofImage && (
+              {(selectedPaymentForAcc.proofImage || selectedPaymentForAcc.proofUrl) && (
                 <div className="space-y-1">
                   <span className="font-bold text-slate-700">Bukti Transfer:</span>
                   <div className="max-h-48 overflow-hidden rounded-xl border border-slate-200">
-                    <img src={selectedPaymentForAcc.proofImage} alt="Bukti Transfer" className="w-full h-full object-cover" />
+                    <img src={selectedPaymentForAcc.proofImage || selectedPaymentForAcc.proofUrl} alt="Bukti Transfer" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}

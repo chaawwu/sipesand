@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'sipesand-v2.2-live';
+const CACHE_NAME = 'sipesand-v2.5-live';
 const staticAssets = [
   '/manifest.json',
   '/favicon.ico',

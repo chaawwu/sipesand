@@ -28,6 +28,7 @@ import {
   autoGenerateHijriBills,
   updateSantriBill, 
   deleteSantriBill,
+  verifyBillPayment,
   getSantriList 
 } from '../services/api';
 import { subscribeCloudBills } from '../services/cloudDatabase';
@@ -356,6 +357,32 @@ export default function BillsAndInvoices() {
     }
   };
 
+  const handleAccManualPayment = async (bill) => {
+    try {
+      const res = await verifyBillPayment(bill.id, {
+        verifiedBy: 'Bendahara Pondok',
+        paymentMethod: bill.paymentMethod || 'MANUAL_TRANSFER',
+        notes: 'Verifikasi ACC pembayaran manual lunas'
+      });
+      if (res.data?.success || res.success) {
+        setToast({
+          isOpen: true,
+          type: 'success',
+          title: 'Pembayaran Berhasil Di-ACC!',
+          message: `Tagihan ${bill.title} untuk ${bill.santri?.nama || 'santri'} telah berstatus Lunas dan kwitansi resmi diterbitkan.`
+        });
+        loadAllData();
+      }
+    } catch (err) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Memverifikasi',
+        message: err.response?.data?.message || err.message || 'Gagal memverifikasi pembayaran.'
+      });
+    }
+  };
+
   const handleOpenPrintReceipt = (bill) => {
     setActiveReceiptData({
       code: bill.receiptNumber || `KWT-${bill.billCode}`,
@@ -643,6 +670,31 @@ export default function BillsAndInvoices() {
                                 <MessageSquare className="w-3 h-3 text-emerald-600" />
                                 <span>Tagih WA</span>
                               </button>
+                            )}
+
+                            {b.status === 'PENDING_VERIFICATION' && (
+                              <div className="flex items-center gap-1">
+                                {(b.proofUrl || b.proofImage) && (
+                                  <a
+                                    href={b.proofUrl || b.proofImage}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold transition-colors flex items-center gap-1 text-[10px]"
+                                    title="Lihat Bukti Transfer"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    <span>Bukti</span>
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => handleAccManualPayment(b)}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-colors flex items-center gap-1 text-[10px] shadow-sm cursor-pointer"
+                                  title="ACC & Verifikasi Lunas Pembayaran Manual"
+                                >
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>ACC Bayar</span>
+                                </button>
+                              </div>
                             )}
 
                             {b.status === 'PAID' && (

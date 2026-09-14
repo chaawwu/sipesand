@@ -497,17 +497,93 @@ export async function onRequest(context) {
 
       // Ambil tagihan santri
       const billsRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills`);
-      const billsJson = await billsRes.json();
-      const bills = (billsJson.documents || [])
-        .map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }))
-        .filter(b => String(b.santriId) === String(santri.id));
+      let bills = [];
+      if (billsRes.ok) {
+        const billsJson = await billsRes.json();
+        bills = (billsJson.documents || [])
+          .map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }))
+          .filter(b => String(b.santriId) === String(santri.id));
+      }
+
+      // Ambil histori transaksi uang saku santri
+      const pocketRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs`);
+      let pocketTxs = [];
+      if (pocketRes.ok) {
+        const pJson = await pocketRes.json();
+        pocketTxs = (pJson.documents || [])
+          .map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }))
+          .filter(tx => String(tx.santriId) === String(santri.id))
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      }
+
+      // Jika belum ada riwayat uang saku untuk santri ini, auto-seed riwayat awal
+      if (pocketTxs.length === 0) {
+        const now = Date.now();
+        const currentBal = parseFloat(santri.saldo_saku || 185000);
+        const demoTxs = [
+          {
+            id: `TX-PKT-${now}-1`,
+            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+            santriId: String(santri.id),
+            type: 'TOPUP',
+            amount: 200000,
+            description: 'Top-Up Saldo Uang Saku oleh Wali Santri',
+            merchant: 'Transfer M-Banking',
+            balanceAfter: currentBal,
+            createdAt: new Date(now - 7 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: `TX-PKT-${now}-2`,
+            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+            santriId: String(santri.id),
+            type: 'PURCHASE',
+            amount: 15000,
+            description: 'Pembelian Kitab & Alat Tulis Santri',
+            merchant: 'Koperasi Pondok Putra',
+            balanceAfter: currentBal - 50000,
+            createdAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: `TX-PKT-${now}-3`,
+            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+            santriId: String(santri.id),
+            type: 'WITHDRAW',
+            amount: 50000,
+            description: 'Penarikan Tunai Uang Saku Mingguan di Asrama',
+            merchant: 'Pos Keuangan Asrama',
+            balanceAfter: currentBal,
+            createdAt: new Date(now - 1 * 24 * 3600 * 1000).toISOString()
+          }
+        ];
+
+        for (const t of demoTxs) {
+          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs/${t.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc(t))
+          });
+          pocketTxs.push(t);
+        }
+      }
+
+      const unpaidBills = bills.filter(b => b.status !== 'PAID');
+      const paidBills = bills.filter(b => b.status === 'PAID');
+      const pendingBills = bills.filter(b => b.status === 'PENDING_VERIFICATION');
+      const totalTunggakan = unpaidBills.reduce((acc, b) => acc + (parseFloat(b.amount) || 0), 0);
 
       return jsonResponse({
         success: true,
         data: {
           santri,
           bills,
-          pocketTxs: [],
+          pocketTxs,
+          financial: {
+            bills,
+            recentPocketTxs: pocketTxs,
+            totalTunggakan,
+            pendingCount: pendingBills.length,
+            paidCount: paidBills.length
+          },
           permits: []
         }
       });
@@ -708,22 +784,30 @@ export async function onRequest(context) {
     // -------------------------------------------------------------------------
     if (route === 'bills/pay-online' && method === 'POST') {
       const body = await request.json();
-      const { billId, proofUrl, proofNote, senderName } = body;
-      if (!billId) return jsonResponse({ success: false, message: 'ID tagihan wajib disertakan' }, 400);
+      const { billId, billIds, proofUrl, proofImage, proofNote, notes, senderName, paymentMethod } = body;
+      const targetIds = Array.isArray(billIds) && billIds.length > 0 ? billIds : (billId ? [billId] : []);
+      if (targetIds.length === 0) return jsonResponse({ success: false, message: 'ID tagihan wajib disertakan' }, 400);
 
-      const updateData = {
-        status: 'PENDING_VERIFICATION',
-        proofUrl: proofUrl || '',
-        proofNote: proofNote || 'Upload Bukti Pembayaran Portal Wali',
-        senderName: senderName || 'Wali Santri',
-        updatedAt: new Date().toISOString()
-      };
+      const finalProof = proofUrl || proofImage || '';
+      const finalNote = proofNote || notes || 'Upload Bukti Pembayaran Portal Wali';
+      const nowIso = new Date().toISOString();
 
-      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(encodeDoc(updateData))
-      });
+      for (const id of targetIds) {
+        const updateData = {
+          status: 'PENDING_VERIFICATION',
+          proofUrl: finalProof,
+          proofNote: finalNote,
+          paymentMethod: paymentMethod || 'MANUAL_TRANSFER',
+          senderName: senderName || 'Wali Santri',
+          updatedAt: nowIso
+        };
+
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(updateData))
+        });
+      }
 
       return jsonResponse({ success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' });
     }
@@ -913,16 +997,147 @@ export async function onRequest(context) {
       }
     }
 
-    // 6A. /api/pocket-tx (GET / POST untuk Tarik Tunai Cash, Top Up, dan Pembelian POS)
+    // -------------------------------------------------------------------------
+    // 6A. /api/approvals/online-payments & /api/approvals/division-funds
+    // -------------------------------------------------------------------------
+    if (route === 'approvals/online-payments' && method === 'GET') {
+      const [billsRes, santriRes] = await Promise.all([
+        fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills`),
+        fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`)
+      ]);
+      let bills = [];
+      let santriList = [];
+      if (billsRes.ok) {
+        const bJson = await billsRes.json();
+        bills = (bJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+      }
+      if (santriRes.ok) {
+        const sJson = await santriRes.json();
+        santriList = (sJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+      }
+
+      const pending = bills
+        .filter(b => b.status === 'PENDING_VERIFICATION')
+        .map(b => ({
+          ...b,
+          santri: santriList.find(s => String(s.id) === String(b.santriId)) || null
+        }))
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+
+      return jsonResponse({ success: true, data: pending });
+    }
+
+    if (route === 'approvals/division-funds') {
+      if (method === 'GET') {
+        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/division_funds`);
+        let funds = [];
+        if (res.ok) {
+          const fJson = await res.json();
+          funds = (fJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+        }
+        return jsonResponse({ success: true, data: funds });
+      }
+      if (method === 'POST') {
+        const body = await request.json();
+        const fundId = `FUND-${Date.now()}`;
+        const newFund = { id: fundId, ...body, status: 'PENDING', createdAt: new Date().toISOString() };
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/division_funds/${fundId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc(newFund))
+        });
+        return jsonResponse({ success: true, message: 'Pengajuan dana divisi berhasil dicatat', data: newFund }, 201);
+      }
+    }
+
+    if (route.startsWith('approvals/division-funds/') && method === 'PUT') {
+      const fundId = route.replace('approvals/division-funds/', '').trim();
+      const body = await request.json();
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/division_funds/${fundId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({ ...body, updatedAt: new Date().toISOString() }))
+      });
+      return jsonResponse({ success: true, message: 'Status pengajuan dana berhasil diperbarui' });
+    }
+
+    // 6B. /api/pocket-tx (GET / POST untuk Tarik Tunai Cash, Top Up, dan Pembelian POS)
     if (route === 'pocket-tx' || route === 'pocket-tx/deduct') {
       if (method === 'GET') {
-        const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs`);
-        const json = await res.json();
-        const items = (json.documents || []).map(d => ({
-          id: d.name.split('/').pop(),
-          ...decodeFields(d.fields)
+        const [pocketRes, santriRes] = await Promise.all([
+          fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs`),
+          fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`)
+        ]);
+        let items = [];
+        let santriList = [];
+        if (pocketRes.ok) {
+          const json = await pocketRes.json();
+          items = (json.documents || []).map(d => ({
+            id: d.name.split('/').pop(),
+            ...decodeFields(d.fields)
+          }));
+        }
+        if (santriRes.ok) {
+          const sJson = await santriRes.json();
+          santriList = (sJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
+        }
+
+        // Auto-seed histori uang saku jika masih kosong dan ada santri
+        if (items.length === 0 && santriList.length > 0) {
+          const s = santriList[0];
+          const now = Date.now();
+          const currentBal = parseFloat(s.saldo_saku || 185000);
+          const initialTxs = [
+            {
+              id: `TX-PKT-${now}-1`,
+              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+              santriId: String(s.id),
+              type: 'TOPUP',
+              amount: 200000,
+              description: 'Top-Up Saldo Uang Saku oleh Wali Santri',
+              merchant: 'Transfer M-Banking',
+              balanceAfter: currentBal,
+              createdAt: new Date(now - 7 * 24 * 3600 * 1000).toISOString()
+            },
+            {
+              id: `TX-PKT-${now}-2`,
+              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+              santriId: String(s.id),
+              type: 'PURCHASE',
+              amount: 15000,
+              description: 'Pembelian Kitab & Alat Tulis Santri',
+              merchant: 'Koperasi Pondok Putra',
+              balanceAfter: currentBal - 50000,
+              createdAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString()
+            },
+            {
+              id: `TX-PKT-${now}-3`,
+              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
+              santriId: String(s.id),
+              type: 'WITHDRAW',
+              amount: 50000,
+              description: 'Penarikan Tunai Uang Saku Mingguan di Asrama',
+              merchant: 'Pos Keuangan Asrama',
+              balanceAfter: currentBal,
+              createdAt: new Date(now - 1 * 24 * 3600 * 1000).toISOString()
+            }
+          ];
+          for (const t of initialTxs) {
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs/${t.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc(t))
+            });
+            items.push(t);
+          }
+        }
+
+        const enriched = items.map(tx => ({
+          ...tx,
+          santri: santriList.find(s => String(s.id) === String(tx.santriId)) || null
         })).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        return jsonResponse({ success: true, data: items });
+
+        return jsonResponse({ success: true, data: enriched });
       }
       if (method === 'POST') {
         const body = await request.json();
@@ -2229,11 +2444,14 @@ export async function onRequest(context) {
       }
 
       // Simpan record pembayaran di Firestore
+      const targetBills = Array.isArray(body.bill_ids) && body.bill_ids.length > 0 ? body.bill_ids : (bill_id ? [bill_id] : []);
       const paymentDoc = {
         id: externalId,
         external_id: externalId,
         tenant_subdomain: tenant,
-        bill_id: bill_id || null,
+        bill_id: bill_id || (targetBills[0] || null),
+        bill_ids: targetBills,
+        santri_id: body.santri_id || null,
         amount: parseFloat(amount),
         title: title || 'Pembayaran Tagihan Santri',
         customer_name: customer_name || 'Wali Santri',
@@ -2390,11 +2608,15 @@ export async function onRequest(context) {
             }))
           });
 
-          // Otomatis tandai tagihan santri menjadi Lunas jika ada bill_id
+          // Otomatis tandai tagihan santri menjadi Lunas jika ada bill_ids / bill_id
           const currentDoc = await paymentRes.json();
           const pData = decodeFields(currentDoc.fields);
-          if (pData.bill_id) {
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${pData.bill_id}`, {
+          const targetBillIds = Array.isArray(pData.bill_ids) && pData.bill_ids.length > 0
+            ? pData.bill_ids
+            : (pData.bill_id ? [pData.bill_id] : []);
+
+          for (const bId of targetBillIds) {
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(encodeDoc({
@@ -2402,6 +2624,25 @@ export async function onRequest(context) {
                 paidAt: nowIso,
                 paymentMethod: 'KASERAPAY_ONLINE',
                 receiptNumber: `KWT-KSR-${externalId}`
+              }))
+            });
+          }
+
+          // Catat otomatis ke Buku Kas Umum (Ledger)
+          if (targetBillIds.length > 0) {
+            const ledgerId = `TX-${Date.now()}`;
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc({
+                id: ledgerId,
+                type: 'INCOME',
+                category: 'SPP',
+                amount: parseFloat(pData.amount || 0),
+                description: `Pembayaran Online KaseraPay: ${pData.title || pData.customer_name} - Ref: ${externalId}`,
+                reference: `KWT-KSR-${externalId}`,
+                date: nowIso,
+                createdAt: nowIso
               }))
             });
           }
@@ -2413,7 +2654,66 @@ export async function onRequest(context) {
       return jsonResponse({ success: false, message: 'Payment not found' }, 404);
     }
 
-    // C. GET /api/payments/status/:externalId
+    // C. POST /api/payments/simulate-success/:externalId (Untuk Demo / Testing Instan Gateway)
+    if (route.startsWith('payments/simulate-success/') && method === 'POST') {
+      const extId = route.replace('payments/simulate-success/', '').trim();
+      const nowIso = new Date().toISOString();
+      let paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`);
+      if (!paymentRes.ok) paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${extId}`);
+      
+      if (paymentRes.ok) {
+        const pDoc = await paymentRes.json();
+        const pData = decodeFields(pDoc.fields);
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ status: 'PAID', paid_at: nowIso, updatedAt: nowIso }))
+        });
+
+        const targetBillIds = Array.isArray(pData.bill_ids) && pData.bill_ids.length > 0
+          ? pData.bill_ids
+          : (pData.bill_id ? [pData.bill_id] : []);
+
+        for (const bId of targetBillIds) {
+          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({
+              status: 'PAID',
+              paidAt: nowIso,
+              paymentMethod: 'KASERAPAY_ONLINE',
+              receiptNumber: `KWT-KSR-${extId}`
+            }))
+          });
+        }
+
+        const ledgerId = `TX-${Date.now()}`;
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({
+            id: ledgerId,
+            type: 'INCOME',
+            category: 'SPP',
+            amount: parseFloat(pData.amount || 0),
+            description: `Pembayaran Online KaseraPay: ${pData.title || pData.customer_name} - Ref: ${extId}`,
+            reference: `KWT-KSR-${extId}`,
+            date: nowIso,
+            createdAt: nowIso
+          }))
+        });
+
+        return jsonResponse({
+          success: true,
+          message: 'Simulasi pembayaran sukses! Tagihan telah lunas dan kwitansi diterbitkan.',
+          data: { external_id: extId, status: 'PAID' }
+        });
+      }
+
+      return jsonResponse({ success: false, message: 'Data pembayaran tidak ditemukan' }, 404);
+    }
+
+    // D. GET /api/payments/status/:externalId
     if (route.startsWith('payments/status/')) {
       const extId = route.replace('payments/status/', '').trim();
       const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`);

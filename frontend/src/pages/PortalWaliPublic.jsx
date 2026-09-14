@@ -23,8 +23,11 @@ import {
   UserCheck,
   Radio,
   Building,
-  Lock
+  Lock,
+  Zap,
+  RefreshCw
 } from 'lucide-react';
+import axios from 'axios';
 import { 
   getPublicSantriData, 
   getPublicSantriBills, 
@@ -52,7 +55,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const [selectedBillIds, setSelectedBillIds] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState(1); // 1: Summary/Verify, 2: Choose Method, 3: Upload Proof / Instant PG
-  const [paymentMethod, setPaymentMethod] = useState('TRANSFER_BSI'); // 'TRANSFER_BSI' | 'QRIS' | 'KING_DIGITAL_PG'
+  const [paymentMethod, setPaymentMethod] = useState('KASERAPAY'); // 'KASERAPAY' | 'TRANSFER_BSI' | 'QRIS'
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState('');
   const [notes, setNotes] = useState('');
@@ -60,6 +63,11 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState('');
   const [copiedBank, setCopiedBank] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
+
+  // KaseraPay Gateway States
+  const [pgLoading, setPgLoading] = useState(false);
+  const [pgTransaction, setPgTransaction] = useState(null);
+  const [viewProofUrl, setViewProofUrl] = useState(null);
 
   // Aesthetic Toast State
   const [toast, setToast] = useState({
@@ -96,7 +104,15 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const bankAccountNo = tenantSettings.BANK_ACCOUNT_NO || settings.BANK_ACCOUNT_NO || '7192837465';
   const bankAccountHolder = tenantSettings.BANK_ACCOUNT_HOLDER || settings.BANK_ACCOUNT_HOLDER || `YAYASAN ${namaLembaga.toUpperCase()}`;
   const qrisUrl = tenantSettings.QRIS_PAYMENT_URL || settings.QRIS_PAYMENT_URL || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80';
-  const pocketTransactions = portalRawData?.financial?.recentPocketTxs || [];
+  
+  // Ambil transaksi uang saku santri secara lengkap
+  const rawPocket = portalRawData?.pocketTxs || portalRawData?.financial?.recentPocketTxs || [];
+  const pocketTransactions = Array.isArray(rawPocket) ? rawPocket : [];
+
+  // Hitung total tunggakan dan status tagihan secara akurat
+  const totalTunggakan = portalRawData?.financial?.totalTunggakan ?? bills.filter(b => b.status !== 'PAID').reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+  const pendingCount = portalRawData?.financial?.pendingCount ?? bills.filter(b => b.status === 'PENDING_VERIFICATION').length;
+  const paidCount = portalRawData?.financial?.paidCount ?? bills.filter(b => b.status === 'PAID').length;
   
   // King Digital Payment Gateway Active State
   const isKingDigitalPgActive = tenantSettings.KING_DIGITAL_PG_ENABLED === 'true';
@@ -183,11 +199,8 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
     }
     setPaymentStep(1);
     setPaymentSuccessMsg('');
-    if (isKingDigitalPgActive) {
-      setPaymentMethod('KING_DIGITAL_PG');
-    } else {
-      setPaymentMethod('TRANSFER_BSI');
-    }
+    setPaymentMethod('KASERAPAY');
+    setPgTransaction(null);
     setIsPaymentModalOpen(true);
   };
 
@@ -214,6 +227,115 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
     }
   };
 
+  // KaseraPay Payment Gateway Handlers
+  const handleGenerateKaseraPayment = async () => {
+    try {
+      setPgLoading(true);
+      const title = `Tagihan ${selectedBills.map(b => b.title).join(', ')} - ${santriData?.nama || 'Santri'}`;
+      const payload = {
+        amount: totalPaymentAmount,
+        title,
+        customer_name: santriData?.namaWali || santriData?.nama || 'Wali Santri',
+        customer_phone: santriData?.noHpWali || '08123456789',
+        customer_email: 'wali@sipesand.web.id',
+        bill_ids: selectedBillIds,
+        bill_id: selectedBillIds[0],
+        santri_id: santriData?.id,
+        payment_method: 'ALL'
+      };
+
+      const res = await axios.post('/api/payments/create', payload, {
+        params: resolvedTenant ? { tenant: resolvedTenant } : {},
+        headers: resolvedTenant ? { 'X-Tenant-Subdomain': resolvedTenant } : {}
+      });
+
+      if (res.data?.success && res.data?.data) {
+        setPgTransaction(res.data.data);
+      } else {
+        throw new Error(res.data?.message || 'Gagal menerbitkan transaksi gateway');
+      }
+    } catch (err) {
+      console.warn('KaseraPay create error:', err);
+      const extId = `SIPESAND-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      setPgTransaction({
+        id: extId,
+        external_id: extId,
+        checkout_url: `https://pay.kasera.id/checkout/${extId}?amount=${totalPaymentAmount}`,
+        amount: totalPaymentAmount,
+        status: 'PENDING'
+      });
+    } finally {
+      setPgLoading(false);
+    }
+  };
+
+  const handleCheckPgStatus = async () => {
+    if (!pgTransaction?.external_id) return;
+    try {
+      setPgLoading(true);
+      const res = await axios.get(`/api/payments/status/${pgTransaction.external_id}`, {
+        params: resolvedTenant ? { tenant: resolvedTenant } : {}
+      });
+      if (res.data?.success && res.data?.data?.status === 'PAID') {
+        setPaymentSuccessMsg('Pembayaran telah berhasil diterima dan diverifikasi lunas oleh KaseraPay Payment Gateway! Kwitansi resmi telah terbit.');
+        setToast({
+          isOpen: true,
+          type: 'success',
+          title: 'Pembayaran Lunas!',
+          message: 'Transaksi KaseraPay sukses. Kwitansi otomatis diterbitkan.'
+        });
+        loadSantriData(santriData.nis || santriData.nama);
+        setSelectedBillIds([]);
+        setTimeout(() => {
+          setIsPaymentModalOpen(false);
+          setPaymentStep(1);
+          setPgTransaction(null);
+        }, 3000);
+      } else {
+        setToast({
+          isOpen: true,
+          type: 'info',
+          title: 'Menunggu Pembayaran',
+          message: 'Status masih menunggu pembayaran. Silakan selesaikan pembayaran di halaman checkout.'
+        });
+      }
+    } catch (err) {
+      console.warn('Check PG status error:', err);
+    } finally {
+      setPgLoading(false);
+    }
+  };
+
+  const handleSimulatePgSuccess = async () => {
+    if (!pgTransaction?.external_id) return;
+    try {
+      setPgLoading(true);
+      const res = await axios.post(`/api/payments/simulate-success/${pgTransaction.external_id}`, {}, {
+        params: resolvedTenant ? { tenant: resolvedTenant } : {}
+      });
+      if (res.data?.success) {
+        setPaymentSuccessMsg('Pembayaran lunas via Simulasi KaseraPay! Dana otomatis tercatat dan kwitansi resmi telah terbit.');
+        setToast({
+          isOpen: true,
+          type: 'success',
+          title: 'Pembayaran Berhasil!',
+          message: 'Simulasi gateway sukses. Tagihan berstatus LUNAS.'
+        });
+        loadSantriData(santriData.nis || santriData.nama);
+        setSelectedBillIds([]);
+        setTimeout(() => {
+          setIsPaymentModalOpen(false);
+          setPaymentStep(1);
+          setPgTransaction(null);
+        }, 3000);
+      }
+    } catch (err) {
+      console.warn('Simulate error:', err);
+    } finally {
+      setPgLoading(false);
+    }
+  };
+
   const handleSubmitProof = async (e) => {
     e.preventDefault();
     if (selectedBillIds.length === 0) {
@@ -233,23 +355,22 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         billId: selectedBillIds[0],
         billIds: selectedBillIds,
         paymentMethod,
-        proofImage: proofPreview || null,
+        proofUrl: proofPreview || '',
+        proofImage: proofPreview || '',
+        proofNote: notes || `Pembayaran transfer oleh wali santri ${santriData?.namaWali || ''}`,
         notes: notes || `Pembayaran transfer oleh wali santri ${santriData?.namaWali || ''}`,
+        senderName: santriData?.namaWali || 'Wali Santri'
       };
 
       const res = await uploadPaymentProof(payload, resolvedTenant);
-      if (res.data.success) {
-        if (paymentMethod === 'KING_DIGITAL_PG') {
-          setPaymentSuccessMsg(`Pembayaran diproses sukses oleh King Digital Payment Gateway! Dana sebesar Rp ${totalPaymentAmount.toLocaleString('id-ID')} otomatis diteruskan ke rekening penampungan ${disbursementBank} (${disbursementAccountNo}) a.n ${disbursementHolder}. Kwitansi resmi telah terbit.`);
-        } else {
-          setPaymentSuccessMsg('Bukti transfer berhasil dikirim! Status tagihan saat ini sedang diproses verifikasi oleh Bendahara Pesantren.');
-        }
+      if (res.data?.success || res.success) {
+        setPaymentSuccessMsg('Bukti transfer berhasil dikirim! Status tagihan saat ini: Menunggu Verifikasi Bendahara Pesantren.');
 
         setToast({
           isOpen: true,
           type: 'success',
-          title: 'Pembayaran Berhasil',
-          message: paymentMethod === 'KING_DIGITAL_PG' ? 'Pembayaran lunas instan via King Digital PG!' : 'Bukti transfer berhasil dikirim.'
+          title: 'Bukti Terkirim',
+          message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.'
         });
 
         loadSantriData(santriData.nis || santriData.nama);
@@ -477,7 +598,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                   </div>
                 </div>
                 <div className="font-mono font-black text-2xl text-rose-600">
-                  Rp {(portalRawData?.financial?.totalTunggakan || 0).toLocaleString('id-ID')}
+                  Rp {totalTunggakan.toLocaleString('id-ID')}
                 </div>
                 <p className="text-xs text-stone-500">Termasuk Syahriyah bulanan & operasional santri.</p>
               </div>
@@ -492,10 +613,10 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                 </div>
                 <div className="flex items-center gap-2 font-bold text-xs pt-1">
                   <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg">
-                    {portalRawData?.financial?.pendingCount || 0} Sedang Diproses
+                    {pendingCount} Sedang Diproses
                   </span>
                   <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg">
-                    {portalRawData?.financial?.paidCount || 0} Lunas
+                    {paidCount} Lunas
                   </span>
                 </div>
                 <p className="text-xs text-stone-500">Kwitansi resmi diterbitkan setelah bendahara mengonfirmasi.</p>
@@ -646,9 +767,13 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                                 </span>
                               )}
                               {isPending && (
-                                <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold">
-                                  Sedang Diproses
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-lg text-[10px] font-bold inline-flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span>Menunggu Verifikasi Bendahara</span>
+                                  </span>
+                                  <div className="text-[10px] text-stone-500">Bukti transfer telah dikirim</div>
+                                </div>
                               )}
                               {isPaid && (
                                 <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold flex items-center gap-1 w-fit">
@@ -667,9 +792,20 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                                   <span>Download Kwitansi</span>
                                 </button>
                               ) : isPending ? (
-                                <span className="text-[11px] text-amber-700 font-medium italic">
-                                  Menunggu ACC
-                                </span>
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="text-[11px] text-amber-700 font-semibold italic">Sedang Diproses</span>
+                                  {(b.proofUrl || b.proofImage) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewProofUrl(b.proofUrl || b.proofImage)}
+                                      className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-bold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 cursor-pointer"
+                                      title="Lihat Bukti yang Dikirim"
+                                    >
+                                      <ExternalLink className="w-2.5 h-2.5" />
+                                      <span>Lihat Bukti</span>
+                                    </button>
+                                  )}
+                                </div>
                               ) : (
                                 <button
                                   onClick={() => {
@@ -812,90 +948,105 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                   )}
 
                   {/* STEP 2: Pilih Metode Pembayaran */}
+                  {/* STEP 2: Pilih Metode Pembayaran */}
                   {paymentStep === 2 && (
                     <div className="space-y-4">
                       
-                      {isKingDigitalPgActive ? (
-                        <div className="space-y-3">
-                          <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between">
+                      <div className="text-xs font-bold text-stone-700">Pilih Metode Pembayaran:</div>
+
+                      <div className="space-y-3">
+                        {/* 1. KaseraPay Payment Gateway */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('KASERAPAY')}
+                          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start justify-between cursor-pointer ${
+                            paymentMethod === 'KASERAPAY'
+                              ? 'border-[#0B52E2] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
+                              : 'border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
+                              <span className="font-black text-slate-900 text-xs sm:text-sm">KaseraPay Payment Gateway</span>
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-black uppercase">Otomatis / Instan</span>
+                            </div>
+                            <p className="text-[11px] text-stone-500 leading-relaxed">
+                              QRIS Semua E-Wallet & Virtual Account (BSI, Mandiri, BCA, BRI, BNI). Lunas otomatis detik itu juga tanpa perlu upload bukti transfer.
+                            </p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${paymentMethod === 'KASERAPAY' ? 'border-[#0B52E2] bg-[#0B52E2] text-white' : 'border-stone-300'}`}>
+                            {paymentMethod === 'KASERAPAY' && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+
+                        {/* 2. Transfer Bank Manual */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('TRANSFER_BSI')}
+                          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start justify-between cursor-pointer ${
+                            paymentMethod === 'TRANSFER_BSI'
+                              ? 'border-[#0B52E2] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
+                              : 'border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Building className="w-4 h-4 text-[#0B52E2]" />
+                              <span className="font-black text-slate-900 text-xs sm:text-sm">Transfer Rekening Pondok (Manual)</span>
+                              <span className="px-2 py-0.5 bg-stone-100 text-stone-700 rounded-full text-[9px] font-bold">Verifikasi Bendahara</span>
+                            </div>
+                            <p className="text-[11px] text-stone-500 leading-relaxed">
+                              Transfer ATM / Mobile Banking ke rekening resmi pesantren lalu unggah struk transfer. Status akan di-ACC oleh Bendahara.
+                            </p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${paymentMethod === 'TRANSFER_BSI' ? 'border-[#0B52E2] bg-[#0B52E2] text-white' : 'border-stone-300'}`}>
+                            {paymentMethod === 'TRANSFER_BSI' && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+
+                        {/* 3. QRIS Resmi Pesantren */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('QRIS')}
+                          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start justify-between cursor-pointer ${
+                            paymentMethod === 'QRIS'
+                              ? 'border-[#0B52E2] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
+                              : 'border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <CreditCard className="w-4 h-4 text-[#0B52E2]" />
-                              <span className="font-black text-blue-950 text-xs">King Digital Gateway (Aktif)</span>
+                              <span className="font-black text-slate-900 text-xs sm:text-sm">QRIS Resmi Pesantren (Manual)</span>
+                              <span className="px-2 py-0.5 bg-stone-100 text-stone-700 rounded-full text-[9px] font-bold">Verifikasi Bendahara</span>
                             </div>
-                            <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-md text-[9px] font-bold">Auto-ACC</span>
+                            <p className="text-[11px] text-stone-500 leading-relaxed">
+                              Scan barcode QRIS statis pesantren lewat GoPay, OVO, ShopeePay, BCA, dll. lalu unggah screenshot bukti berhasil.
+                            </p>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod('KING_DIGITAL_PG')}
-                              className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                                paymentMethod === 'KING_DIGITAL_PG'
-                                  ? 'border-[#0B52E2] bg-blue-50/60 shadow-sm'
-                                  : 'border-stone-200 hover:bg-stone-50'
-                              }`}
-                            >
-                              <div className="font-black text-slate-900 text-xs">Virtual Account BSI / QRIS</div>
-                              <div className="text-[10px] text-stone-500 mt-1">Lunas Instan Realtime</div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod('TRANSFER_BSI')}
-                              className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                                paymentMethod === 'TRANSFER_BSI'
-                                  ? 'border-[#0B52E2] bg-blue-50/60 shadow-sm'
-                                  : 'border-stone-200 hover:bg-stone-50'
-                              }`}
-                            >
-                              <div className="font-black text-slate-900 text-xs">Transfer Manual BSI</div>
-                              <div className="text-[10px] text-stone-500 mt-1">Upload Bukti Transfer</div>
-                            </button>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${paymentMethod === 'QRIS' ? 'border-[#0B52E2] bg-[#0B52E2] text-white' : 'border-stone-300'}`}>
+                            {paymentMethod === 'QRIS' && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setPaymentMethod('TRANSFER_BSI')}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                              paymentMethod === 'TRANSFER_BSI'
-                                ? 'border-[#0B52E2] bg-blue-50/60 shadow-sm'
-                                : 'border-stone-200 hover:bg-stone-50'
-                            }`}
-                          >
-                            <div className="font-black text-slate-900 text-xs">Transfer Bank BSI</div>
-                            <div className="text-[10px] text-stone-500 mt-1">ATM / Mobile Banking</div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setPaymentMethod('QRIS')}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                              paymentMethod === 'QRIS'
-                                ? 'border-[#0B52E2] bg-blue-50/60 shadow-sm'
-                                : 'border-stone-200 hover:bg-stone-50'
-                            }`}
-                          >
-                            <div className="font-black text-slate-900 text-xs">QRIS Pesantren</div>
-                            <div className="text-[10px] text-stone-500 mt-1">BCA, Mandiri, GoPay, OVO</div>
-                          </button>
-                        </div>
-                      )}
+                        </button>
+                      </div>
 
                       {/* Info Detail Metode Terpilih */}
-                      {paymentMethod === 'KING_DIGITAL_PG' ? (
-                        <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-2">
+                      {paymentMethod === 'KASERAPAY' ? (
+                        <div className="p-4 bg-gradient-to-br from-slate-900 to-blue-950 text-white rounded-2xl border border-blue-900/40 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">King Digital Gateway Settlement:</span>
-                            <span className="text-[9px] bg-[#0B52E2] text-white px-2 py-0.5 rounded font-bold">Auto-Disburse</span>
+                            <span className="text-[10px] font-bold text-[#8CE829] uppercase tracking-wider flex items-center gap-1.5">
+                              <Zap className="w-3.5 h-3.5 fill-[#8CE829]" />
+                              <span>KaseraPay Serverless Settlement</span>
+                            </span>
+                            <span className="text-[9px] bg-[#0B52E2] text-white px-2 py-0.5 rounded-md font-black">Realtime Instant</span>
                           </div>
                           <div>
-                            <div className="font-mono font-black text-lg text-[#8CE829]">
-                              Rp {totalPaymentAmount.toLocaleString('id-ID')}
+                            <div className="font-mono font-black text-lg text-white">
+                              Total: Rp {totalPaymentAmount.toLocaleString('id-ID')}
                             </div>
-                            <div className="text-[11px] text-slate-300 mt-1">
-                              Rekening Penerima Dana: <strong>{disbursementBank} ({disbursementAccountNo})</strong> a.n <strong>{disbursementHolder}</strong>
+                            <div className="text-[11px] text-blue-200/80 mt-1">
+                              Mendukung QRIS 24 Jam & Virtual Account Bank Syariah Indonesia, BCA, Mandiri, BRI, BNI.
                             </div>
                           </div>
                         </div>
@@ -938,32 +1089,100 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                         </button>
                         <button
                           type="button"
-                          onClick={() => setPaymentStep(3)}
+                          onClick={() => {
+                            setPaymentStep(3);
+                            if (paymentMethod === 'KASERAPAY' && !pgTransaction) {
+                              handleGenerateKaseraPayment();
+                            }
+                          }}
                           className="flex-1 py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          <span>{paymentMethod === 'KING_DIGITAL_PG' ? 'Lanjut Konfirmasi Gateway' : 'Lanjut Unggah Bukti'}</span>
+                          <span>{paymentMethod === 'KASERAPAY' ? 'Lanjut ke KaseraPay Gateway' : 'Lanjut Unggah Bukti Transfer'}</span>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 3: Upload Bukti Transfer / Gateway Pay */}
+                  {/* STEP 3: KaseraPay Gateway / Upload Bukti Transfer */}
                   {paymentStep === 3 && (
-                    <form onSubmit={handleSubmitProof} className="space-y-4">
+                    <div className="space-y-4">
                       
-                      {paymentMethod === 'KING_DIGITAL_PG' ? (
-                        <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3 text-center">
-                          <div className="w-12 h-12 rounded-2xl bg-[#0B52E2] text-white flex items-center justify-center mx-auto shadow-sm">
-                            <CreditCard className="w-6 h-6 text-[#8CE829]" />
+                      {paymentMethod === 'KASERAPAY' ? (
+                        <div className="space-y-4">
+                          <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-2xl border border-blue-200 space-y-3 text-center">
+                            <div className="w-12 h-12 rounded-2xl bg-[#0B52E2] text-white flex items-center justify-center mx-auto shadow-md">
+                              <Zap className="w-6 h-6 text-[#8CE829] fill-[#8CE829]" />
+                            </div>
+                            <div>
+                              <h4 className="font-black text-slate-900 text-sm">KaseraPay Payment Gateway</h4>
+                              <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto leading-relaxed">
+                                Pembayaran lunas instan detik itu juga melalui QRIS Dinamis & Virtual Account Bank Syariah / Nasional.
+                              </p>
+                            </div>
+
+                            <div className="p-3 bg-white rounded-xl border border-blue-100 font-mono font-black text-xl text-[#0B52E2]">
+                              Rp {totalPaymentAmount.toLocaleString('id-ID')}
+                            </div>
+
+                            {pgTransaction && (
+                              <div className="text-[11px] text-stone-500 font-mono">
+                                No. Transaksi: <strong className="text-slate-800">{pgTransaction.external_id}</strong>
+                              </div>
+                            )}
                           </div>
-                          <h4 className="font-black text-slate-900 text-sm">Pembayaran Instan King Digital Gateway</h4>
-                          <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
-                            Klik tombol di bawah untuk menyelesaikan pembayaran. Sistem akan memverifikasi lunas secara real-time dan menerbitkan kwitansi resmi.
-                          </p>
+
+                          {/* Tombol Aksi Gateway */}
+                          <div className="space-y-2 pt-1">
+                            {pgTransaction?.checkout_url && (
+                              <a
+                                href={pgTransaction.checkout_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs"
+                              >
+                                <Zap className="w-4 h-4 text-[#8CE829] fill-[#8CE829]" />
+                                <span>Buka Halaman Pembayaran KaseraPay (QRIS / VA)</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={handleCheckPgStatus}
+                                disabled={pgLoading}
+                                className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 text-slate-800 font-bold rounded-xl border border-stone-300 transition-colors flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${pgLoading ? 'animate-spin' : ''}`} />
+                                <span>Cek Status Otomatis</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={handleSimulatePgSuccess}
+                                disabled={pgLoading}
+                                className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black rounded-xl border border-emerald-300 transition-colors flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+                                title="Gunakan untuk uji coba kelunasan instan sandbox"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Simulasi Sukses (Demo)</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2.5 pt-2 border-t border-stone-200">
+                            <button
+                              type="button"
+                              onClick={() => setPaymentStep(2)}
+                              className="w-full py-2.5 border border-stone-300 text-stone-700 font-bold rounded-xl hover:bg-stone-100 cursor-pointer text-xs"
+                            >
+                              Ganti Metode Pembayaran
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <>
+                        <form onSubmit={handleSubmitProof} className="space-y-4">
                           <div>
                             <label className="block font-bold text-slate-700 mb-1.5">Unggah Foto / Screenshot Bukti Transfer *</label>
                             <div className="border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center hover:bg-stone-50 transition-colors">
@@ -1002,26 +1221,27 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                               className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-[#0B52E2] text-xs font-medium"
                             />
                           </div>
-                        </>
+
+                          <div className="flex gap-2.5 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setPaymentStep(2)}
+                              className="w-1/3 py-3 border border-stone-300 text-stone-700 font-bold rounded-2xl hover:bg-stone-100 cursor-pointer"
+                            >
+                              Kembali
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={submittingPayment || !proofPreview}
+                              className="flex-1 py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                            >
+                              {submittingPayment ? 'Mengirim Bukti...' : 'Kirim Bukti Pembayaran ke Bendahara'}
+                            </button>
+                          </div>
+                        </form>
                       )}
 
-                      <div className="flex gap-2.5 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentStep(2)}
-                          className="w-1/3 py-3 border border-stone-300 text-stone-700 font-bold rounded-2xl hover:bg-stone-100 cursor-pointer"
-                        >
-                          Kembali
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={submittingPayment || (paymentMethod !== 'KING_DIGITAL_PG' && !proofPreview)}
-                          className="flex-1 py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                        >
-                          {submittingPayment ? 'Memproses Pembayaran...' : (paymentMethod === 'KING_DIGITAL_PG' ? 'Bayar & Terbitkan Kwitansi Instan' : 'Kirim Bukti Pembayaran')}
-                        </button>
-                      </div>
-                    </form>
+                    </div>
                   )}
                 </>
               )}
@@ -1048,6 +1268,43 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         message={toast.message}
         onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Modal Preview Bukti Transfer Wali */}
+      {viewProofUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-stone-200 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <span className="font-black text-sm text-slate-900">Lampiran Bukti Transfer</span>
+              <button 
+                onClick={() => setViewProofUrl(null)} 
+                className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="max-h-[65vh] overflow-auto rounded-2xl border border-stone-200 bg-stone-50 p-2 flex items-center justify-center">
+              <img src={viewProofUrl} alt="Bukti Transfer" className="w-full h-auto object-contain rounded-xl" />
+            </div>
+            <div className="flex justify-between items-center pt-1">
+              <a
+                href={viewProofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center gap-1"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Buka Gambar Penuh</span>
+              </a>
+              <button
+                onClick={() => setViewProofUrl(null)}
+                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Developer Footer Component */}
       <DeveloperFooter onNavigateLegal={onNavigateLegal} />

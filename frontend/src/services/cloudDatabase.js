@@ -514,25 +514,26 @@ export async function generateCloudBulkBills(masterBillId, period, dueDate, tena
 }
 
 export async function payCloudBill(billId, paymentMethod, reference, tenant = null) {
-  const localRes = localDb.updateSantriBill(billId, {
+  const receiptNumber = reference || `KWT-${Date.now().toString().slice(-6)}`;
+  const nowIso = new Date().toISOString();
+  const updateData = {
     status: "PAID",
-    paymentMethod,
-    paymentDate: new Date().toISOString(),
+    paymentMethod: paymentMethod || 'MANUAL_TRANSFER',
+    paymentDate: nowIso,
+    paidAt: nowIso,
+    verifiedAt: nowIso,
     paymentRef: reference,
-  });
+    receiptNumber: receiptNumber
+  };
+  const localRes = localDb.updateSantriBill(billId, updateData);
   if (localRes.success) {
     try {
-      await setDoc(getTenantDoc("bills", billId, tenant), {
-        status: "PAID",
-        paymentMethod,
-        paymentDate: new Date().toISOString(),
-        paymentRef: reference,
-      }, { merge: true });
+      await setDoc(getTenantDoc("bills", billId, tenant), updateData, { merge: true });
     } catch (err) {
       console.warn("Gagal sync pay bill ke Firestore:", err);
     }
   }
-  return localRes;
+  return { ...localRes, data: { ...updateData, receiptNumber } };
 }
 
 export async function deleteCloudBill(id, tenant = null) {
@@ -1095,20 +1096,34 @@ export async function getCloudMasterBills(tenant = null) {
   return localDb.getMasterBills();
 }
 
-export async function uploadCloudPaymentProof({ billId, proofUrl, proofNote }, tenant = null) {
+export async function uploadCloudPaymentProof({ billId, billIds, proofUrl, proofImage, proofNote, notes, paymentMethod }, tenant = null) {
+  const targetIds = Array.isArray(billIds) && billIds.length > 0 ? billIds : (billId ? [billId] : []);
+  const finalProof = proofUrl || proofImage || '';
+  const finalNote = proofNote || notes || 'Upload Bukti Pembayaran Portal Wali';
+  const nowIso = new Date().toISOString();
+
   const updateData = {
     status: 'PENDING_VERIFICATION',
-    proofUrl,
-    proofNote: proofNote || 'Upload Bukti Pembayaran Portal Wali',
-    updatedAt: new Date().toISOString()
+    proofUrl: finalProof,
+    proofImage: finalProof,
+    proofNote: finalNote,
+    notes: finalNote,
+    paymentMethod: paymentMethod || 'MANUAL_TRANSFER',
+    updatedAt: nowIso
   };
+
   try {
-    await setDoc(getTenantDoc("bills", billId, tenant), updateData, { merge: true });
-    localDb.updateSantriBill(billId, updateData);
+    for (const id of targetIds) {
+      await setDoc(getTenantDoc("bills", id, tenant), updateData, { merge: true });
+      localDb.updateSantriBill(id, updateData);
+    }
     return { success: true, message: 'Bukti transfer berhasil dikirim. Menunggu verifikasi bendahara.' };
   } catch (err) {
     console.warn("uploadCloudPaymentProof fallback:", err);
-    return localDb.uploadPaymentProof({ billId, proofUrl, proofNote });
+    for (const id of targetIds) {
+      localDb.updateSantriBill(id, updateData);
+    }
+    return { success: true, message: 'Bukti transfer berhasil disimpan.' };
   }
 }
 
