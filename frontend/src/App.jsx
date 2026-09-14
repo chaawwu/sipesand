@@ -34,7 +34,8 @@ import SantriDigitalCardPage from './pages/SantriDigitalCardPage';
 import { SEO_PILLAR_PAGES } from './data/seoData';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import MobileTenantSwitcherModal from './components/MobileTenantSwitcherModal';
-import { initMobileAppBridge, isMobileNative } from './services/mobileAppService';
+import MobileTenantWelcomeScreen from './components/MobileTenantWelcomeScreen';
+import { initMobileAppBridge, isMobileNative, requestNativePermissions } from './services/mobileAppService';
 import { getCurrentTenant } from './services/localDatabase';
 
 function resolveInitialView() {
@@ -100,6 +101,8 @@ function resolveInitialView() {
       if (storedTenant && !['master', 'saas', 'app', 'mitra'].includes(storedTenant)) {
         return 'landing';
       }
+      // Jika di HP Android dan belum pernah memilih pesantren, tampilkan layar selamat datang pilihan pondok
+      return 'mobile-tenant-welcome';
     }
   } catch (e) {}
 
@@ -173,13 +176,20 @@ function MainAppContent() {
 
   const { isNfcEnabled, isTenantInstance, activeTenantSubdomain } = useSettings();
 
-  // Inisialisasi Mobile App Native Bridge & Deep Links
+  // Inisialisasi Mobile App Native Bridge, Deep Links, & Request Izin
   React.useEffect(() => {
     initMobileAppBridge((detectedTenant) => {
       if (detectedTenant) {
         window.location.reload();
       }
     });
+
+    if (isMobileNative()) {
+      // Minta izin kamera/notifikasi secara halus saat app dibuka
+      setTimeout(() => {
+        requestNativePermissions();
+      }, 1000);
+    }
   }, []);
 
   // Otomatis Deteksi Subdomain, Path Legal, Blog & SEO Pillars
@@ -416,6 +426,17 @@ function MainAppContent() {
         onOpenPortalWali={(targetNis) => {
           setPortalWaliQuery(targetNis);
           setCurrentView('portal-wali');
+        }}
+      />
+    );
+  }
+
+  // 0a. Layar Selamat Datang Khusus APK Mobile untuk Memilih Lembaga / Pondok Pertama Kali
+  if (currentView === 'mobile-tenant-welcome') {
+    return (
+      <MobileTenantWelcomeScreen
+        onTenantSelected={(selectedSubdomain) => {
+          setCurrentView('landing');
         }}
       />
     );

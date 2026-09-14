@@ -110,3 +110,31 @@ export function getApkDownloadUrl() {
   // 2. Default link GitHub Releases atau direct web
   return 'https://github.com/chaawwu/sipesand/releases/latest/download/sipesand-release.apk';
 }
+
+/**
+ * Meminta izin runtime Android (Kamera & Notifikasi) secara graceful
+ */
+export async function requestNativePermissions() {
+  if (typeof window === 'undefined') return;
+  
+  // 1. Izin Kamera via browser/Capacitor MediaDevices jika scan QR
+  try {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Matikan stream setelah izin didapatkan
+      stream.getTracks().forEach(track => track.stop());
+    }
+  } catch (err) {
+    console.log('Camera permission prompt skipped or denied:', err.message);
+  }
+
+  // 2. Izin Notifikasi (Web & Mobile push notifications)
+  try {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  } catch (err) {
+    console.log('Notification permission prompt skipped:', err.message);
+  }
+}
+
