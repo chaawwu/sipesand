@@ -1572,7 +1572,7 @@ export async function onRequest(context) {
     // -------------------------------------------------------------------------
     if (route === 'nfc/scan' && method === 'POST') {
       const body = await request.json();
-      const rawUid = (body.nfc_uid || body.uid || '').trim().toUpperCase();
+      const rawUid = (body.nfc_uid || body.uid || body.card_uid || '').trim().toUpperCase();
       const actionType = body.action_type || 'AUTO';
       const deviceInfo = body.device_info || request.headers.get('user-agent') || 'Mobile Device';
 
