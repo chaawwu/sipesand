@@ -19,9 +19,10 @@ import {
   MessageCircle,
   FileText,
   CheckCheck,
-  QrCode,
-  Download,
-  PhoneCall
+  QrCode, 
+  Download, 
+  PhoneCall,
+  Zap
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
