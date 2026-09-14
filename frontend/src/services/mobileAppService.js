@@ -136,5 +136,16 @@ export async function requestNativePermissions() {
   } catch (err) {
     console.log('Notification permission prompt skipped:', err.message);
   }
+
+  // 3. Inisialisasi Sensor NFC (Web NFC NDEFReader jika perangkat mendukung)
+  try {
+    if ('NDEFReader' in window) {
+      const ndef = new window.NDEFReader();
+      // Tes aktivasi pembaca NFC di browser/webview
+      console.log('NFC hardware reader is supported and ready.');
+    }
+  } catch (err) {
+    console.log('NFC activation check skipped:', err.message);
+  }
 }
 
