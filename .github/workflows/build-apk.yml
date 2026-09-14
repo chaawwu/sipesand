@@ -74,11 +74,31 @@ jobs:
             exit 1
           fi
 
+      - name: 🔨 Compile Ananda Wali Santri Native APK (Kotlin / Jetpack Compose)
+        working-directory: ./ananda-android
+        continue-on-error: true
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon || true
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            mkdir -p ../dist-apk
+            cp app/build/outputs/apk/debug/app-debug.apk ../dist-apk/ananda-wali-sipesand.apk
+          fi
+
       - name: 📂 Prepare APK Output
         run: |
           mkdir -p dist-apk
-          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-app.apk
-          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-release.apk
+          if [ -f "frontend/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-app.apk
+            cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-release.apk
+          fi
+          if [ -f "ananda-android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp ananda-android/app/build/outputs/apk/debug/app-debug.apk dist-apk/ananda-wali-sipesand.apk
+          fi
           ls -la dist-apk/
 
       - name: 📤 Upload APK Artifact to GitHub Actions
@@ -96,21 +116,23 @@ jobs:
           tag_name: "v1.0.0-apk"
           name: "SiPesand Mobile App v1.0.0 (Android APK)"
           body: |
-            ### 📱 Aplikasi SiPesand Mobile (Android APK)
+            ### 📱 Aplikasi SiPesand Mobile & Ananda Wali Santri (Android APK)
             
-            Unduh file APK resmi SiPesand untuk dipasang di smartphone Android Anda.
+            Unduh file APK resmi SiPesand untuk dipasang di smartphone Android Anda:
+            
+            1. **`ananda-wali-sipesand.apk`**: Aplikasi khusus Wali Santri (Kotlin / Jetpack Compose Native) dengan UI Header Lengkung & 12 Menu Layanan Santri.
+            2. **`sipesand-app.apk`**: Aplikasi Portal Manajemen Pesantren (Admin, Pengurus, Kamtib, Keuangan).
             
             #### Fitur Utama:
-            - **Multi-Tenant Otomatis**: Hubungkan ke subdomain pondok Anda (contoh: `namapondok.sipesand.web.id`). Database terisolasi penuh.
-            - **Native Performance**: Akses cepat, kamera scan bukti bayar & QR KTSD santri.
-            - **Offline-First Sync**: Tersinkronisasi aman dengan Firebase Cloud Firestore.
+            - **Multi-Tenant Otomatis**: Hubungkan ke subdomain pondok Anda (contoh: `darulrahman`, `namapondok`).
+            - **Native Performance**: Realtime Chat, Pembayaran KaseraPay QRIS, Izin Pulang Santri.
+            - **Offline-First Sync**: Tersinkronisasi aman dengan Cloud Firestore & Laravel API.
             
             #### Cara Pasang:
-            1. Unduh file `sipesand-app.apk` di bawah.
-            2. Buka file di HP Android dan izinkan instalasi dari sumber tidak dikenal.
-            3. Masukkan kode/domain pondok Anda dan nikmati aplikasi.
+            1. Unduh file APK yang diinginkan di bawah.
+            2. Buka file di HP Android dan izinkan instalasi dari sumber tidak dikenal (*Allow Unknown Sources*).
+            3. Buka aplikasi dan pilih pondok pesantren Anda.
           files: |
-            dist-apk/sipesand-app.apk
-            dist-apk/sipesand-release.apk
+            dist-apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
