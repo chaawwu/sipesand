@@ -113,8 +113,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: "v1.0.0-apk"
-          name: "SiPesand Mobile App v1.0.0 (Android APK)"
+          tag_name: "v1.1.0-ananda"
+          name: "SiPesand & Ananda Wali Santri App v1.1.0 (Android APK)"
           body: |
             ### 📱 Aplikasi SiPesand Mobile & Ananda Wali Santri (Android APK)
             
