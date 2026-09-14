@@ -20,15 +20,15 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
 
   // Receipt Data State
   const [receiptNo, setReceiptNo] = useState(
-    defaultData?.code || `KWT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random() * 9000)}`
+    defaultData?.code || defaultData?.receiptNumber || `KWT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random() * 9000)}`
   );
   const [receiptDate, setReceiptDate] = useState(
     defaultData?.date ? new Date(defaultData.date).toISOString().slice(0,10) : new Date().toISOString().slice(0,10)
   );
-  const [santriName, setSantriName] = useState(defaultData?.santriName || '');
-  const [waliName, setWaliName] = useState(defaultData?.waliName || '');
-  const [nis, setNis] = useState(defaultData?.nis || '');
-  const [kelas, setKelas] = useState(defaultData?.kelas || '');
+  const [santriName, setSantriName] = useState(defaultData?.santriName || defaultData?.studentName || '');
+  const [waliName, setWaliName] = useState(defaultData?.waliName || 'Wali Santri');
+  const [nis, setNis] = useState(defaultData?.nis || '-');
+  const [kelas, setKelas] = useState(defaultData?.kelas || '-');
   const [paymentMethod, setPaymentMethod] = useState(defaultData?.paymentMethod || 'Transfer Bank Syariah (BSI)');
   
   const bendaharaName = defaultData?.bendaharaName || settings.NAMA_BENDAHARA || 'Bendahara Pesantren';
@@ -46,6 +46,24 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
       { id: 1, name: 'SPP Syahriyah Pesantren', amount: 1200000 },
     ]
   );
+
+  // Sync state whenever defaultData changes
+  React.useEffect(() => {
+    if (defaultData) {
+      if (defaultData.code || defaultData.receiptNumber) setReceiptNo(defaultData.code || defaultData.receiptNumber);
+      if (defaultData.date) {
+        try {
+          setReceiptDate(new Date(defaultData.date).toISOString().slice(0,10));
+        } catch (e) {}
+      }
+      if (defaultData.santriName || defaultData.studentName) setSantriName(defaultData.santriName || defaultData.studentName);
+      if (defaultData.waliName) setWaliName(defaultData.waliName);
+      if (defaultData.nis) setNis(defaultData.nis);
+      if (defaultData.kelas) setKelas(defaultData.kelas);
+      if (defaultData.paymentMethod) setPaymentMethod(defaultData.paymentMethod);
+      if (defaultData.items && defaultData.items.length > 0) setItems(defaultData.items);
+    }
+  }, [defaultData]);
 
   const totalAmount = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
   const terbilangText = terbilang(totalAmount);
@@ -67,23 +85,7 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
     setItems(items.map(it => it.id === id ? { ...it, [field]: value } : it));
   };
 
-  // Bulletproof Isolated Print to prevent blank pages on any browser
-  const handlePrint = () => {
-    const printContent = document.getElementById('receipt-printable-content');
-    if (!printContent) {
-      window.print();
-      return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
+  const getFullHtmlDocument = (autoPrint = true) => {
     const formattedDate = new Date(receiptDate).toLocaleDateString('id-ID', {
       weekday: 'long',
       day: 'numeric',
@@ -99,135 +101,177 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
       </tr>
     `).join('');
 
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Kwitansi - ${santriName} (${receiptNo})</title>
-          <style>
-            @page { size: A4 portrait; margin: 12mm; }
-            * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #111827; background: #fff; margin: 0; padding: 15px; font-size: 11.5px; line-height: 1.4; }
-            .receipt-box { max-width: 680px; margin: 0 auto; border: 1.5px solid #0f172a; padding: 24px; border-radius: 8px; position: relative; }
-            .header-kop { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; }
-            .kop-left { display: flex; align-items: center; gap: 12px; }
-            .logo-img { max-height: 52px; max-width: 52px; object-fit: contain; }
-            .kop-title { font-size: 14px; font-weight: 900; text-transform: uppercase; color: #0f172a; margin: 0; }
-            .kop-sub { font-size: 9.5px; color: #475569; margin-top: 2px; }
-            .badge-kwitansi { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 10px; text-transform: uppercase; }
-            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 6px; margin: 14px 0; font-size: 10.5px; }
-            .meta-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 600; display: block; }
-            .table-items { width: 100%; border-collapse: collapse; margin: 14px 0; }
-            .table-items th { background: #f1f5f9; padding: 8px 10px; font-size: 9.5px; text-transform: uppercase; text-align: left; border-bottom: 1.5px solid #cbd5e1; }
-            .terbilang-box { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px 12px; border-radius: 6px; font-style: italic; color: #334155; margin: 10px 0; font-size: 10.5px; }
-            .ttd-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; }
-            .ttd-box { width: 220px; text-align: center; position: relative; }
-            .stempel-img { position: absolute; left: 20px; top: -10px; width: 95px; height: 95px; object-fit: contain; opacity: 0.85; mix-blend-mode: multiply; pointer-events: none; }
-            .ttd-img { max-height: 48px; object-fit: contain; margin: 4px auto; }
-            .footer-note { text-align: center; font-size: 8.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 18px; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt-box">
-            
-            <div class="header-kop">
-              <div class="kop-left">
-                ${logoPondok ? `<img src="${logoPondok}" class="logo-img" />` : ''}
-                <div>
-                  <h2 class="kop-title">${namaLembaga}</h2>
-                  <div class="kop-sub">${taglineLembaga}</div>
-                  <div style="font-size: 8.5px; color: #64748b;">${alamatLembaga} • Telp: ${noTelp}</div>
-                </div>
-              </div>
-              <div style="text-align: right;">
-                <span class="badge-kwitansi">KWITANSI RESMI SAH</span>
-                <div style="font-family: monospace; font-size: 9.5px; color: #475569; margin-top: 4px;">
-                  No: <strong>${receiptNo}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="meta-grid">
-              <div>
-                <span class="meta-label">Telah Diterima Dari</span>
-                <div style="font-weight: bold; font-size: 12px; color: #0f172a;">${waliName}</div>
-                <div style="color: #475569; font-size: 10px; margin-top: 2px;">Wali dari: <strong style="color: #1e3a8a;">${santriName}</strong></div>
-              </div>
-              <div>
-                <span class="meta-label">Tanggal Pembayaran</span>
-                <div style="font-weight: bold; color: #0f172a;">${formattedDate}</div>
-                <div style="color: #475569; font-size: 10px; margin-top: 2px;">Metode: <strong>${paymentMethod}</strong></div>
-              </div>
-              <div>
-                <span class="meta-label">NIS & Kelas Santri</span>
-                <div style="font-family: monospace; font-weight: bold;">${nis} • ${kelas}</div>
-              </div>
-              <div>
-                <span class="meta-label">Status Verifikasi</span>
-                <div style="font-weight: bold; color: #059669;">LUNAS (TERVERIFIKASI SISTEM)</div>
-              </div>
-            </div>
-
-            <table class="table-items">
-              <thead>
-                <tr>
-                  <th style="width: 40px; text-align: center;">No</th>
-                  <th>Rincian Pembayaran</th>
-                  <th style="width: 150px; text-align: right;">Nominal (Rp)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsRows}
-                <tr style="background: #f8fafc; font-weight: bold;">
-                  <td colspan="2" style="padding: 10px; text-align: right; border-top: 1.5px solid #cbd5e1; font-size: 11px;">TOTAL PEMBAYARAN:</td>
-                  <td style="padding: 10px; text-align: right; border-top: 1.5px solid #cbd5e1; font-family: monospace; font-size: 13px; color: #1e3a8a;">Rp ${totalAmount.toLocaleString('id-ID')}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="terbilang-box">
-              <strong>Terbilang:</strong> <span>${terbilangText} Rupiah</span>
-            </div>
-
-            <div class="ttd-container">
-              <div class="ttd-box">
-                <div style="font-size: 9.5px; color: #64748b;">Penyetor / Wali Santri,</div>
-                <div style="height: 48px;"></div>
-                <div style="font-weight: bold; text-decoration: underline;">( ${waliName} )</div>
-              </div>
-
-              <div class="ttd-box">
-                <div style="font-size: 9.5px; color: #64748b;">Bendahara Penerima,</div>
-                <div style="height: 48px; position: relative; display: flex; align-items: center; justify-content: center;">
-                  ${capStempel ? `<img src="${capStempel}" class="stempel-img" />` : ''}
-                  ${ttdBendahara ? `<img src="${ttdBendahara}" class="ttd-img" />` : '<div style="height: 40px;"></div>'}
-                </div>
-                <div style="font-weight: bold; text-decoration: underline;">${bendaharaName}</div>
-              </div>
-            </div>
-
-            <div class="footer-note">
-              Dokumen ini diterbitkan secara resmi oleh Sistem Terpadu Pesantren SiPesand (kingdigitalpremium.my.id) dan sah sebagai bukti pembayaran.
-            </div>
-
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kwitansi - ${santriName || 'Santri'} (${receiptNo})</title>
+    <style>
+      @page { size: A4 portrait; margin: 12mm; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #111827; background: #fff; margin: 0; padding: 15px; font-size: 11.5px; line-height: 1.4; }
+      .receipt-box { max-width: 680px; margin: 0 auto; border: 1.5px solid #0f172a; padding: 24px; border-radius: 8px; position: relative; }
+      .header-kop { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; }
+      .kop-left { display: flex; align-items: center; gap: 12px; }
+      .logo-img { max-height: 52px; max-width: 52px; object-fit: contain; }
+      .kop-title { font-size: 14px; font-weight: 900; text-transform: uppercase; color: #0f172a; margin: 0; }
+      .kop-sub { font-size: 9.5px; color: #475569; margin-top: 2px; }
+      .badge-kwitansi { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 10px; text-transform: uppercase; }
+      .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 6px; margin: 14px 0; font-size: 10.5px; }
+      .meta-label { color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 600; display: block; }
+      .table-items { width: 100%; border-collapse: collapse; margin: 14px 0; }
+      .table-items th { background: #f1f5f9; padding: 8px 10px; font-size: 9.5px; text-transform: uppercase; text-align: left; border-bottom: 1.5px solid #cbd5e1; }
+      .terbilang-box { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px 12px; border-radius: 6px; font-style: italic; color: #334155; margin: 10px 0; font-size: 10.5px; }
+      .ttd-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; }
+      .ttd-box { width: 220px; text-align: center; position: relative; }
+      .stempel-img { position: absolute; left: 20px; top: -10px; width: 95px; height: 95px; object-fit: contain; opacity: 0.85; mix-blend-mode: multiply; pointer-events: none; }
+      .ttd-img { max-height: 48px; object-fit: contain; margin: 4px auto; }
+      .footer-note { text-align: center; font-size: 8.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 18px; }
+      .btn-download-bar { text-align: center; margin-bottom: 15px; }
+      @media print { .btn-download-bar { display: none !important; } }
+    </style>
+  </head>
+  <body>
+    <div class="btn-download-bar">
+      <button onclick="window.print()" style="padding: 8px 18px; background: #0057FF; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        🖨️ Cetak / Simpan ke PDF Sekarang
+      </button>
+    </div>
+    <div class="receipt-box">
+      
+      <div class="header-kop">
+        <div class="kop-left">
+          ${logoPondok ? `<img src="${logoPondok}" class="logo-img" />` : ''}
+          <div>
+            <h2 class="kop-title">${namaLembaga}</h2>
+            <div class="kop-sub">${taglineLembaga}</div>
+            <div style="font-size: 8.5px; color: #64748b;">${alamatLembaga} • Telp: ${noTelp}</div>
           </div>
-          <script>
-            window.onload = function() {
-              window.focus();
-              window.print();
-              setTimeout(function() {
-                if (window.frameElement && window.frameElement.parentNode) {
-                  window.frameElement.parentNode.removeChild(window.frameElement);
-                }
-              }, 1000);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    doc.close();
+        </div>
+        <div style="text-align: right;">
+          <span class="badge-kwitansi">KWITANSI RESMI SAH</span>
+          <div style="font-family: monospace; font-size: 9.5px; color: #475569; margin-top: 4px;">
+            No: <strong>${receiptNo}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-grid">
+        <div>
+          <span class="meta-label">Telah Diterima Dari</span>
+          <div style="font-weight: bold; font-size: 12px; color: #0f172a;">${waliName}</div>
+          <div style="color: #475569; font-size: 10px; margin-top: 2px;">Wali dari: <strong style="color: #1e3a8a;">${santriName || 'Santri'}</strong></div>
+        </div>
+        <div>
+          <span class="meta-label">Tanggal Pembayaran</span>
+          <div style="font-weight: bold; color: #0f172a;">${formattedDate}</div>
+          <div style="color: #475569; font-size: 10px; margin-top: 2px;">Metode: <strong>${paymentMethod}</strong></div>
+        </div>
+        <div>
+          <span class="meta-label">NIS & Kelas Santri</span>
+          <div style="font-family: monospace; font-weight: bold;">${nis} • ${kelas}</div>
+        </div>
+        <div>
+          <span class="meta-label">Status Verifikasi</span>
+          <div style="font-weight: bold; color: #059669;">LUNAS (TERVERIFIKASI SISTEM)</div>
+        </div>
+      </div>
+
+      <table class="table-items">
+        <thead>
+          <tr>
+            <th style="width: 40px; text-align: center;">No</th>
+            <th>Rincian Pembayaran</th>
+            <th style="width: 150px; text-align: right;">Nominal (Rp)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+          <tr style="background: #f8fafc; font-weight: bold;">
+            <td colspan="2" style="padding: 10px; text-align: right; border-top: 1.5px solid #cbd5e1; font-size: 11px;">TOTAL PEMBAYARAN:</td>
+            <td style="padding: 10px; text-align: right; border-top: 1.5px solid #cbd5e1; font-family: monospace; font-size: 13px; color: #1e3a8a;">Rp ${totalAmount.toLocaleString('id-ID')}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="terbilang-box">
+        <strong>Terbilang:</strong> <span>${terbilangText} Rupiah</span>
+      </div>
+
+      <div class="ttd-container">
+        <div class="ttd-box">
+          <div style="font-size: 9.5px; color: #64748b;">Penyetor / Wali Santri,</div>
+          <div style="height: 48px;"></div>
+          <div style="font-weight: bold; text-decoration: underline;">( ${waliName} )</div>
+        </div>
+
+        <div class="ttd-box">
+          <div style="font-size: 9.5px; color: #64748b;">Bendahara Penerima,</div>
+          <div style="height: 48px; position: relative; display: flex; align-items: center; justify-content: center;">
+            ${capStempel ? `<img src="${capStempel}" class="stempel-img" />` : ''}
+            ${ttdBendahara ? `<img src="${ttdBendahara}" class="ttd-img" />` : '<div style="height: 40px;"></div>'}
+          </div>
+          <div style="font-weight: bold; text-decoration: underline;">${bendaharaName}</div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Dokumen ini diterbitkan secara resmi oleh Sistem Terpadu Pesantren SiPesand (sipesand.web.id) dan sah sebagai bukti pembayaran.
+      </div>
+
+    </div>
+    ${autoPrint ? `
+    <script>
+      window.onload = function() {
+        window.focus();
+        window.print();
+      };
+    </script>` : ''}
+  </body>
+</html>`;
+  };
+
+  // Bulletproof Direct & Isolated Print
+  const handlePrint = () => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(getFullHtmlDocument(true));
+      doc.close();
+
+      iframe.contentWindow.onafterprint = () => {
+        try {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        } catch (e) {}
+      };
+    } catch (e) {
+      window.print();
+    }
+  };
+
+  // Download Standalone Document File (Works on Android Mobile & Desktop)
+  const handleDownloadFile = () => {
+    const htmlContent = getFullHtmlDocument(false);
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const cleanSantri = (santriName || 'Santri').replace(/[^a-zA-Z0-9]/g, '_');
+    link.download = `Kwitansi_${cleanSantri}_${receiptNo}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -245,22 +289,33 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
             <div>
               <h3 className="font-bold text-sm text-white">Kwitansi Resmi Pembayaran Pesantren</h3>
               <p className="text-[10px] text-slate-400">
-                {readOnly ? 'Format PDF Cetak Sah (Non-Editable)' : 'Generator Kwitansi Bendahara'}
+                {readOnly ? 'Format Cetak Sah & Terverifikasi' : 'Generator Kwitansi Bendahara'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleDownloadFile}
+              className="px-3 sm:px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Unduh file dokumen kwitansi ke HP / Komputer"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Download File</span>
+            </button>
+
+            <button
               onClick={handlePrint}
-              className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5"
+              className="px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Buka dialog cetak atau simpan PDF"
             >
               <Printer className="w-4 h-4" />
-              <span>Cetak / Simpan PDF</span>
+              <span>Cetak / PDF</span>
             </button>
+
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
+              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

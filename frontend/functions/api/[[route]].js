@@ -745,14 +745,23 @@ export async function onRequest(context) {
         status: 'PAID',
         verifiedAt: nowIso,
         paidAt: nowIso,
-        paymentMethod: body.paymentMethod || 'MANUAL_TRANSFER',
-        receiptNumber
+        paymentDate: nowIso,
+        paymentMethod: body.paymentMethod || bData.paymentMethod || 'MANUAL_TRANSFER',
+        receiptNumber,
+        verifiedBy: body.verifiedBy || 'Bendahara Pondok',
+        updatedAt: nowIso
+      };
+
+      const mergedBill = {
+        ...bData,
+        ...updateData,
+        id: billId
       };
 
       await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(encodeDoc(updateData))
+        body: JSON.stringify(encodeDoc(mergedBill))
       });
 
       // Catat otomatis ke Buku Kas Umum (Ledger)
@@ -765,7 +774,7 @@ export async function onRequest(context) {
           type: 'INCOME',
           category: 'SPP',
           amount: parseFloat(bData.amount || 0),
-          description: `Pembayaran ${bData.title} - No. Kwitansi: ${receiptNumber}`,
+          description: `Pembayaran ${bData.title || 'Tagihan Syahriyah'} - No. Kwitansi: ${receiptNumber}`,
           reference: receiptNumber,
           date: nowIso,
           createdAt: nowIso
@@ -775,7 +784,7 @@ export async function onRequest(context) {
       return jsonResponse({
         success: true,
         message: 'Pembayaran tagihan berhasil diverifikasi dan kwitansi sah diterbitkan',
-        data: { ...bData, ...updateData }
+        data: mergedBill
       });
     }
 
@@ -793,9 +802,20 @@ export async function onRequest(context) {
       const nowIso = new Date().toISOString();
 
       for (const id of targetIds) {
+        let existingBill = {};
+        try {
+          const exRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${id}`);
+          if (exRes.ok) {
+            const exJson = await exRes.json();
+            existingBill = decodeFields(exJson.fields);
+          }
+        } catch (e) {}
+
         const updateData = {
+          ...existingBill,
           status: 'PENDING_VERIFICATION',
           proofUrl: finalProof,
+          proofImage: finalProof,
           proofNote: finalNote,
           paymentMethod: paymentMethod || 'MANUAL_TRANSFER',
           senderName: senderName || 'Wali Santri',
@@ -820,9 +840,18 @@ export async function onRequest(context) {
       if (method === 'PUT') {
         const body = await request.json();
         const nowIso = new Date().toISOString();
-        const updatePayload = { ...body, updatedAt: nowIso };
-        if (body.status === 'PAID' && !body.receiptNumber) {
-          updatePayload.receiptNumber = `KWT-${Date.now().toString().slice(-6)}`;
+        let existing = {};
+        try {
+          const exRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`);
+          if (exRes.ok) {
+            const exDoc = await exRes.json();
+            existing = decodeFields(exDoc.fields);
+          }
+        } catch (e) {}
+
+        const updatePayload = { ...existing, ...body, updatedAt: nowIso };
+        if (body.status === 'PAID' && !updatePayload.receiptNumber) {
+          updatePayload.receiptNumber = existing.receiptNumber || `KWT-${Date.now().toString().slice(-6)}`;
           updatePayload.paidAt = body.paidAt || nowIso;
           updatePayload.verifiedAt = body.verifiedAt || nowIso;
         }
