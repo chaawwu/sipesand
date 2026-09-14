@@ -1567,6 +1567,279 @@ export async function onRequest(context) {
       return jsonResponse({ success: true, data: [] });
     }
 
+    // -------------------------------------------------------------------------
+    // 15. NFC ABSENSI SANTRI (KTSD) SERVERLESS ENDPOINT
+    // -------------------------------------------------------------------------
+    if (route === 'nfc/scan' && method === 'POST') {
+      const body = await request.json();
+      const rawUid = (body.nfc_uid || body.uid || '').trim().toUpperCase();
+      const actionType = body.action_type || 'AUTO';
+      const deviceInfo = body.device_info || request.headers.get('user-agent') || 'Mobile Device';
+
+      if (!rawUid) {
+        return jsonResponse({ success: false, message: 'UID kartu KTSD tidak valid atau kosong' }, 400);
+      }
+
+      // Cari santri pemilik kartu ini di Firestore
+      const santriRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri`);
+      let matchedSantri = null;
+      let matchedDocId = null;
+
+      if (santriRes.ok) {
+        const santriJson = await santriRes.json();
+        for (const doc of (santriJson.documents || [])) {
+          const fields = decodeFields(doc.fields);
+          if (fields.nfcUid && fields.nfcUid.toUpperCase() === rawUid) {
+            matchedSantri = fields;
+            matchedDocId = doc.name.split('/').pop();
+            break;
+          }
+        }
+      }
+
+      if (!matchedSantri) {
+        return jsonResponse({
+          success: false,
+          message: `Kartu KTSD (${rawUid}) belum terdaftar pada database pondok.`,
+          nfc_uid: rawUid
+        }, 404);
+      }
+
+      // Tentukan aksi absensi
+      let nextStatus = actionType;
+      if (actionType === 'AUTO' || !actionType) {
+        nextStatus = (matchedSantri.status_kehadiran === 'MASUK') ? 'PULANG' : 'MASUK';
+      }
+
+      const nowIso = new Date().toISOString();
+
+      if (nextStatus !== 'CEK_SALDO') {
+        // Update status santri
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/santri/${matchedDocId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({
+            status_kehadiran: nextStatus,
+            last_scanned_at: nowIso,
+            updatedAt: nowIso
+          }))
+        });
+
+        // Simpan log absensi
+        const logId = `att_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/nfc_attendances/${logId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({
+            id: logId,
+            santriId: matchedDocId,
+            nis: matchedSantri.nis || '',
+            nama: matchedSantri.nama || '',
+            nfc_uid: rawUid,
+            action_type: nextStatus,
+            device_info: deviceInfo,
+            scanned_at: nowIso
+          }))
+        });
+      }
+
+      return jsonResponse({
+        success: true,
+        message: `Absensi ${nextStatus} berhasil untuk ${matchedSantri.nama}`,
+        data: {
+          santri_id: matchedDocId,
+          nis: matchedSantri.nis,
+          nama: matchedSantri.nama,
+          kelas: matchedSantri.kelas,
+          kamar: matchedSantri.kamar,
+          status_kehadiran: nextStatus,
+          saldo_saku: parseFloat(matchedSantri.saldo_saku || 0),
+          action: nextStatus,
+          scanned_at: nowIso
+        }
+      });
+    }
+
+    if (route === 'nfc/history' && method === 'GET') {
+      const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/nfc_attendances`);
+      let list = [];
+      if (res.ok) {
+        const json = await res.json();
+        list = (json.documents || []).map(d => ({
+          id: d.name.split('/').pop(),
+          ...decodeFields(d.fields)
+        })).sort((a, b) => new Date(b.scanned_at || 0) - new Date(a.scanned_at || 0));
+      }
+      return jsonResponse({ success: true, data: list.slice(0, 50) });
+    }
+
+    // -------------------------------------------------------------------------
+    // 16. KASERAPAY PAYMENT GATEWAY SERVERLESS ENGINE
+    // -------------------------------------------------------------------------
+
+    // A. POST /api/payments/create
+    if (route === 'payments/create' && method === 'POST') {
+      const body = await request.json();
+      const { amount, title, customer_name, customer_phone, customer_email, bill_id, payment_method = 'ALL' } = body;
+
+      if (!amount || amount < 1000) {
+        return jsonResponse({ success: false, message: 'Nominal pembayaran minimal Rp 1.000' }, 400);
+      }
+
+      const externalId = `SIPESAND-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const apiKey = context.env?.KASERAPAY_API_KEY || '';
+      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+
+      let checkoutUrl = `https://pay.kasera.id/checkout/${externalId}?amount=${amount}`;
+      let qrString = null;
+      let remoteData = null;
+
+      // Hubungi API KaseraPay jika API Key sudah dipasang di Environment Cloudflare Pages
+      if (apiKey) {
+        try {
+          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              external_id: externalId,
+              amount: parseInt(amount, 10),
+              customer_name: customer_name || 'Wali Santri',
+              customer_phone: customer_phone || '08123456789',
+              customer_email: customer_email || 'wali@sipesand.web.id',
+              description: title || 'Pembayaran Tagihan Santri',
+              payment_method,
+              callback_url: `https://sipesand.web.id/api/payments/status/${externalId}`
+            })
+          });
+
+          if (kaseraRes.ok) {
+            const kaseraJson = await kaseraRes.json();
+            remoteData = kaseraJson;
+            checkoutUrl = kaseraJson.checkout_url || kaseraJson.payment_url || checkoutUrl;
+            qrString = kaseraJson.qr_string || null;
+          }
+        } catch (e) {
+          console.warn('KaseraPay API call error:', e);
+        }
+      }
+
+      // Simpan record pembayaran di Firestore
+      const paymentDoc = {
+        id: externalId,
+        external_id: externalId,
+        tenant_subdomain: tenant,
+        bill_id: bill_id || null,
+        amount: parseFloat(amount),
+        title: title || 'Pembayaran Tagihan Santri',
+        customer_name: customer_name || 'Wali Santri',
+        status: 'PENDING',
+        payment_method,
+        checkout_url: checkoutUrl,
+        qr_string: qrString,
+        createdAt: new Date().toISOString()
+      };
+
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(paymentDoc))
+      });
+
+      return jsonResponse({
+        success: true,
+        message: 'Transaksi KaseraPay berhasil digenerate',
+        data: paymentDoc
+      }, 201);
+    }
+
+    // B. POST /api/payments/webhook (Realtime Callback dari KaseraPay)
+    if (route === 'payments/webhook' && method === 'POST') {
+      const rawPayload = await request.text();
+      let body = {};
+      try { body = JSON.parse(rawPayload); } catch(e) {}
+
+      const signature = request.headers.get('x-signature') || request.headers.get('x-kaserapay-signature');
+      const webhookSecret = context.env?.KASERAPAY_WEBHOOK_SECRET || '';
+
+      // Verifikasi Signature HMAC jika webhook secret tersedia
+      if (webhookSecret && signature) {
+        try {
+          const encoder = new TextEncoder();
+          const keyData = encoder.encode(webhookSecret);
+          const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+          const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(rawPayload));
+          const expectedSig = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          if (expectedSig !== signature.toLowerCase()) {
+            return jsonResponse({ success: false, message: 'Invalid webhook signature' }, 401);
+          }
+        } catch (sigErr) {
+          console.warn('Signature verification error:', sigErr);
+        }
+      }
+
+      const externalId = body.external_id || body.data?.external_id;
+      const event = (body.event || body.status || body.data?.status || '').toLowerCase();
+
+      if (!externalId) {
+        return jsonResponse({ success: false, message: 'Missing external_id' }, 400);
+      }
+
+      // Cari transaksi di semua tenant atau master
+      const paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`);
+      if (paymentRes.ok) {
+        const isPaid = ['payment.paid', 'paid', 'success', 'settled'].includes(event);
+        const nowIso = new Date().toISOString();
+
+        if (isPaid) {
+          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(encodeDoc({
+              status: 'PAID',
+              paid_at: nowIso,
+              updatedAt: nowIso
+            }))
+          });
+
+          // Otomatis tandai tagihan santri menjadi Lunas jika ada bill_id
+          const currentDoc = await paymentRes.json();
+          const pData = decodeFields(currentDoc.fields);
+          if (pData.bill_id) {
+            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${pData.bill_id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(encodeDoc({
+                status: 'PAID',
+                paidAt: nowIso,
+                paymentMethod: 'KASERAPAY_ONLINE',
+                receiptNumber: `KWT-KSR-${externalId}`
+              }))
+            });
+          }
+        }
+
+        return jsonResponse({ success: true, message: 'Webhook processed', external_id: externalId, status: isPaid ? 'PAID' : event });
+      }
+
+      return jsonResponse({ success: false, message: 'Payment not found' }, 404);
+    }
+
+    // C. GET /api/payments/status/:externalId
+    if (route.startsWith('payments/status/')) {
+      const extId = route.replace('payments/status/', '').trim();
+      const res = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`);
+      if (res.ok) {
+        const json = await res.json();
+        return jsonResponse({ success: true, data: decodeFields(json.fields) });
+      }
+      return jsonResponse({ success: false, message: 'Data pembayaran tidak ditemukan' }, 404);
+    }
+
     // Fallback 404
     return jsonResponse({
       success: false,
