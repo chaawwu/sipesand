@@ -1,10 +1,10 @@
 package id.web.sipesand.ananda.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -21,120 +21,89 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.web.sipesand.ananda.ui.theme.*
 
+data class BottomNavItem(
+    val route: String,
+    val label: String,
+    val iconSelected: ImageVector,
+    val iconUnselected: ImageVector,
+    val badgeCount: Int = 0
+)
+
 @Composable
 fun BottomNavBar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
-    onCenterActionClick: () -> Unit
+    unreadChatCount: Int = 0,
+    unreadNotifCount: Int = 0,
+    onCenterActionClick: () -> Unit = {}
 ) {
-    Box(
+    val navItems = listOf(
+        BottomNavItem("dashboard", "Beranda", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomNavItem("akademik", "Jadwal", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
+        BottomNavItem("chat", "Chat", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline, unreadChatCount),
+        BottomNavItem("fees", "Keuangan", Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet),
+        BottomNavItem("perizinan", "Perizinan", Icons.Filled.Assignment, Icons.Outlined.Assignment)
+    )
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(84.dp),
-        contentAlignment = Alignment.BottomCenter
+            .border(width = 1.dp, color = BorderColor),
+        color = SurfaceCard,
+        shadowElevation = 4.dp
     ) {
-        // Main Navigation Surface
-        Surface(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .shadow(elevation = 12.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-            color = Color.White,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                .navigationBarsPadding()
+                .height(64.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Tab 1: Home
-                NavTabItem(
-                    label = "Home",
-                    icon = if (currentRoute == "dashboard") Icons.Filled.Home else Icons.Outlined.Home,
-                    isSelected = currentRoute == "dashboard",
-                    onClick = { onNavigate("dashboard") }
-                )
+            navItems.forEach { item ->
+                val isSelected = currentRoute == item.route || (item.route == "akademik" && (currentRoute == "grades" || currentRoute == "tahfidz" || currentRoute == "attendance"))
+                val itemColor = if (isSelected) RoyalBluePrimary else TextMuted
 
-                // Tab 2: Keuangan
-                NavTabItem(
-                    label = "Keuangan",
-                    icon = if (currentRoute == "fees") Icons.Filled.AccountBalanceWallet else Icons.Outlined.AccountBalanceWallet,
-                    isSelected = currentRoute == "fees",
-                    onClick = { onNavigate("fees") }
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { onNavigate(item.route) }
+                        .padding(top = 8.dp, bottom = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isSelected) item.iconSelected else item.iconUnselected,
+                            contentDescription = item.label,
+                            tint = itemColor,
+                            modifier = Modifier.size(23.dp)
+                        )
 
-                // Gap for Center FAB
-                Spacer(modifier = Modifier.width(48.dp))
+                        // Static badge indicator (No ping/pulse animation)
+                        if (item.badgeCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 6.dp, y = (-4).dp)
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEF4444))
+                            )
+                        }
+                    }
 
-                // Tab 3: Chat
-                NavTabItem(
-                    label = "Chat",
-                    icon = if (currentRoute == "chat") Icons.Filled.ChatBubble else Icons.Outlined.ChatBubbleOutline,
-                    isSelected = currentRoute == "chat",
-                    onClick = { onNavigate("chat") }
-                )
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                // Tab 4: Profil
-                NavTabItem(
-                    label = "Profil",
-                    icon = if (currentRoute == "profile") Icons.Filled.AccountCircle else Icons.Outlined.AccountCircle,
-                    isSelected = currentRoute == "profile",
-                    onClick = { onNavigate("profile") }
-                )
+                    Text(
+                        text = item.label,
+                        color = itemColor,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
             }
         }
-
-        // Center Elevated Floating Action Button (Izin Pulang / Scan QR Satpam)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-4).dp)
-        ) {
-            FloatingActionButton(
-                onClick = onCenterActionClick,
-                containerColor = RoyalBluePrimary,
-                contentColor = Color.White,
-                shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                modifier = Modifier.size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = "Izin Pulang & QR Gerbang",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun NavTabItem(
-    label: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isSelected) RoyalBluePrimary else TextMuted,
-            modifier = Modifier.size(22.dp)
-        )
-        Text(
-            text = label,
-            color = if (isSelected) RoyalBluePrimary else TextMuted,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-        )
     }
 }

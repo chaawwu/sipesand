@@ -123,7 +123,7 @@ fun KwitansiScreen(
                         KwitansiRow(label = "Nama Santri", value = "${AnandaApp.getSantriName()} (${AnandaApp.getSantriNis()})")
                         KwitansiRow(label = "Kelas / Asrama", value = "3 Aliyah • Kamar Al-Fatih 04")
                         KwitansiRow(label = "Untuk Pembayaran", value = "SPP Syahriyah & Operasional Santri Bulan September 2026")
-                        KwitansiRow(label = "Kanal Transaksi", value = "PAYMENTKU (paymentku.com QRIS INSTANT NATIONAL)")
+                        KwitansiRow(label = "Kanal Transaksi", value = "KASERAPAY (QRIS INSTANT NATIONAL)")
                         KwitansiRow(label = "Status Verifikasi", value = "LUNAS (Otentikasi Sistem Digital)")
 
                         Spacer(modifier = Modifier.height(16.dp))

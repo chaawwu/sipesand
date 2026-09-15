@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'ananda-android/**'
       - '.github/workflows/build-apk.yml'
 
 jobs:
@@ -128,8 +129,8 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v1.4.0-ananda"
-          name: "SiPesand & Ananda Wali Santri App v1.4.0 (Android APK)"
+          tag_name: "v1.5.0-ananda"
+          name: "SiPesand & Ananda Wali Santri App v1.5.0 (Android APK)"
           body: |
             ### 📱 Unduh Aplikasi SiPesand Mobile & Ananda Wali Santri (Android APK)
             

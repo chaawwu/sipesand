@@ -54,7 +54,7 @@ fun CurvedHeader(
             .clip(CurvedBottomShape)
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(RoyalBlueDark, RoyalBluePrimary)
+                    colors = listOf(BluePurpleStart, BluePurpleEnd)
                 )
             )
             .padding(start = 20.dp, end = 20.dp, top = 44.dp, bottom = 42.dp)
@@ -158,31 +158,31 @@ fun CurvedHeader(
                     )
                 }
 
-                // Status Pill
+                // Status Badge (Anti-AI: square rounded 8dp, not pill)
                 Surface(
-                    color = if (santri?.status == "Aktif") Color(0xFF16A34A) else Color(0xFFD97706),
-                    shape = RoundedCornerShape(20.dp)
+                    color = if (santri?.status == "Aktif") Color(0xFF10B981) else Color(0xFFD97706),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         text = santri?.status ?: "Aktif",
                         color = Color.White,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Integrated Search Bar (Exactly as shown in reference images)
+            // Integrated Search Bar (Anti-AI: Rounded Rectangle 12dp, not capsule)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(46.dp),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = Color.White,
-                shadowElevation = 3.dp
+                shadowElevation = 2.dp
             ) {
                 Row(
                     modifier = Modifier

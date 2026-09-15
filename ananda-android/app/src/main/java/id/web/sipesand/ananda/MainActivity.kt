@@ -132,7 +132,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 8. Akademik Rapor Nilai
+                        // 8. Akademik Rapor & Jadwal
+                        composable("akademik") {
+                            AkademikScreen(
+                                initialTab = 0,
+                                onNavigate = { route -> navController.navigate(route) }
+                            )
+                        }
                         composable("grades") {
                             AkademikScreen(
                                 initialTab = 0,

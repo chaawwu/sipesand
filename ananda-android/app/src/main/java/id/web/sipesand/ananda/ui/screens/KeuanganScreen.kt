@@ -136,7 +136,7 @@ fun KeuanganScreen(
                                     Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = RoyalBluePrimary, modifier = Modifier.size(24.dp))
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Pembayaran online terintegrasi langsung dengan PaymentKu (paymentku.com QRIS & Virtual Account). Kwitansi resmi terbit otomatis.",
+                                        text = "Pembayaran online terintegrasi langsung dengan KaseraPay (QRIS & Virtual Account). Kwitansi resmi terbit otomatis.",
                                         fontSize = 12.sp,
                                         color = TextPrimary
                                     )
@@ -150,7 +150,7 @@ fun KeuanganScreen(
                                 currencyFormat = currencyFormat,
                                 onPay = {
                                     scope.launch {
-                                        val checkoutRes = repository.checkoutPaymentKu(bill.id, "qris_paymentku")
+                                        val checkoutRes = repository.checkoutKaseraPay(bill.id, "qris_kasera")
                                         activeCheckout = checkoutRes.getOrNull()
                                     }
                                 },
@@ -217,12 +217,12 @@ fun KeuanganScreen(
         }
     }
 
-    // PaymentKu Payment Modal Dialog (paymentku.com)
+    // KaseraPay Payment Modal Dialog
     if (activeCheckout != null) {
         val checkout = activeCheckout!!
         AlertDialog(
             onDismissRequest = { activeCheckout = null },
-            title = { Text("Checkout PaymentKu Instant (paymentku.com)", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
+            title = { Text("Checkout KaseraPay Instant", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(checkout.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
@@ -243,7 +243,7 @@ fun KeuanganScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.QrCode2, contentDescription = "QRIS", tint = PastelSkyIcon, modifier = Modifier.size(72.dp))
-                            Text("QRIS Standar Pembayaran Nasional (paymentku.com)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PastelSkyIcon)
+                            Text("QRIS Standar Pembayaran Nasional", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PastelSkyIcon)
                             Text("BCA • Mandiri • BNI • BSI • GoPay • OVO • Dana", fontSize = 10.sp, color = TextSecondary)
                         }
                     }
@@ -310,7 +310,7 @@ fun KeuanganScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary)
                 ) {
-                    Text("Bayar via PaymentKu (paymentku.com)", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Bayar via KaseraPay", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
