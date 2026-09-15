@@ -134,15 +134,7 @@ export async function getCloudSantriList(tenant = null) {
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
-      const initialized = await isTenantInit("santri", tenant);
-      if (initialized) {
-        // Tenant was already initialized and user deleted records. Do NOT resurrect!
-        const dbLocal = localDb.getData();
-        dbLocal.santri = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
-      }
-      // Migrasi inisial lokal ke Cloud Firestore
+      // Migrasi inisial lokal ke Cloud Firestore jika Firestore kosong
       const dbLocal = localDb.getData();
       if (dbLocal.santri && dbLocal.santri.length > 0) {
         for (const s of dbLocal.santri) {
@@ -257,13 +249,6 @@ export async function getCloudLedgerEntries(tenant = null) {
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
-      const initialized = await isTenantInit("ledger", tenant);
-      if (initialized) {
-        const dbLocal = localDb.getData();
-        dbLocal.generalLedger = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
-      }
       const dbLocal = localDb.getData();
       if (dbLocal.generalLedger && dbLocal.generalLedger.length > 0) {
         for (const l of dbLocal.generalLedger) {
@@ -579,12 +564,9 @@ export async function getCloudPermits(tenant = null) {
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
-      const initialized = await isTenantInit("permits", tenant);
-      if (initialized) {
-        const dbLocal = localDb.getData();
-        dbLocal.permits = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
+      const dbLocal = localDb.getData();
+      if (dbLocal.permits && dbLocal.permits.length > 0) {
+        return { success: true, data: dbLocal.permits };
       }
     }
   } catch (err) {
@@ -662,12 +644,9 @@ export async function getCloudAcademicRecords(tenant = null) {
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
-      const initialized = await isTenantInit("academics", tenant);
-      if (initialized) {
-        const dbLocal = localDb.getData();
-        dbLocal.academics = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
+      const dbLocal = localDb.getData();
+      if (dbLocal.academics && dbLocal.academics.length > 0) {
+        return { success: true, data: dbLocal.academics };
       }
     }
   } catch (err) {
@@ -729,12 +708,9 @@ export async function getCloudViolations(params = {}, tenant = null) {
       localDb.saveData(dbLocal);
       return { success: true, data: items };
     } else {
-      const initialized = await isTenantInit("violations", tenant);
-      if (initialized) {
-        const dbLocal = localDb.getData();
-        dbLocal.violations = [];
-        localDb.saveData(dbLocal);
-        return { success: true, data: [] };
+      const dbLocal = localDb.getData();
+      if (dbLocal.violations && dbLocal.violations.length > 0) {
+        return { success: true, data: dbLocal.violations };
       }
     }
   } catch (err) {

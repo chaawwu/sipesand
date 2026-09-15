@@ -28,7 +28,7 @@ jobs:
       - name: 📱 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-36 build-tools;36.0.0'
+          packages: 'platforms;android-34 platforms;android-36 build-tools;34.0.0 build-tools;36.0.0'
 
       - name: 📝 Accept Android SDK Licenses
         run: yes | sdkmanager --licenses || true
@@ -76,18 +76,19 @@ jobs:
 
       - name: 🔨 Compile Ananda Wali Santri Native APK (Kotlin / Jetpack Compose)
         working-directory: ./ananda-android
-        continue-on-error: true
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon || true
-          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            mkdir -p ../dist-apk
-            cp app/build/outputs/apk/debug/app-debug.apk ../dist-apk/ananda-wali-sipesand.apk
+          if ! ./gradlew assembleDebug --no-daemon > ananda-error.txt 2>&1; then
+            echo "::error::Ananda Android compilation failed!"
+            tail -n 120 ananda-error.txt
+            exit 1
           fi
+          mkdir -p ../dist-apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../dist-apk/ananda-wali-sipesand.apk
 
       - name: 📂 Prepare APK Output
         run: |
@@ -95,9 +96,6 @@ jobs:
           if [ -f "frontend/android/app/build/outputs/apk/debug/app-debug.apk" ]; then
             cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-app.apk
             cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-release.apk
-            if [ ! -f "dist-apk/ananda-wali-sipesand.apk" ]; then
-              cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/ananda-wali-sipesand.apk
-            fi
           fi
           ls -la dist-apk/
 
@@ -113,25 +111,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          tag_name: "v1.2.0-ananda"
-          name: "SiPesand & Ananda Wali Santri App v1.2.0 (Android APK)"
+          tag_name: "v1.3.0-ananda"
+          name: "SiPesand & Ananda Wali Santri App v1.3.0 (Android APK)"
           body: |
             ### 📱 Aplikasi SiPesand Mobile & Ananda Wali Santri (Android APK)
             
-            Unduh file APK resmi SiPesand untuk dipasang di smartphone Android Anda:
+            Unduh file APK resmi sesuai peruntukan:
             
-            1. **`ananda-wali-sipesand.apk`**: Aplikasi khusus Wali Santri (Ananda by SiPesand).
-            2. **`sipesand-app.apk`**: Aplikasi Portal Manajemen Pesantren (Admin, Pengurus, Kamtib, Keuangan).
+            1. **`ananda-wali-sipesand.apk`**: Aplikasi khusus **Wali Santri (Ananda by SiPesand)**.
+               - Dibuat dengan Native Android Kotlin Jetpack Compose.
+               - Pantau uang saku real-time, izin keluar santri, mutaba'ah tahfidz & muhafadzoh.
+               - Bayar tagihan via KaseraPay QRIS & Transfer Bank BSI langsung dari HP.
             
-            #### Fitur Utama:
-            - **Multi-Tenant Otomatis**: Hubungkan ke subdomain pondok Anda (contoh: `darulrahman`, `namapondok`).
-            - **Native Performance**: Realtime Chat, Pembayaran KaseraPay QRIS, Izin Pulang Santri.
-            - **Offline-First Sync**: Tersinkronisasi aman dengan Cloud Firestore & Laravel API.
+            2. **`sipesand-app.apk`**: Aplikasi **Portal Manajemen Pesantren**.
+               - Untuk Pengurus Pondok, Super Administrator, Kasir Kantin RFID, Bendahara, dan Kamtib Keamanan.
             
-            #### Cara Pasang:
-            1. Unduh file `ananda-wali-sipesand.apk` di bawah.
-            2. Buka file di HP Android dan izinkan instalasi dari sumber tidak dikenal (*Allow Unknown Sources*).
-            3. Buka aplikasi dan nikmati kemudahan akses wali santri.
+            #### Cara Pasang di HP:
+            1. Unduh file APK di atas ke HP Android Anda.
+            2. Izinkan instalasi dari sumber tidak dikenal (*Allow from Unknown Sources*).
+            3. Buka aplikasi dan nikmati kemudahan sistem pesantren digital.
           files: |
             dist-apk/*.apk
         env:

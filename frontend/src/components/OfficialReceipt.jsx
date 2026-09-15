@@ -232,31 +232,21 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
 </html>`;
   };
 
-  // Bulletproof Direct & Isolated Print
+  // Bulletproof Direct & Isolated Print (Compatible with Android Chrome, Safari & Desktop)
   const handlePrint = () => {
     try {
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow.document;
-      doc.open();
-      doc.write(getFullHtmlDocument(true));
-      doc.close();
-
-      iframe.contentWindow.onafterprint = () => {
-        try {
-          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        } catch (e) {}
-      };
+      const htmlContent = getFullHtmlDocument(true);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        return;
+      }
     } catch (e) {
-      window.print();
+      console.warn('Popup blocked, fallback to window.print():', e);
     }
+    window.print();
   };
 
   // Download Standalone Document File (Works on Android Mobile & Desktop)
@@ -275,10 +265,10 @@ export default function OfficialReceipt({ isOpen, onClose, defaultData, readOnly
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in text-xs font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in text-xs font-sans print:static print:bg-white print:p-0 print:z-auto">
       
       {/* Modal Container */}
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh]">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[95vh] print:max-h-none print:shadow-none print:border-none print:w-full print:m-0">
         
         {/* Header Modal - Hidden during Print */}
         <div className="print:hidden bg-slate-900 text-white px-5 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between border-b border-slate-800">
