@@ -537,13 +537,13 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
         </div>
       </div>
 
-      {/* KASERAPAY INSTANT PAYMENT GATEWAY BANNER */}
+      {/* PAYMENTKU INSTANT PAYMENT GATEWAY BANNER (paymentku.com) */}
       <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white rounded-3xl p-6 sm:p-7 border border-blue-500/40 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
         <div className="space-y-1.5 z-10 max-w-xl">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 bg-white/20 text-white rounded-md font-bold text-[10px] uppercase tracking-wider backdrop-blur-xs flex items-center gap-1">
               <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
-              <span>Rekomendasi • KaseraPay Gateway</span>
+              <span>Rekomendasi • PaymentKu Gateway (paymentku.com)</span>
             </span>
             <span className="text-emerald-300 font-bold text-[11px] flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -551,10 +551,10 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
             </span>
           </div>
           <h3 className="text-lg sm:text-xl font-black text-white">
-            Bayar Otomatis via KaseraPay Payment Gateway
+            Bayar Otomatis via PaymentKu Payment Gateway (paymentku.com)
           </h3>
           <p className="text-blue-100 text-xs leading-relaxed">
-            Mendukung pembayaran instan melalui <strong>QRIS Nasional, Virtual Account (BCA, Mandiri, BRI, BSI, BNI), dan E-Wallet</strong>. Sistem akan langsung aktif seketika tanpa perlu mengunggah bukti transfer manual.
+            Mendukung pembayaran instan melalui <strong>QRIS Nasional, Virtual Account (BCA, Mandiri, BRI, BSI, BNI), dan E-Wallet</strong> via PaymentKu (paymentku.com). Sistem akan langsung aktif seketika tanpa perlu mengunggah bukti transfer manual.
           </p>
         </div>
 
@@ -567,7 +567,7 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
               className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
             >
               <CreditCard className="w-4 h-4 text-blue-600" />
-              <span>Bayar via KaseraPay Sekarang</span>
+              <span>Bayar via PaymentKu Sekarang (paymentku.com)</span>
               <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
             </a>
           ) : (

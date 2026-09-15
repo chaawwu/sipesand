@@ -1097,13 +1097,13 @@ export default function SettingsAndAccounts() {
             </div>
           </div>
 
-          {/* Card 2: Integrasi King Digital Payment Gateway & Auto-Disbursement */}
+          {/* Card 2: Integrasi PaymentKu Payment Gateway (paymentku.com) & Auto-Disbursement */}
           <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-400" />
-                  <h3 className="font-extrabold text-base text-white">King Digital Payment Gateway (Auto-Disbursement)</h3>
+                  <h3 className="font-extrabold text-base text-white">PaymentKu Payment Gateway - paymentku.com (Auto-Disbursement)</h3>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
                     formSettings.KING_DIGITAL_PG_ENABLED === 'true'
                       ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
@@ -1113,7 +1113,7 @@ export default function SettingsAndAccounts() {
                   </span>
                 </div>
                 <p className="text-slate-300 text-xs leading-relaxed max-w-2xl">
-                  Layanan Payment Gateway terintegrasi dari <strong>King Digital Payment</strong>. Pembayaran tagihan Syahriyah oleh wali santri akan diverifikasi instan dan saldo secara otomatis dicairkan (*auto-disburse*) ke rekening penampungan pesantren Anda.
+                  Layanan Payment Gateway resmi terintegrasi dari <strong>PaymentKu (paymentku.com)</strong>. Pembayaran tagihan Syahriyah oleh wali santri akan diverifikasi instan dan saldo secara otomatis dicairkan (*auto-disburse*) ke rekening penampungan pesantren Anda.
                 </p>
               </div>
 

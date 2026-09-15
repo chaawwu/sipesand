@@ -18,7 +18,7 @@ export default function DeveloperFooter({ className = '', onNavigateLegal }) {
     <footer className={`bg-white border-t border-slate-200 py-6 px-4 text-slate-500 text-[11px] font-sans ${className}`}>
       <div className="max-w-6xl mx-auto space-y-4">
         
-        {/* Row 1: Informasi Usaha & Legal Links (Wajib untuk Verifikasi iPaymu) */}
+        {/* Row 1: Informasi Usaha & Legal Links (Wajib untuk Verifikasi PaymentKu paymentku.com) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center justify-between pb-4 border-b border-slate-100">
           
           {/* Kolom 1 (6/12): Identitas Badan Usaha & Alamat */}
@@ -48,7 +48,7 @@ export default function DeveloperFooter({ className = '', onNavigateLegal }) {
             </div>
           </div>
 
-          {/* Kolom 2 (6/12): 4 Menu Wajib Legal iPaymu */}
+          {/* Kolom 2 (6/12): 4 Menu Wajib Legal PaymentKu (paymentku.com) */}
           <div className="md:col-span-6 flex flex-wrap items-center justify-center md:justify-end gap-x-4 gap-y-1.5 font-bold text-[10.5px]">
             <a
               href="/faq"

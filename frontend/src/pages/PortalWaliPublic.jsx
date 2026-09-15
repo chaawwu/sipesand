@@ -55,7 +55,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const [selectedBillIds, setSelectedBillIds] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState(1); // 1: Summary/Verify, 2: Choose Method, 3: Upload Proof / Instant PG
-  const [paymentMethod, setPaymentMethod] = useState('KASERAPAY'); // 'KASERAPAY' | 'TRANSFER_BSI' | 'QRIS'
+  const [paymentMethod, setPaymentMethod] = useState('PAYMENTKU'); // 'PAYMENTKU' | 'TRANSFER_BSI' | 'QRIS'
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState('');
   const [notes, setNotes] = useState('');
@@ -64,7 +64,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const [copiedBank, setCopiedBank] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
 
-  // KaseraPay Gateway States
+  // PaymentKu Gateway States (paymentku.com)
   const [pgLoading, setPgLoading] = useState(false);
   const [pgTransaction, setPgTransaction] = useState(null);
   const [viewProofUrl, setViewProofUrl] = useState(null);
@@ -199,7 +199,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
     }
     setPaymentStep(1);
     setPaymentSuccessMsg('');
-    setPaymentMethod('KASERAPAY');
+    setPaymentMethod('PAYMENTKU');
     setPgTransaction(null);
     setIsPaymentModalOpen(true);
   };
@@ -227,8 +227,8 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
     }
   };
 
-  // KaseraPay Payment Gateway Handlers
-  const handleGenerateKaseraPayment = async () => {
+  // PaymentKu Gateway Handlers (paymentku.com)
+  const handleGeneratePaymentKuPayment = async () => {
     try {
       setPgLoading(true);
       const title = `Tagihan ${selectedBills.map(b => b.title).join(', ')} - ${santriData?.nama || 'Santri'}`;
@@ -255,8 +255,8 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         throw new Error(res.data?.message || 'Gagal menerbitkan transaksi gateway');
       }
     } catch (err) {
-      console.warn('KaseraPay create error:', err);
-      const extId = `SIPESAND-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      console.warn('PaymentKu create error:', err);
+      const extId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
       setPgTransaction({
         id: extId,
         external_id: extId,
@@ -277,12 +277,12 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         params: resolvedTenant ? { tenant: resolvedTenant } : {}
       });
       if (res.data?.success && res.data?.data?.status === 'PAID') {
-        setPaymentSuccessMsg('Pembayaran telah berhasil diterima dan diverifikasi lunas oleh KaseraPay Payment Gateway! Kwitansi resmi telah terbit.');
+        setPaymentSuccessMsg('Pembayaran telah berhasil diterima dan diverifikasi lunas oleh PaymentKu Payment Gateway (paymentku.com)! Kwitansi resmi telah terbit.');
         setToast({
           isOpen: true,
           type: 'success',
           title: 'Pembayaran Lunas!',
-          message: 'Transaksi KaseraPay sukses. Kwitansi otomatis diterbitkan.'
+          message: 'Transaksi PaymentKu (paymentku.com) sukses. Kwitansi otomatis diterbitkan.'
         });
         loadSantriData(santriData.nis || santriData.nama);
         setSelectedBillIds([]);
@@ -314,12 +314,12 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         params: resolvedTenant ? { tenant: resolvedTenant } : {}
       });
       if (res.data?.success) {
-        setPaymentSuccessMsg('Pembayaran lunas via Simulasi KaseraPay! Dana otomatis tercatat dan kwitansi resmi telah terbit.');
+        setPaymentSuccessMsg('Pembayaran lunas via Simulasi PaymentKu (paymentku.com)! Dana otomatis tercatat dan kwitansi resmi telah terbit.');
         setToast({
           isOpen: true,
           type: 'success',
           title: 'Pembayaran Berhasil!',
-          message: 'Simulasi gateway sukses. Tagihan berstatus LUNAS.'
+          message: 'Simulasi gateway PaymentKu sukses. Tagihan berstatus LUNAS.'
         });
         loadSantriData(santriData.nis || santriData.nama);
         setSelectedBillIds([]);
@@ -414,7 +414,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
       waliName: santriData?.namaWali || 'Wali Santri',
       nis: santriData?.nis,
       kelas: santriData?.kelas,
-      paymentMethod: bill.paymentMethod === 'KING_DIGITAL_PG' ? 'King Digital Payment Gateway (Auto-Disbursed)' : (bill.paymentMethod === 'TRANSFER_BSI' ? 'Transfer BSI' : bill.paymentMethod || 'Transfer Bank'),
+      paymentMethod: (bill.paymentMethod === 'PAYMENTKU' || bill.paymentMethod === 'KASERAPAY' || bill.paymentMethod === 'KING_DIGITAL_PG') ? 'PaymentKu Gateway (paymentku.com)' : (bill.paymentMethod === 'TRANSFER_BSI' ? 'Transfer BSI' : bill.paymentMethod || 'Transfer Bank'),
       bendaharaName: bill.verifiedBy || settings.NAMA_BENDAHARA || 'Bendahara Pesantren',
       items: [
         { id: bill.id, name: bill.title, amount: bill.amount }
@@ -955,12 +955,12 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                       <div className="text-xs font-bold text-stone-700">Pilih Metode Pembayaran:</div>
 
                       <div className="space-y-3">
-                        {/* 1. KaseraPay Payment Gateway */}
+                        {/* 1. PaymentKu Gateway (paymentku.com) */}
                         <button
                           type="button"
-                          onClick={() => setPaymentMethod('KASERAPAY')}
+                          onClick={() => setPaymentMethod('PAYMENTKU')}
                           className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start justify-between cursor-pointer ${
-                            paymentMethod === 'KASERAPAY'
+                            (paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY')
                               ? 'border-[#0B52E2] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
                               : 'border-stone-200 hover:bg-stone-50'
                           }`}
@@ -968,15 +968,15 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
-                              <span className="font-black text-slate-900 text-xs sm:text-sm">KaseraPay Payment Gateway</span>
+                              <span className="font-black text-slate-900 text-xs sm:text-sm">PaymentKu Payment Gateway (paymentku.com)</span>
                               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-black uppercase">Otomatis / Instan</span>
                             </div>
                             <p className="text-[11px] text-stone-500 leading-relaxed">
-                              QRIS Semua E-Wallet & Virtual Account (BSI, Mandiri, BCA, BRI, BNI). Lunas otomatis detik itu juga tanpa perlu upload bukti transfer.
+                              QRIS Semua E-Wallet & Virtual Account (BSI, Mandiri, BCA, BRI, BNI). Lunas otomatis detik itu juga melalui PaymentKu (paymentku.com).
                             </p>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${paymentMethod === 'KASERAPAY' ? 'border-[#0B52E2] bg-[#0B52E2] text-white' : 'border-stone-300'}`}>
-                            {paymentMethod === 'KASERAPAY' && <Check className="w-3 h-3 stroke-[3]" />}
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${(paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') ? 'border-[#0B52E2] bg-[#0B52E2] text-white' : 'border-stone-300'}`}>
+                            {(paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') && <Check className="w-3 h-3 stroke-[3]" />}
                           </div>
                         </button>
 
@@ -1032,12 +1032,12 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                       </div>
 
                       {/* Info Detail Metode Terpilih */}
-                      {paymentMethod === 'KASERAPAY' ? (
+                      {(paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') ? (
                         <div className="p-4 bg-gradient-to-br from-slate-900 to-blue-950 text-white rounded-2xl border border-blue-900/40 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold text-[#8CE829] uppercase tracking-wider flex items-center gap-1.5">
                               <Zap className="w-3.5 h-3.5 fill-[#8CE829]" />
-                              <span>KaseraPay Serverless Settlement</span>
+                              <span>PaymentKu Gateway (paymentku.com)</span>
                             </span>
                             <span className="text-[9px] bg-[#0B52E2] text-white px-2 py-0.5 rounded-md font-black">Realtime Instant</span>
                           </div>
@@ -1046,7 +1046,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                               Total: Rp {totalPaymentAmount.toLocaleString('id-ID')}
                             </div>
                             <div className="text-[11px] text-blue-200/80 mt-1">
-                              Mendukung QRIS 24 Jam & Virtual Account Bank Syariah Indonesia, BCA, Mandiri, BRI, BNI.
+                              Mendukung QRIS 24 Jam & Virtual Account Bank Syariah Indonesia, BCA, Mandiri, BRI, BNI via paymentku.com.
                             </div>
                           </div>
                         </div>
@@ -1091,33 +1091,33 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                           type="button"
                           onClick={() => {
                             setPaymentStep(3);
-                            if (paymentMethod === 'KASERAPAY' && !pgTransaction) {
-                              handleGenerateKaseraPayment();
+                            if ((paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') && !pgTransaction) {
+                              handleGeneratePaymentKuPayment();
                             }
                           }}
                           className="flex-1 py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          <span>{paymentMethod === 'KASERAPAY' ? 'Lanjut ke KaseraPay Gateway' : 'Lanjut Unggah Bukti Transfer'}</span>
+                          <span>{(paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') ? 'Lanjut ke PaymentKu Gateway (paymentku.com)' : 'Lanjut Unggah Bukti Transfer'}</span>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 3: KaseraPay Gateway / Upload Bukti Transfer */}
+                  {/* STEP 3: PaymentKu Gateway (paymentku.com) / Upload Bukti Transfer */}
                   {paymentStep === 3 && (
                     <div className="space-y-4">
                       
-                      {paymentMethod === 'KASERAPAY' ? (
+                      {(paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') ? (
                         <div className="space-y-4">
                           <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-2xl border border-blue-200 space-y-3 text-center">
                             <div className="w-12 h-12 rounded-2xl bg-[#0B52E2] text-white flex items-center justify-center mx-auto shadow-md">
                               <Zap className="w-6 h-6 text-[#8CE829] fill-[#8CE829]" />
                             </div>
                             <div>
-                              <h4 className="font-black text-slate-900 text-sm">KaseraPay Payment Gateway</h4>
+                              <h4 className="font-black text-slate-900 text-sm">PaymentKu Payment Gateway (paymentku.com)</h4>
                               <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto leading-relaxed">
-                                Pembayaran lunas instan detik itu juga melalui QRIS Dinamis & Virtual Account Bank Syariah / Nasional.
+                                Pembayaran lunas instan detik itu juga melalui QRIS Dinamis & Virtual Account Bank Syariah / Nasional via paymentku.com.
                               </p>
                             </div>
 
@@ -1142,7 +1142,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                                 className="w-full py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs"
                               >
                                 <Zap className="w-4 h-4 text-[#8CE829] fill-[#8CE829]" />
-                                <span>Buka Halaman Pembayaran KaseraPay (QRIS / VA)</span>
+                                <span>Buka Halaman Pembayaran PaymentKu (paymentku.com)</span>
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             ) : (

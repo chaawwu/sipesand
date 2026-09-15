@@ -335,8 +335,8 @@ Mengelola skala sebesar itu tanpa otomasi digital mengakibatkan kelelahan admini
 - **Pilihan Komponen Fleksibel**: Pemisahan pos biaya syahriyah pendidikan, uang asrama, konsumsi dapur, dan iuran kesehatan.`
       },
       {
-        heading: 'King Digital Payment Gateway & Auto-Disbursement Langsung ke Rekening Pondok',
-        content: `Bekerjasama dengan penyedia gerbang pembayaran resmi berlisensi Bank Indonesia (iPaymu / Midtrans), SiPesand menyediakan fasilitas pembayaran instan:
+        heading: 'PaymentKu (paymentku.com) Gateway & Auto-Disbursement Langsung ke Rekening Pondok',
+        content: `Bekerjasama dengan penyedia gerbang pembayaran resmi berlisensi Bank Indonesia (PaymentKu - paymentku.com), SiPesand menyediakan fasilitas pembayaran instan:
         
 - **QRIS Dinamis**: Wali santri cukup scan QR Code menggunakan aplikasi m-banking atau e-wallet (BSI Mobile, Livin Mandiri, BCA, GoPay, OVO, DANA).
 - **Virtual Account Bank Syariah**: Rekening virtual otomatis atas nama santri untuk kemudahan transfer antar bank.

@@ -1003,14 +1003,14 @@ export async function onRequest(context) {
     }
 
     // -------------------------------------------------------------------------
-    // 5H. /api/payments/create (KaseraPay Payment Gateway Checkout Creation)
+    // 5H. /api/payments/create (PaymentKu Gateway Checkout Creation - paymentku.com)
     // -------------------------------------------------------------------------
     if (route === 'payments/create' && method === 'POST') {
       const body = await request.json();
       const amount = Number(body.amount) || 0;
       const title = body.title || 'Pembayaran Tagihan Santri SiPesand';
-      const extId = 'KSR-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
-      const checkoutUrl = `https://pay.kaserapay.com/checkout/${extId}?amount=${amount}`;
+      const extId = 'PKU-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
+      const checkoutUrl = `https://paymentku.com/checkout/${extId}?amount=${amount}`;
       const nowIso = new Date().toISOString();
 
       const paymentRecord = {
@@ -1026,7 +1026,7 @@ export async function onRequest(context) {
         santri_id: body.santri_id || null,
         status: 'PENDING',
         checkout_url: checkoutUrl,
-        qr_string: '00020101021226580016ID.CO.KASERAPAY.WWW01189360091800000000005204581253033605405' + amount + '5802ID5918SIPESAND6007JAKARTA6304E8A2',
+        qr_string: '00020101021226580016ID.CO.PAYMENTKU.WWW01189360091800000000005204581253033605405' + amount + '5802ID5918SIPESAND6007JAKARTA6304E8A2',
         createdAt: nowIso,
         updatedAt: nowIso
       };
@@ -1041,13 +1041,13 @@ export async function onRequest(context) {
 
       return jsonResponse({
         success: true,
-        message: 'Transaksi KaseraPay berhasil digenerate',
+        message: 'Transaksi PaymentKu (paymentku.com) berhasil digenerate',
         data: paymentRecord
       }, 201);
     }
 
     // -------------------------------------------------------------------------
-    // 5I. /api/payments/status/:external_id (KaseraPay Status & Auto-verify)
+    // 5I. /api/payments/status/:external_id (PaymentKu Status & Auto-verify - paymentku.com)
     // -------------------------------------------------------------------------
     if (route.startsWith('payments/status/') && method === 'GET') {
       const extId = route.replace('payments/status/', '').trim();
@@ -1093,12 +1093,12 @@ export async function onRequest(context) {
             const updatedBill = {
               ...existingBill,
               status: 'PAID',
-              paymentMethod: 'KASERAPAY',
+              paymentMethod: 'PAYMENTKU',
               paidAt: nowIso,
               paymentDate: nowIso,
               verifiedAt: nowIso,
               receiptNumber: existingBill.receiptNumber || receiptNo,
-              verifiedBy: 'KaseraPay Instant Gateway'
+              verifiedBy: 'PaymentKu Instant Gateway (paymentku.com)'
             };
             await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`, {
               method: 'PATCH',
@@ -1116,7 +1116,7 @@ export async function onRequest(context) {
                 type: 'INCOME',
                 category: 'SPP',
                 amount: Number(updatedBill.amount) || Number(payment.amount) || 0,
-                description: `Pembayaran ${updatedBill.title || 'Tagihan'} via KaseraPay`,
+                description: `Pembayaran ${updatedBill.title || 'Tagihan'} via PaymentKu (paymentku.com)`,
                 reference: updatedBill.receiptNumber || receiptNo,
                 date: nowIso.split('T')[0],
                 createdAt: nowIso
@@ -1872,16 +1872,16 @@ export async function onRequest(context) {
       };
 
       // -----------------------------------------------------------------------
-      // KASERAPAY GATEWAY: Terbitkan Transaksi & Checkout Link Otomatis
+      // PAYMENTKU GATEWAY (paymentku.com): Terbitkan Transaksi & Checkout Link Otomatis
       // -----------------------------------------------------------------------
-      const apiKey = context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
-      const baseUrl = (context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      const apiKey = context.env?.PAYMENTKU_API_KEY || cfg.paymentkuApiKey || context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
+      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || cfg.paymentkuBaseUrl || context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://api.paymentku.com/v1').replace(/\/$/, '');
       let checkoutUrl = null;
       let qrString = cfg.qrisString;
 
       if (apiKey) {
         try {
-          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
+          const pkuRes = await fetch(`${baseUrl}/transactions`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -1899,13 +1899,13 @@ export async function onRequest(context) {
               callback_url: `https://sipesand.web.id/api/payments/status/${orderId}`
             })
           });
-          if (kaseraRes.ok) {
-            const kJson = await kaseraRes.json();
-            checkoutUrl = kJson.checkout_url || kJson.payment_url || null;
-            if (kJson.qr_string) qrString = kJson.qr_string;
+          if (pkuRes.ok) {
+            const pJson = await pkuRes.json();
+            checkoutUrl = pJson.checkout_url || pJson.payment_url || null;
+            if (pJson.qr_string) qrString = pJson.qr_string;
           }
         } catch (e) {
-          console.warn('KaseraPay subscription create error:', e);
+          console.warn('PaymentKu subscription create error:', e);
         }
       }
 
@@ -1944,13 +1944,13 @@ export async function onRequest(context) {
 
       return jsonResponse({
         success: true,
-        message: 'Invoice pendaftaran & gateway KaseraPay berhasil diterbitkan',
+        message: 'Invoice pendaftaran & gateway PaymentKu (paymentku.com) berhasil diterbitkan',
         data: orderData
       });
     }
 
-    // C2. /api/mitra/pay-kaserapay - Ambil atau buat ulang link pembayaran KaseraPay
-    if (route === 'mitra/pay-kaserapay' && method === 'POST') {
+    // C2. /api/mitra/pay-paymentku (alias pay-kaserapay) - Ambil atau buat ulang link pembayaran PaymentKu (paymentku.com)
+    if ((route === 'mitra/pay-paymentku' || route === 'mitra/pay-kaserapay') && method === 'POST') {
       const body = await request.json();
       const { orderId } = body;
       if (!orderId) return jsonResponse({ success: false, message: 'Order ID wajib disertakan' }, 400);
@@ -1969,8 +1969,8 @@ export async function onRequest(context) {
         }
       } catch (e) {}
 
-      const apiKey = context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
-      const baseUrl = (context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      const apiKey = context.env?.PAYMENTKU_API_KEY || cfg.paymentkuApiKey || context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
+      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || cfg.paymentkuBaseUrl || context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://api.paymentku.com/v1').replace(/\/$/, '');
       let checkoutUrl = ord.checkoutUrl && !ord.checkoutUrl.includes(`/checkout/${orderId}`) ? ord.checkoutUrl : null;
       let qrString = ord.qrString || ord.qrisString || null;
 
@@ -2601,7 +2601,7 @@ export async function onRequest(context) {
     }
 
     // -------------------------------------------------------------------------
-    // 16. KASERAPAY PAYMENT GATEWAY SERVERLESS ENGINE
+    // 16. PAYMENTKU (paymentku.com) PAYMENT GATEWAY SERVERLESS ENGINE
     // -------------------------------------------------------------------------
 
     // A. POST /api/payments/create
@@ -2613,18 +2613,18 @@ export async function onRequest(context) {
         return jsonResponse({ success: false, message: 'Nominal pembayaran minimal Rp 1.000' }, 400);
       }
 
-      const externalId = `SIPESAND-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const apiKey = context.env?.KASERAPAY_API_KEY || '';
-      const baseUrl = (context.env?.KASERAPAY_BASE_URL || 'https://pay.kasera.id/v1').replace(/\/$/, '');
+      const externalId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const apiKey = context.env?.PAYMENTKU_API_KEY || context.env?.KASERAPAY_API_KEY || '';
+      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || context.env?.KASERAPAY_BASE_URL || 'https://api.paymentku.com/v1').replace(/\/$/, '');
 
-      let checkoutUrl = null;
-      let qrString = null;
+      let checkoutUrl = `https://paymentku.com/checkout/${externalId}?amount=${encodeURIComponent(amount)}`;
+      let qrString = `00020101021226580016ID.CO.PAYMENTKU.WWW0118936009180000000000520458125303360540${amount}5802ID5918SIPESAND6007JAKARTA6304E8A2`;
       let remoteData = null;
 
-      // Hubungi API KaseraPay jika API Key sudah dipasang di Environment Cloudflare Pages
+      // Hubungi API PaymentKu jika API Key sudah dipasang di Environment Cloudflare Pages
       if (apiKey) {
         try {
-          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
+          const pkuRes = await fetch(`${baseUrl}/transactions`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -2643,14 +2643,14 @@ export async function onRequest(context) {
             })
           });
 
-          if (kaseraRes.ok) {
-            const kaseraJson = await kaseraRes.json();
-            remoteData = kaseraJson;
-            checkoutUrl = kaseraJson.checkout_url || kaseraJson.payment_url || null;
-            qrString = kaseraJson.qr_string || null;
+          if (pkuRes.ok) {
+            const pkuJson = await pkuRes.json();
+            remoteData = pkuJson;
+            checkoutUrl = pkuJson.checkout_url || pkuJson.payment_url || checkoutUrl;
+            qrString = pkuJson.qr_string || qrString;
           }
         } catch (e) {
-          console.warn('KaseraPay API call error:', e);
+          console.warn('PaymentKu API call error:', e);
         }
       }
 
@@ -2681,19 +2681,19 @@ export async function onRequest(context) {
 
       return jsonResponse({
         success: true,
-        message: 'Transaksi KaseraPay berhasil digenerate',
+        message: 'Transaksi PaymentKu (paymentku.com) berhasil digenerate',
         data: paymentDoc
       }, 201);
     }
 
-    // B. POST /api/payments/webhook (Realtime Callback dari KaseraPay)
+    // B. POST /api/payments/webhook (Realtime Callback dari PaymentKu paymentku.com)
     if (route === 'payments/webhook' && method === 'POST') {
       const rawPayload = await request.text();
       let body = {};
       try { body = JSON.parse(rawPayload); } catch(e) {}
 
-      const signature = request.headers.get('x-signature') || request.headers.get('x-kaserapay-signature');
-      const webhookSecret = context.env?.KASERAPAY_WEBHOOK_SECRET || '';
+      const signature = request.headers.get('x-signature') || request.headers.get('x-paymentku-signature') || request.headers.get('x-kaserapay-signature');
+      const webhookSecret = context.env?.PAYMENTKU_WEBHOOK_SECRET || context.env?.KASERAPAY_WEBHOOK_SECRET || '';
 
       // Verifikasi Signature HMAC jika webhook secret tersedia
       if (webhookSecret && signature) {
@@ -2789,11 +2789,11 @@ export async function onRequest(context) {
             body: JSON.stringify(encodeDoc({ status: 'PAID', paid_at: nowIso, updatedAt: nowIso }))
           }).catch(() => {});
 
-          await logAuditEvent('SUBSCRIPTION_PAID_KASERAPAY', `Langganan ${ord.namaPondok} (${targetSubdomain}) otomatis aktif via KaseraPay`, ord.email);
+          await logAuditEvent('SUBSCRIPTION_PAID_PAYMENTKU', `Langganan ${ord.namaPondok} (${targetSubdomain}) otomatis aktif via PaymentKu (paymentku.com)`, ord.email);
 
           return jsonResponse({
             success: true,
-            message: 'Langganan berhasil diaktifkan otomatis via KaseraPay',
+            message: 'Langganan berhasil diaktifkan otomatis via PaymentKu (paymentku.com)',
             orderId: externalId,
             subdomain: targetSubdomain,
             status: 'PAID'
@@ -2833,8 +2833,8 @@ export async function onRequest(context) {
               body: JSON.stringify(encodeDoc({
                 status: 'PAID',
                 paidAt: nowIso,
-                paymentMethod: 'KASERAPAY_ONLINE',
-                receiptNumber: `KWT-KSR-${externalId}`
+                paymentMethod: 'PAYMENTKU_ONLINE',
+                receiptNumber: `KWT-PKU-${externalId}`
               }))
             });
           }
@@ -2850,8 +2850,8 @@ export async function onRequest(context) {
                 type: 'INCOME',
                 category: 'SPP',
                 amount: parseFloat(pData.amount || 0),
-                description: `Pembayaran Online KaseraPay: ${pData.title || pData.customer_name} - Ref: ${externalId}`,
-                reference: `KWT-KSR-${externalId}`,
+                description: `Pembayaran Online PaymentKu: ${pData.title || pData.customer_name} - Ref: ${externalId}`,
+                reference: `KWT-PKU-${externalId}`,
                 date: nowIso,
                 createdAt: nowIso
               }))
@@ -2892,8 +2892,8 @@ export async function onRequest(context) {
             body: JSON.stringify(encodeDoc({
               status: 'PAID',
               paidAt: nowIso,
-              paymentMethod: 'KASERAPAY_ONLINE',
-              receiptNumber: `KWT-KSR-${extId}`
+              paymentMethod: 'PAYMENTKU_ONLINE',
+              receiptNumber: `KWT-PKU-${extId}`
             }))
           });
         }
@@ -2907,8 +2907,8 @@ export async function onRequest(context) {
             type: 'INCOME',
             category: 'SPP',
             amount: parseFloat(pData.amount || 0),
-            description: `Pembayaran Online KaseraPay: ${pData.title || pData.customer_name} - Ref: ${extId}`,
-            reference: `KWT-KSR-${extId}`,
+            description: `Pembayaran Online PaymentKu: ${pData.title || pData.customer_name} - Ref: ${extId}`,
+            reference: `KWT-PKU-${extId}`,
             date: nowIso,
             createdAt: nowIso
           }))

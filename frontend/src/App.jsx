@@ -655,28 +655,28 @@ function MainAppContent() {
     );
   }
 
-  // 4. Halaman FAQ Resmi (Verifikasi iPaymu)
+  // 4. Halaman FAQ Resmi (Verifikasi PaymentKu paymentku.com)
   if (currentView === 'faq') {
     return (
       <FaqPage onBackToHome={() => setCurrentView('landing')} />
     );
   }
 
-  // 5. Halaman Refund Policy (Verifikasi iPaymu)
+  // 5. Halaman Refund Policy (Verifikasi PaymentKu paymentku.com)
   if (currentView === 'refund-policy') {
     return (
       <RefundPolicyPage onBackToHome={() => setCurrentView('landing')} />
     );
   }
 
-  // 6. Halaman Syarat & Ketentuan (Verifikasi iPaymu)
+  // 6. Halaman Syarat & Ketentuan (Verifikasi PaymentKu paymentku.com)
   if (currentView === 'terms-and-conditions') {
     return (
       <TermsConditionsPage onBackToHome={() => setCurrentView('landing')} />
     );
   }
 
-  // 7. Halaman Kontak Resmi (Verifikasi iPaymu)
+  // 7. Halaman Kontak Resmi (Verifikasi PaymentKu paymentku.com)
   if (currentView === 'kontak') {
     return (
       <ContactPage onBackToHome={() => setCurrentView('landing')} />

@@ -111,7 +111,7 @@ export default function TermsConditionsPage({ onBackToHome }) {
               <span>Pembayaran & Transaksi Payment Gateway</span>
             </h2>
             <p>
-              Seluruh transaksi pembayaran lisensi maupun pembayaran tagihan wali santri diproses secara aman melalui gerbang pembayaran resmi berizin (iPaymu / Midtrans / Payment Gateway Perbankan). King Digital Dev tidak menyimpan data sensitif seperti nomor PIN atau CVV kartu perbankan pengguna.
+              Seluruh transaksi pembayaran lisensi maupun pembayaran tagihan wali santri diproses secara aman melalui gerbang pembayaran resmi PaymentKu (paymentku.com) berlisensi Bank Indonesia & QRIS Nasional. SiPesand tidak menyimpan data sensitif seperti nomor PIN atau CVV kartu perbankan pengguna.
             </p>
           </section>
 

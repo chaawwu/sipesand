@@ -115,7 +115,7 @@ export default function ContactPage({ onBackToHome }) {
 
         </div>
 
-        {/* Detailed Business Identity Information Box (Untuk Verifikasi iPaymu) */}
+        {/* Detailed Business Identity Information Box (Untuk Verifikasi PaymentKu paymentku.com) */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">

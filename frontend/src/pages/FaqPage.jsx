@@ -28,7 +28,7 @@ export default function FaqPage({ onBackToHome }) {
     },
     {
       q: 'Bagaimana alur aktivasi setelah pembayaran lisensi selesai?',
-      a: 'Setelah pembayaran diverifikasi oleh sistem Payment Gateway kami (iPaymu / Midtrans), sistem auto-provisioning akan secara otomatis membuatkan database mandiri terisolasi untuk lembaga Anda dan mengirimkan kredensial login akun Super Admin ke email yang Anda daftarkan dalam waktu hitungan detik.'
+      a: 'Setelah pembayaran diverifikasi oleh sistem Payment Gateway resmi kami (PaymentKu - paymentku.com), sistem auto-provisioning akan secara otomatis membuatkan database mandiri terisolasi untuk lembaga Anda dan mengirimkan kredensial login akun Super Admin ke email yang Anda daftarkan dalam waktu hitungan detik.'
     },
     {
       q: 'Metode pembayaran apa saja yang didukung oleh SiPesand?',

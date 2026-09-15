@@ -78,38 +78,40 @@ class AnandaRepository {
         }
     }
 
-    suspend fun checkoutKaseraPay(billId: Long, channel: String): Result<KaseraCheckoutResponse> = withContext(Dispatchers.IO) {
+    suspend fun checkoutPaymentKu(billId: Long, channel: String): Result<KaseraCheckoutResponse> = withContext(Dispatchers.IO) {
         try {
             val res = api.checkoutKaseraPay(mapOf("bill_id" to billId, "channel" to channel))
             if (res.isSuccessful && res.body()?.data != null) {
                 Result.success(res.body()!!.data!!)
             } else {
-                val ext = "KSR-DEMO-" + System.currentTimeMillis()
+                val ext = "PKU-DEMO-" + System.currentTimeMillis()
                 Result.success(KaseraCheckoutResponse(
                     externalId = ext,
                     billId = billId,
                     billNo = "INV-202609-0045",
                     title = "SPP & Operasional Bulan September 2026",
                     totalAmount = 452500.0,
-                    checkoutUrl = "https://pay.kaserapay.com/checkout/$ext",
+                    checkoutUrl = "https://paymentku.com/checkout/$ext",
                     channel = channel,
-                    qrString = "00020101021226580016ID.CO.KASERAPAY.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
+                    qrString = "00020101021226580016ID.CO.PAYMENTKU.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
                 ))
             }
         } catch (e: Exception) {
-            val ext = "KSR-DEMO-" + System.currentTimeMillis()
+            val ext = "PKU-DEMO-" + System.currentTimeMillis()
             Result.success(KaseraCheckoutResponse(
                 externalId = ext,
                 billId = billId,
                 billNo = "INV-202609-0045",
                 title = "SPP & Operasional Bulan September 2026",
                 totalAmount = 452500.0,
-                checkoutUrl = "https://pay.kaserapay.com/checkout/$ext",
+                checkoutUrl = "https://paymentku.com/checkout/$ext",
                 channel = channel,
-                qrString = "00020101021226580016ID.CO.KASERAPAY.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
+                qrString = "00020101021226580016ID.CO.PAYMENTKU.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
             ))
         }
     }
+
+    suspend fun checkoutKaseraPay(billId: Long, channel: String): Result<KaseraCheckoutResponse> = checkoutPaymentKu(billId, channel)
 
     suspend fun getUangSaku(): Result<UangSakuResponse> = withContext(Dispatchers.IO) {
         try {
@@ -426,7 +428,7 @@ class AnandaRepository {
             UangSakuItem(1, "spend", 48000.0, 385000.0, "Laundry Seragam & Sarung (4 kg)", "Laundry Pesantren", "8 jam lalu"),
             UangSakuItem(2, "spend", 45000.0, 433000.0, "Pembelian Buku Tulis & Sabun", "Koperasi Santri", "2 hari lalu"),
             UangSakuItem(3, "spend", 22000.0, 478000.0, "Ayam Geprek & Es Teh Manis", "Kantin Al-Barokah", "4 hari lalu"),
-            UangSakuItem(4, "topup", 250000.0, 500000.0, "Top Up KaseraPay QRIS", "KaseraPay Instant", "6 hari lalu")
+            UangSakuItem(4, "topup", 250000.0, 500000.0, "Top Up PaymentKu (paymentku.com) QRIS", "PaymentKu Instant", "6 hari lalu")
         )
     )
 
