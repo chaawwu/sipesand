@@ -19,6 +19,8 @@ router.post('/register', mitraController.registerMitra);
 router.get('/status/:orderId', mitraController.getMitraOrderStatus);
 router.get('/all', mitraController.getAllMitraAktif);
 router.get('/tenants', mitraController.getAllMitraAktif);
+router.put('/tenants/:subdomain/status', mitraController.updateMitraStatus);
+router.delete('/tenants/:subdomain', mitraController.deleteMitraAktif);
 router.get('/config', mitraController.getMitraConfig);
 router.post('/config', mitraController.updateMitraConfig);
 router.get('/orders', mitraController.getMitraOrders);

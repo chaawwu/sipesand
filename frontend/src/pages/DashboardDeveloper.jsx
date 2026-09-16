@@ -66,6 +66,8 @@ import {
   uploadFileToR2,
   getR2Files,
   getRealTenants,
+  updateRealTenantStatus,
+  deleteRealTenant,
   getRealAuditLogs,
   deleteFileFromR2
 } from '../services/api';
@@ -182,9 +184,7 @@ export default function DashboardDeveloper({
       setLoadingTenants(true);
       const res = await getRealTenants();
       const items = res.data?.data || res.data || [];
-      if (Array.isArray(items) && items.length > 0) {
-        setTenants(items);
-      }
+      setTenants(Array.isArray(items) ? items : []);
     } catch (e) {
       console.warn('Gagal memuat tenants riil:', e);
     } finally {
@@ -242,19 +242,22 @@ export default function DashboardDeveloper({
     });
   };
 
-  const handleToggleTenantStatus = (id) => {
-    setTenants(prev => prev.map(t => {
-      if (t.id === id) {
-        const nextStatus = t.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-        return { ...t, status: nextStatus };
-      }
-      return t;
-    }));
+  const handleToggleTenantStatus = async (id) => {
+    const tenant = tenants.find(t => t.id === id);
+    if (!tenant?.subdomain) return;
+    const nextStatus = tenant.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    const result = await updateRealTenantStatus(tenant.subdomain, nextStatus);
+    if (result.data?.success) {
+      setTenants(prev => prev.map(t => t.id === id ? { ...t, status: nextStatus } : t));
+    }
   };
 
-  const handleDeleteTenant = (id) => {
+  const handleDeleteTenant = async (id) => {
     if (window.confirm('PERINGATAN: Menghapus tenant ini akan mencabut akses domain dan file SQLite. Lanjutkan?')) {
-      setTenants(prev => prev.filter(t => t.id !== id));
+      const tenant = tenants.find(t => t.id === id);
+      if (!tenant?.subdomain) return;
+      const result = await deleteRealTenant(tenant.subdomain);
+      if (result.data?.success) setTenants(prev => prev.filter(t => t.id !== id));
     }
   };
 

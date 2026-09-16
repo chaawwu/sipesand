@@ -686,6 +686,24 @@ export const getRealTenants = async () => {
   }
 };
 
+export const updateRealTenantStatus = async (subdomain, status) => {
+  try {
+    const res = await api.put(`/mitra/tenants/${encodeURIComponent(subdomain)}/status`, { status });
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, message: err.response?.data?.message || 'Status tenant gagal diperbarui.' } };
+  }
+};
+
+export const deleteRealTenant = async (subdomain) => {
+  try {
+    const res = await api.delete(`/mitra/tenants/${encodeURIComponent(subdomain)}`);
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, message: err.response?.data?.message || 'Tenant gagal dihapus.' } };
+  }
+};
+
 export const getRealAuditLogs = async () => {
   try {
     const res = await api.get('/mitra/audit-logs');

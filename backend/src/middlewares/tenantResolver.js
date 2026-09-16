@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 const masterPrisma = require('../config/prisma');
+const { runWithPrisma } = require('../config/prisma');
 
 // Tenant Prisma Client Cache (Agar tidak membuat koneksi berulang-ulang)
 const tenantPrismaCache = new Map();
@@ -77,9 +78,10 @@ function tenantResolver(req, res, next) {
   // Lampirkan data tenant ke request object
   req.subdomain = subdomain;
   req.isMaster = !subdomain;
-  req.prisma = subdomain ? getTenantPrismaClient(subdomain) : masterPrisma;
+  const tenantClient = subdomain ? getTenantPrismaClient(subdomain) : null;
+  req.prisma = tenantClient || masterPrisma;
 
-  next();
+  runWithPrisma(tenantClient, next);
 }
 
 module.exports = {

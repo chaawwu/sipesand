@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\KaserapayPayment;
+use App\Models\Pembayaran;
 use App\Services\KaseraPayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,15 @@ class WebhookController extends Controller
             $payment->payment_method = $request->input('payment_method') ?? $request->input('data.payment_method') ?? $payment->payment_method;
             $payment->raw_response = $request->all();
             $payment->save();
+
+            if ($payment->bill_id) {
+                Pembayaran::whereKey($payment->bill_id)->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'payment_method' => $payment->payment_method,
+                    'verified_by' => 'Webhook gateway terverifikasi',
+                ]);
+            }
 
             Log::info("KaseraPay Payment {$externalId} set to PAID successfully.");
         } elseif (in_array(strtolower($event), ['payment.failed', 'failed', 'expired'])) {

@@ -395,6 +395,13 @@ exports.verifyPayment = async (req, res) => {
     if (!bill) {
       return res.status(404).json({ success: false, message: 'Tagihan tidak ditemukan' });
     }
+    if (bill.status === 'PAID') {
+      return res.json({
+        success: true,
+        message: 'Tagihan sudah lunas dan tidak perlu diverifikasi ulang.',
+        data: { updatedBill: bill, receiptNumber: bill.receiptNumber },
+      });
+    }
 
     const receiptNumber = `KWT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random() * 9000)}`;
 

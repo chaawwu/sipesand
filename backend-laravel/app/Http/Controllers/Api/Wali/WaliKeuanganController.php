@@ -8,6 +8,7 @@ use App\Models\Pembayaran;
 use App\Models\Pesantren;
 use App\Models\Santri;
 use App\Models\UangSaku;
+use App\Services\KaseraPayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,6 +16,10 @@ use Illuminate\Support\Str;
 
 class WaliKeuanganController extends Controller
 {
+    public function __construct(private KaseraPayService $kaseraPayService)
+    {
+    }
+
     /**
      * Daftar Tagihan Santri
      */
@@ -70,21 +75,62 @@ class WaliKeuanganController extends Controller
             ], 400);
         }
 
-        $channel = $request->channel ?? 'qris_kasera';
-        $externalId = 'KSR-' . strtoupper(Str::random(10));
-        $checkoutUrl = "https://pay.kaserapay.com/checkout/{$externalId}?amount=" . (int)$bill->total_amount;
+        $channel = strtoupper($request->channel ?? 'ALL');
+        $externalId = 'PKU-' . strtoupper(Str::random(10));
+        $gateway = $this->kaseraPayService->createTransaction([
+            'external_id' => $externalId,
+            'amount' => (int) $bill->total_amount,
+            'customer_name' => $wali->name,
+            'customer_email' => $wali->email ?? null,
+            'customer_phone' => $wali->phone ?? null,
+            'description' => 'Pembayaran ' . $bill->title,
+            'payment_method' => $channel,
+            'callback_url' => url('/api/payments/webhook'),
+        ]);
+
+        if (!$gateway['success']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $gateway['message'] ?? 'Gateway pembayaran tidak dapat membuat transaksi.',
+            ], 502);
+        }
+
+        $gatewayData = $gateway['data'] ?? [];
+        $checkoutUrl = $gatewayData['checkout_url'] ?? $gatewayData['payment_url'] ?? null;
+        if (!$checkoutUrl) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gateway tidak mengembalikan URL pembayaran.',
+            ], 502);
+        }
 
         // Update status tagihan ke pending
         $bill->update([
             'status' => 'pending',
-            'payment_method' => 'kaserapay',
+            'payment_method' => 'paymentku',
             'channel' => $channel,
             'payment_url' => $checkoutUrl,
         ]);
 
+        \App\Models\KaserapayPayment::updateOrCreate(
+            ['external_id' => $externalId],
+            [
+                'tenant_subdomain' => $request->header('X-Tenant-Subdomain', 'darulrahman'),
+                'santri_id' => $bill->santri_id,
+                'bill_id' => $bill->id,
+                'amount' => $bill->total_amount,
+                'title' => $bill->title,
+                'payment_method' => $channel,
+                'status' => 'PENDING',
+                'checkout_url' => $checkoutUrl,
+                'qr_string' => $gatewayData['qr_string'] ?? $gatewayData['qr_code'] ?? null,
+                'raw_response' => $gatewayData,
+            ]
+        );
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Transaksi KaseraPay berhasil di-generate',
+            'message' => 'Transaksi PaymentKu (paymentku.com) berhasil di-generate',
             'data' => [
                 'external_id' => $externalId,
                 'bill_id' => $bill->id,
@@ -95,17 +141,34 @@ class WaliKeuanganController extends Controller
                 'total_amount' => (float)$bill->total_amount,
                 'checkout_url' => $checkoutUrl,
                 'channel' => $channel,
-                'qr_string' => '00020101021226580016ID.CO.KASERAPAY.WWW011893600918000000000052045812530336054054525005802ID5918' . strtoupper($pesantren->name) . '6007JAKARTA6304E8A2',
+                'qr_string' => $gatewayData['qr_string'] ?? $gatewayData['qr_code'] ?? null,
             ],
         ]);
     }
 
     /**
-     * Konfirmasi Pembayaran Tagihan (Simulasi Sukses / Verifikasi Otomatis)
+     * Konfirmasi Pembayaran Tagihan (Verifikasi Otomatis PaymentKu)
      */
     public function confirmPayment(Request $request, $id)
     {
         $bill = Pembayaran::findOrFail($id);
+        $payment = \App\Models\KaserapayPayment::where('bill_id', $bill->id)
+            ->latest()
+            ->first();
+
+        if (!$payment) {
+            return response()->json(['status' => 'error', 'message' => 'Transaksi gateway tidak ditemukan.'], 404);
+        }
+
+        $gateway = $this->kaseraPayService->getTransactionStatus($payment->external_id);
+        $gatewayStatus = strtolower((string) data_get($gateway, 'data.status', ''));
+        if (!$gateway['success'] || !in_array($gatewayStatus, ['paid', 'success', 'settled', 'completed'], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pembayaran belum dikonfirmasi oleh gateway.',
+                'gateway_status' => $gatewayStatus ?: 'pending',
+            ], 409);
+        }
         $wali = $request->user();
         $santri = Santri::find($bill->santri_id);
         $pesantren = Pesantren::find($wali->pesantren_id);
@@ -115,7 +178,8 @@ class WaliKeuanganController extends Controller
         $bill->update([
             'status' => 'paid',
             'paid_at' => Carbon::now(),
-            'verified_by' => 'Verifikasi Otomatis SiPesand KaseraPay',
+            'payment_method' => 'paymentku',
+            'verified_by' => 'Verifikasi gateway KaseraPay',
         ]);
 
         // Buat Kwitansi Resmi

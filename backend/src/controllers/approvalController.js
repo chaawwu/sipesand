@@ -56,6 +56,9 @@ exports.updateDivisionFundStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, approvedBy, lpjProof } = req.body;
+    if (!['APPROVED', 'REJECTED', 'REPORTED', 'PENDING'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status persetujuan tidak valid' });
+    }
 
     const fund = await prisma.divisionFund.findUnique({ where: { id: parseInt(id) } });
     if (!fund) {

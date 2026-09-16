@@ -117,8 +117,7 @@ class KaseraPayService
     public function verifyWebhookSignature(string $payloadJson, ?string $signatureHeader): bool
     {
         if (empty($this->webhookSecret)) {
-            // Mode dev / simulasi jika secret belum diset
-            return true;
+            return !app()->environment('production');
         }
 
         if (empty($signatureHeader)) {

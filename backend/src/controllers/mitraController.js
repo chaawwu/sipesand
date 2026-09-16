@@ -531,6 +531,38 @@ exports.getAllMitraAktif = async (req, res) => {
   }
 };
 
+exports.updateMitraStatus = async (req, res) => {
+  try {
+    const status = req.body?.status;
+    if (!['ACTIVE', 'SUSPENDED', 'EXPIRED'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status tenant tidak valid.' });
+    }
+
+    const tenant = await prisma.mitraAktif.update({
+      where: { subdomain: req.params.subdomain },
+      data: { status },
+    });
+    res.json({ success: true, message: 'Status tenant berhasil diperbarui.', data: tenant });
+  } catch (err) {
+    res.status(404).json({ success: false, message: 'Tenant aktif tidak ditemukan.', error: err.message });
+  }
+};
+
+exports.deleteMitraAktif = async (req, res) => {
+  try {
+    const tenant = await prisma.mitraAktif.findUnique({ where: { subdomain: req.params.subdomain } });
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant aktif tidak ditemukan.' });
+
+    await prisma.$transaction([
+      prisma.tagihanLisensi.updateMany({ where: { mitraId: tenant.id }, data: { mitraId: null } }),
+      prisma.mitraAktif.delete({ where: { id: tenant.id } }),
+    ]);
+    res.json({ success: true, message: 'Data tenant berhasil dihapus dari daftar aktif.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal menghapus tenant aktif.', error: err.message });
+  }
+};
+
 exports.getMitraConfig = async (req, res) => {
   try { res.json({ success: true, data: await readMitraConfig() }); }
   catch (err) { res.status(500).json({ success: false, message: 'Gagal mengambil konfigurasi mitra.', error: err.message }); }
@@ -579,7 +611,9 @@ exports.getMitraOrders = async (req, res) => {
     });
 
     // Mitra aktif yang SUDAH di-provisioning (tidak ada di tabel pending atau sudah PAID)
-    const pendingSubdomains = new Set(pending.map((o) => o.subdomain));
+    const pendingSubdomains = new Set(
+      pending.filter((o) => ['PENDING', 'WAITING_VERIFICATION'].includes(o.status)).map((o) => o.subdomain)
+    );
     const activeOrders = active
       .filter((tenant) => !pendingSubdomains.has(tenant.subdomain))
       .map((tenant) => ({
