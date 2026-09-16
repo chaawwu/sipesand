@@ -5,22 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\KaserapayPayment;
 use App\Models\Santri;
-use App\Services\KaseraPayService;
+use App\Services\PaymentKuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
-    protected KaseraPayService $kaseraPayService;
+    protected PaymentKuService $paymentKuService;
 
-    public function __construct(KaseraPayService $kaseraPayService)
+    public function __construct(PaymentKuService $paymentKuService)
     {
-        $this->kaseraPayService = $kaseraPayService;
+        $this->paymentKuService = $paymentKuService;
     }
 
     /**
      * POST /api/payments/create
-     * Menghasilkan transaksi KaseraPay (Checkout URL / QRIS / VA)
+    * Menghasilkan transaksi PaymentKu (Checkout URL / QRIS / VA)
      */
     public function create(Request $request)
     {
@@ -32,7 +32,7 @@ class PaymentController extends Controller
             'customer_name' => 'required|string',
             'customer_phone' => 'nullable|string',
             'customer_email' => 'nullable|email',
-            'payment_method' => 'nullable|string', // QRIS, VA_BCA, VA_BRI, dsb.
+            'payment_method' => 'nullable|string|in:qris,bca_va,dana,ovo',
             'tenant' => 'nullable|string',
         ]);
 
@@ -40,32 +40,28 @@ class PaymentController extends Controller
         $externalId = 'SIPESAND-' . strtoupper(Str::random(6)) . '-' . time();
 
         // 1. Panggil KaseraPay API
-        $kaseraPayload = [
-            'external_id' => $externalId,
+        $channel = strtolower($validated['payment_method'] ?? 'qris');
+        $paymentKuPayload = [
+            'channel_code' => $channel,
             'amount' => (int) $validated['amount'],
+            'reference_id' => $externalId,
             'customer_name' => $validated['customer_name'],
-            'customer_phone' => $validated['customer_phone'] ?? '08123456789',
+            'customer_phone' => $validated['customer_phone'] ?? null,
             'customer_email' => $validated['customer_email'] ?? 'wali@sipesand.web.id',
-            'description' => $validated['title'],
-            'payment_method' => $validated['payment_method'] ?? 'ALL',
-            'callback_url' => "https://sipesand.web.id/api/payments/status/{$externalId}",
+            'return_url' => "https://sipesand.web.id/payment/success?reference_id={$externalId}",
+            'order_items' => [['name' => $validated['title'], 'quantity' => 1]],
         ];
 
-        $kaseraRes = $this->kaseraPayService->createTransaction($kaseraPayload);
-
-        $checkoutUrl = null;
-        $qrString = null;
-        $transactionId = null;
-
-        if ($kaseraRes['success'] && isset($kaseraRes['data'])) {
-            $data = $kaseraRes['data'];
-            $transactionId = $data['id'] ?? null;
-            $checkoutUrl = $data['checkout_url'] ?? $data['payment_url'] ?? null;
-            $qrString = $data['qr_string'] ?? null;
-        } else {
-            // Fallback simulasi jika API key KaseraPay belum diisi di .env
-            $checkoutUrl = "https://pay.kasera.id/checkout/{$externalId}?amount=" . (int)$validated['amount'];
+        $paymentKuRes = $this->paymentKuService->createTransaction($paymentKuPayload);
+        if (!$paymentKuRes['success']) {
+            return response()->json(['status' => 'error', 'message' => $paymentKuRes['message']], 502);
         }
+
+        $data = $paymentKuRes['data'];
+        $paymentInfo = $data['payment_info'] ?? [];
+        $checkoutUrl = $data['pay_url'] ?? null;
+        $qrString = $paymentInfo['qr_string'] ?? null;
+        $transactionId = $data['trx_id'] ?? null;
 
         // 2. Simpan record di database
         $payment = KaserapayPayment::create([
@@ -76,16 +72,16 @@ class PaymentController extends Controller
             'transaction_id' => $transactionId,
             'amount' => $validated['amount'],
             'title' => $validated['title'],
-            'payment_method' => $validated['payment_method'] ?? 'QRIS',
+            'payment_method' => $channel,
             'status' => 'PENDING',
             'checkout_url' => $checkoutUrl,
             'qr_string' => $qrString,
-            'raw_response' => $kaseraRes,
+            'raw_response' => $paymentKuRes['raw'] ?? $data,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaksi KaseraPay berhasil digenerate',
+            'message' => 'Transaksi PaymentKu berhasil dibuat',
             'data' => [
                 'id' => $payment->id,
                 'external_id' => $externalId,
@@ -116,7 +112,7 @@ class PaymentController extends Controller
 
         // Cek status terbaru ke KaseraPay jika masih PENDING
         if ($payment->status === 'PENDING') {
-            $checkRes = $this->kaseraPayService->getTransactionStatus($externalId);
+            $checkRes = $this->paymentKuService->getTransactionStatus($payment->transaction_id ?: $externalId);
             if ($checkRes['success'] && isset($checkRes['data']['status'])) {
                 $statusRemote = strtoupper($checkRes['data']['status']);
                 if (in_array($statusRemote, ['PAID', 'SUCCESS', 'SETTLED'])) {

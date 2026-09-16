@@ -8,7 +8,7 @@ use App\Models\Pembayaran;
 use App\Models\Pesantren;
 use App\Models\Santri;
 use App\Models\UangSaku;
-use App\Services\KaseraPayService;
+use App\Services\PaymentKuService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 
 class WaliKeuanganController extends Controller
 {
-    public function __construct(private KaseraPayService $kaseraPayService)
+    public function __construct(private PaymentKuService $paymentKuService)
     {
     }
 
@@ -48,13 +48,13 @@ class WaliKeuanganController extends Controller
     }
 
     /**
-     * Checkout Pembayaran via KaseraPay / Payment Gateway
+     * Checkout Pembayaran via PaymentKu
      */
     public function checkout(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'bill_id' => 'required|exists:pembayarans,id',
-            'channel' => 'nullable|string', // qris, bca_va, bni_va, mandiri_va
+            'channel' => 'nullable|string|in:qris,bca_va,dana,ovo',
         ]);
 
         if ($validator->fails()) {
@@ -75,17 +75,17 @@ class WaliKeuanganController extends Controller
             ], 400);
         }
 
-        $channel = strtoupper($request->channel ?? 'ALL');
+        $channel = strtolower($request->channel ?? 'qris');
         $externalId = 'PKU-' . strtoupper(Str::random(10));
-        $gateway = $this->kaseraPayService->createTransaction([
-            'external_id' => $externalId,
+        $gateway = $this->paymentKuService->createTransaction([
+            'channel_code' => $channel,
             'amount' => (int) $bill->total_amount,
+            'reference_id' => $externalId,
             'customer_name' => $wali->name,
             'customer_email' => $wali->email ?? null,
             'customer_phone' => $wali->phone ?? null,
-            'description' => 'Pembayaran ' . $bill->title,
-            'payment_method' => $channel,
-            'callback_url' => url('/api/payments/webhook'),
+            'return_url' => url('/payment/success?reference_id=' . $externalId),
+            'order_items' => [['name' => $bill->title, 'quantity' => 1]],
         ]);
 
         if (!$gateway['success']) {
@@ -96,11 +96,12 @@ class WaliKeuanganController extends Controller
         }
 
         $gatewayData = $gateway['data'] ?? [];
-        $checkoutUrl = $gatewayData['checkout_url'] ?? $gatewayData['payment_url'] ?? null;
+        $paymentInfo = $gatewayData['payment_info'] ?? [];
+        $checkoutUrl = $gatewayData['pay_url'] ?? null;
         if (!$checkoutUrl) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gateway tidak mengembalikan URL pembayaran.',
+                'message' => 'PaymentKu tidak mengembalikan pay_url.',
             ], 502);
         }
 
@@ -123,8 +124,9 @@ class WaliKeuanganController extends Controller
                 'payment_method' => $channel,
                 'status' => 'PENDING',
                 'checkout_url' => $checkoutUrl,
-                'qr_string' => $gatewayData['qr_string'] ?? $gatewayData['qr_code'] ?? null,
-                'raw_response' => $gatewayData,
+                'transaction_id' => $gatewayData['trx_id'] ?? null,
+                'qr_string' => $paymentInfo['qr_string'] ?? null,
+                'raw_response' => $gateway['raw'] ?? $gatewayData,
             ]
         );
 
@@ -141,7 +143,7 @@ class WaliKeuanganController extends Controller
                 'total_amount' => (float)$bill->total_amount,
                 'checkout_url' => $checkoutUrl,
                 'channel' => $channel,
-                'qr_string' => $gatewayData['qr_string'] ?? $gatewayData['qr_code'] ?? null,
+                'qr_string' => $paymentInfo['qr_string'] ?? null,
             ],
         ]);
     }
@@ -160,7 +162,7 @@ class WaliKeuanganController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Transaksi gateway tidak ditemukan.'], 404);
         }
 
-        $gateway = $this->kaseraPayService->getTransactionStatus($payment->external_id);
+        $gateway = $this->paymentKuService->getTransactionStatus($payment->transaction_id ?: $payment->external_id);
         $gatewayStatus = strtolower((string) data_get($gateway, 'data.status', ''));
         if (!$gateway['success'] || !in_array($gatewayStatus, ['paid', 'success', 'settled', 'completed'], true)) {
             return response()->json([
@@ -179,7 +181,7 @@ class WaliKeuanganController extends Controller
             'status' => 'paid',
             'paid_at' => Carbon::now(),
             'payment_method' => 'paymentku',
-            'verified_by' => 'Verifikasi gateway KaseraPay',
+            'verified_by' => 'Verifikasi gateway PaymentKu',
         ]);
 
         // Buat Kwitansi Resmi

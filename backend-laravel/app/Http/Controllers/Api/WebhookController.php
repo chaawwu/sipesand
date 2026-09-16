@@ -5,63 +5,62 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\KaserapayPayment;
 use App\Models\Pembayaran;
-use App\Services\KaseraPayService;
+use App\Services\PaymentKuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
-    protected KaseraPayService $kaseraPayService;
+    protected PaymentKuService $paymentKuService;
 
-    public function __construct(KaseraPayService $kaseraPayService)
+    public function __construct(PaymentKuService $paymentKuService)
     {
-        $this->kaseraPayService = $kaseraPayService;
+        $this->paymentKuService = $paymentKuService;
     }
 
     /**
      * POST /api/payments/webhook
-     * Menerima notifikasi pembayaran realtime dari KaseraPay
+    * Menerima notifikasi pembayaran realtime dari PaymentKu
      */
     public function handle(Request $request)
     {
         $rawPayload = $request->getContent();
-        $signature = $request->header('X-Signature') ?? $request->header('X-Kaserapay-Signature');
+        $signature = $request->header('X-Signature') ?? $request->header('X-Paymenku-Signature');
 
-        Log::info('KaseraPay Webhook Received', [
+        Log::info('PaymentKu Webhook Received', [
             'signature' => $signature,
             'body' => $request->all(),
         ]);
 
         // 1. Verifikasi Signature
-        if (!$this->kaseraPayService->verifyWebhookSignature($rawPayload, $signature)) {
-            Log::warning('KaseraPay Webhook Invalid Signature', ['header' => $signature]);
-            return response()->json(['success' => false, 'message' => 'Invalid signature'], 401);
+        if (!$this->paymentKuService->verifyWebhookSignature($rawPayload, $signature)) {
+            Log::warning('PaymentKu Webhook Invalid Signature', ['header' => $signature]);
+            return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
         }
 
-        $event = $request->input('event') ?? $request->input('status');
-        $externalId = $request->input('external_id') ?? $request->input('data.external_id');
+        $event = strtolower((string) ($request->input('status') ?? $request->input('data.status')));
+        $externalId = $request->input('reference_id') ?? $request->input('data.reference_id');
+        $transactionId = $request->input('trx_id') ?? $request->input('data.trx_id');
 
         if (!$externalId) {
-            return response()->json(['success' => false, 'message' => 'Missing external_id'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Missing reference_id'], 400);
         }
 
         $payment = KaserapayPayment::where('external_id', $externalId)->first();
 
         if (!$payment) {
-            Log::warning("KaseraPay Payment with external_id {$externalId} not found");
-            return response()->json(['success' => false, 'message' => 'Payment record not found'], 404);
+            Log::warning("PaymentKu payment with reference_id {$externalId} not found");
+            return response()->json(['status' => 'error', 'message' => 'Payment record not found'], 404);
         }
 
-        // 2. Proses status pembayaran
-        // Event KaseraPay: payment.paid, PAID, SUCCESS, SETTLED
-        $isPaid = in_array(strtolower($event), ['payment.paid', 'paid', 'success', 'settled']) ||
-                  in_array(strtolower($request->input('data.status', '')), ['paid', 'success', 'settled']);
+        // 2. Proses status pembayaran dari status resmi PaymentKu.
+        $isPaid = in_array($event, ['paid', 'success', 'settled', 'completed'], true);
 
         if ($isPaid) {
             $payment->status = 'PAID';
             $payment->paid_at = now();
-            $payment->transaction_id = $request->input('id') ?? $request->input('data.id') ?? $payment->transaction_id;
-            $payment->payment_method = $request->input('payment_method') ?? $request->input('data.payment_method') ?? $payment->payment_method;
+            $payment->transaction_id = $transactionId ?: $payment->transaction_id;
+            $payment->payment_method = $request->input('channel_code') ?? $request->input('data.channel_code') ?? $payment->payment_method;
             $payment->raw_response = $request->all();
             $payment->save();
 
@@ -74,17 +73,15 @@ class WebhookController extends Controller
                 ]);
             }
 
-            Log::info("KaseraPay Payment {$externalId} set to PAID successfully.");
-        } elseif (in_array(strtolower($event), ['payment.failed', 'failed', 'expired'])) {
-            $payment->status = 'FAILED';
+            Log::info("PaymentKu payment {$externalId} set to PAID successfully.");
+        } elseif (in_array($event, ['failed', 'expired', 'cancelled'], true)) {
+            $payment->status = strtoupper($event);
             $payment->save();
         }
 
         return response()->json([
-            'success' => true,
-            'message' => 'Webhook processed successfully',
-            'external_id' => $externalId,
-            'status' => $payment->status,
+            'status' => 'success',
+            'data' => ['reference_id' => $externalId, 'status' => $payment->status],
         ]);
     }
 }
