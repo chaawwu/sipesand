@@ -53,7 +53,7 @@ export function getActiveTenantSubdomain() {
   if (typeof window === 'undefined') return null;
   const searchParams = new URLSearchParams(window.location.search);
   const qTenant = searchParams.get('tenant') || searchParams.get('subdomain');
-  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost'];
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost', 'anandaby', 'ananda'];
 
   if (qTenant && !ignoredSubdomains.includes(qTenant.toLowerCase().trim())) {
     const t = qTenant.toLowerCase().trim();
@@ -68,12 +68,14 @@ export function getActiveTenantSubdomain() {
     return null;
   }
 
-  // Gateway, developer, and system subdomains are non-tenant
+  // Gateway, developer, ananda, and system subdomains are non-tenant
   if (
     hostname.startsWith('app.') || 
     hostname.startsWith('mitra.') || 
     hostname.startsWith('pay.') || 
-    hostname.startsWith('api.')
+    hostname.startsWith('api.') ||
+    hostname.startsWith('anandaby.') ||
+    hostname.includes('ananda')
   ) {
     return null;
   }

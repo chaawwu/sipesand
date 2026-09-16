@@ -14,6 +14,7 @@ import LandingPage from './pages/LandingPage';
 import LandingPageSaas from './pages/LandingPageSaas';
 import AppGatewayPage from './pages/AppGatewayPage';
 import PortalWaliPublic from './pages/PortalWaliPublic';
+import AnandaPortalPage from './pages/AnandaPortalPage';
 import DashboardDeveloper from './pages/DashboardDeveloper';
 import Dashboard from './pages/Dashboard';
 import Santri from './pages/Santri';
@@ -78,6 +79,16 @@ function resolveInitialView() {
     return 'portal-wali';
   }
 
+  // 4b. ANANDA Wali Santri Official Portal (anandaby.sipesand.web.id)
+  if (
+    viewParam === 'ananda' ||
+    viewParam === 'wali-ananda' ||
+    hostname.startsWith('anandaby.') ||
+    hostname.includes('anandaby')
+  ) {
+    return 'ananda-portal';
+  }
+
   // 5. Root domain sipesand.web.id or view=saas
   if (viewParam === 'saas' || hostname === 'sipesand.web.id' || hostname === 'www.sipesand.web.id') {
     return 'landing-saas';
@@ -108,14 +119,14 @@ function resolveInitialView() {
 
   if (hostname.endsWith('.sipesand.web.id')) {
     const parts = hostname.replace('.sipesand.web.id', '').split('.');
-    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin'].includes(parts[0])) {
+    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin', 'anandaby', 'ananda'].includes(parts[0])) {
       return 'landing';
     }
   }
 
   if (hostname.endsWith('.localhost')) {
     const parts = hostname.replace('.localhost', '').split('.');
-    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin'].includes(parts[0])) {
+    if (parts[0] && !['www', 'api', 'mitra', 'pay', 'app', 'master', 'saas', 'admin', 'anandaby', 'ananda'].includes(parts[0])) {
       return 'landing';
     }
   }
@@ -239,6 +250,8 @@ function MainAppContent() {
       }
     } else if (viewParam === 'pay' || viewParam === 'wali' || hostname.startsWith('pay.')) {
       setCurrentView('portal-wali');
+    } else if (viewParam === 'ananda' || viewParam === 'wali-ananda' || hostname.startsWith('anandaby.') || hostname.includes('anandaby')) {
+      setCurrentView('ananda-portal');
     } else if (viewParam === 'app' || hostname.startsWith('app.')) {
       setCurrentView('app-gateway');
     }
@@ -438,6 +451,16 @@ function MainAppContent() {
         onTenantSelected={(selectedSubdomain) => {
           setCurrentView('landing');
         }}
+      />
+    );
+  }
+
+  // 0b. Tampilan Resmi ANANDA Wali Santri Portal & Download APK (anandaby.sipesand.web.id)
+  if (currentView === 'ananda-portal') {
+    return (
+      <AnandaPortalPage
+        onOpenPortalWali={handleOpenPortalWali}
+        onBackToHome={() => setCurrentView('landing-saas')}
       />
     );
   }

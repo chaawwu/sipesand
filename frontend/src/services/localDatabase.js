@@ -37,7 +37,7 @@ export function getCurrentTenant() {
   if (typeof window === 'undefined') return 'darulrahman';
   const searchParams = new URLSearchParams(window.location.search);
   const tenantQuery = searchParams.get('tenant') || searchParams.get('subdomain');
-  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost'];
+  const ignoredSubdomains = ['master', 'app', 'mitra', 'pay', 'www', 'api', 'root', 'saas', 'default', 'admin', 'localhost', 'anandaby', 'ananda'];
 
   // 1. URL search params (e.g. ?tenant=namapondok)
   if (tenantQuery) {
