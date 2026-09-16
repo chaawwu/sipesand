@@ -1,7 +1,7 @@
 # Direct APK Downloads to Official GitHub Releases (4.75 MB Multi-DEX)
-/ananda-wali-sipesand.apk  https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/ananda-wali-sipesand.apk  302
-/ananda-v1.0.0.apk  https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/ananda-wali-sipesand.apk  302
-/sipesand-app.apk  https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/sipesand-app.apk  302
+/ananda-wali-sipesand.apk  https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk  302
+/ananda-v1.0.0.apk  https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk  302
+/sipesand-app.apk  https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/sipesand-app.apk  302
 
 # Cloudflare Pages SPA Routing
 # API requests are handled by frontend/functions/api/[[route]].js.

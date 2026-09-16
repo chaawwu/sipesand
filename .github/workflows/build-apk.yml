@@ -77,26 +77,16 @@ jobs:
 
       - name: 🔨 Compile Ananda Wali Santri Native APK (Kotlin / Jetpack Compose)
         working-directory: ./ananda-android
-        continue-on-error: true
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
           chmod +x ./gradlew
-          if ! ./gradlew assembleDebug --no-daemon > ananda-error.txt 2>&1; then
-            echo "::warning::Ananda Android compilation failed, logging details..."
-            tail -n 120 ananda-error.txt
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git checkout -B ananda-build-log
-            git add ananda-error.txt
-            git commit -m "ci: capture ananda compile error"
-            git push origin ananda-build-log -f || true
-          else
-            mkdir -p ../dist-apk
-            cp app/build/outputs/apk/debug/app-debug.apk ../dist-apk/ananda-wali-sipesand.apk
-          fi
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p ../dist-apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../dist-apk/ananda-wali-sipesand.apk
+          ls -la ../dist-apk/
 
       - name: 📂 Prepare APK Output
         if: always()
@@ -107,12 +97,9 @@ jobs:
             cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-app.apk
             cp frontend/android/app/build/outputs/apk/debug/app-debug.apk dist-apk/sipesand-release.apk
           fi
-          # 2. Ananda Wali Santri APK
+          # 2. Ananda Wali Santri APK (Strictly from ananda-android)
           if [ -f "ananda-android/app/build/outputs/apk/debug/app-debug.apk" ]; then
             cp ananda-android/app/build/outputs/apk/debug/app-debug.apk dist-apk/ananda-wali-sipesand.apk
-          elif [ -f "dist-apk/sipesand-app.apk" ] && [ ! -f "dist-apk/ananda-wali-sipesand.apk" ]; then
-            # Standalone fallback so release assets are guaranteed present
-            cp dist-apk/sipesand-app.apk dist-apk/ananda-wali-sipesand.apk
           fi
           ls -la dist-apk/
 
@@ -129,8 +116,8 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v1.5.0-ananda"
-          name: "SiPesand & Ananda Wali Santri App v1.5.0 (Android APK)"
+          tag_name: "v1.6.0-ananda"
+          name: "SiPesand & Ananda Wali Santri App v1.6.0 (Android APK)"
           body: |
             ### 📱 Unduh Aplikasi SiPesand Mobile & Ananda Wali Santri (Android APK)
             

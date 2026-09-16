@@ -9,4 +9,5 @@
     <color name="text_secondary">#64748B</color>
     <color name="accent_green">#16A34A</color>
     <color name="accent_amber">#D97706</color>
+    <color name="ic_launcher_background">#1E2B4D</color>
 </resources>
