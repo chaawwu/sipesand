@@ -85,6 +85,12 @@ jobs:
           chmod +x ./gradlew
           if ! ./gradlew assembleDebug --no-daemon --stacktrace > ananda-error.txt 2>&1; then
             cat ananda-error.txt
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git checkout -B ananda-build-log
+            git add ananda-error.txt
+            git commit -m "ci: capture ananda compile error"
+            git push origin ananda-build-log -f || true
             exit 1
           fi
           mkdir -p ../dist-apk
