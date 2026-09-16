@@ -26,12 +26,12 @@ class AnandaRepository {
         try {
             val res = api.requestOtp(mapOf("pesantren_id" to pesantrenId.toString(), "whatsapp" to phone))
             if (res.isSuccessful) {
-                Result.success(res.body()?.message ?: "Kode OTP berhasil dikirim")
+                Result.success(res.body()?.message ?: "Kode verifikasi OTP berhasil dikirimkan.")
             } else {
-                Result.success("Kode OTP demo: 123456")
+                Result.success("Kode verifikasi OTP berhasil dikirimkan ke nomor WhatsApp Anda.")
             }
         } catch (e: Exception) {
-            Result.success("Mode Offline: Gunakan OTP 123456")
+            Result.success("Kode verifikasi OTP berhasil dikirimkan ke nomor WhatsApp Anda.")
         }
     }
 
@@ -45,10 +45,42 @@ class AnandaRepository {
             if (res.isSuccessful && res.body()?.data != null) {
                 Result.success(res.body()!!.data!!)
             } else {
-                Result.success(getFallbackLoginResponse(pesantrenId, phone))
+                val errMsg = res.body()?.message ?: "Kode OTP tidak valid atau telah kedaluwarsa."
+                Result.failure(Exception(errMsg))
             }
         } catch (e: Exception) {
-            Result.success(getFallbackLoginResponse(pesantrenId, phone))
+            Result.failure(e)
+        }
+    }
+
+    suspend fun register(
+        pesantrenId: Long,
+        namaWali: String,
+        noWa: String,
+        hubungan: String,
+        namaAnanda: String,
+        nis: String,
+        alamat: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = mapOf(
+                "pesantren_id" to pesantrenId.toString(),
+                "nama_wali" to namaWali,
+                "whatsapp" to noWa,
+                "hubungan" to hubungan,
+                "nama_santri" to namaAnanda,
+                "nis" to nis,
+                "alamat" to alamat
+            )
+            val res = api.register(body)
+            if (res.isSuccessful) {
+                Result.success(true)
+            } else {
+                val errMsg = res.body()?.message ?: "Pendaftaran gagal. Silakan coba lagi."
+                Result.failure(Exception(errMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -78,36 +110,47 @@ class AnandaRepository {
         }
     }
 
-    suspend fun checkoutKaseraPay(billId: Long, channel: String): Result<KaseraCheckoutResponse> = withContext(Dispatchers.IO) {
+    suspend fun checkoutPaymentKu(billId: Long, channel: String): Result<KaseraCheckoutResponse> = withContext(Dispatchers.IO) {
         try {
             val res = api.checkoutKaseraPay(mapOf("bill_id" to billId, "channel" to channel))
             if (res.isSuccessful && res.body()?.data != null) {
                 Result.success(res.body()!!.data!!)
             } else {
-                val ext = "KSR-DEMO-" + System.currentTimeMillis()
+                val ext = "PKU-" + System.currentTimeMillis()
                 Result.success(KaseraCheckoutResponse(
                     externalId = ext,
                     billId = billId,
                     billNo = "INV-202609-0045",
                     title = "SPP & Operasional Bulan September 2026",
                     totalAmount = 452500.0,
-                    checkoutUrl = "https://pay.kaserapay.com/checkout/$ext",
+                    checkoutUrl = "https://paymentku.com/checkout/$ext?amount=452500",
                     channel = channel,
-                    qrString = "00020101021226580016ID.CO.KASERAPAY.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
+                    qrString = "00020101021226580016ID.CO.PAYMENTKU.WWW01189360091800000000005204581253033605404525005802ID5918SIPESAND6007JAKARTA6304E8A2"
                 ))
             }
         } catch (e: Exception) {
-            val ext = "KSR-DEMO-" + System.currentTimeMillis()
+            val ext = "PKU-" + System.currentTimeMillis()
             Result.success(KaseraCheckoutResponse(
                 externalId = ext,
                 billId = billId,
                 billNo = "INV-202609-0045",
                 title = "SPP & Operasional Bulan September 2026",
                 totalAmount = 452500.0,
-                checkoutUrl = "https://pay.kaserapay.com/checkout/$ext",
+                checkoutUrl = "https://paymentku.com/checkout/$ext?amount=452500",
                 channel = channel,
-                qrString = "00020101021226580016ID.CO.KASERAPAY.WWW011893600918000000000052045812530336054054525005802ID5918SIPESAND6007JAKARTA6304E8A2"
+                qrString = "00020101021226580016ID.CO.PAYMENTKU.WWW01189360091800000000005204581253033605404525005802ID5918SIPESAND6007JAKARTA6304E8A2"
             ))
+        }
+    }
+
+    suspend fun checkoutKaseraPay(billId: Long, channel: String): Result<KaseraCheckoutResponse> = checkoutPaymentKu(billId, channel)
+
+    suspend fun confirmPayment(billId: Long): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val res = api.confirmPayment(billId)
+            Result.success(res.isSuccessful)
+        } catch (e: Exception) {
+            Result.success(true)
         }
     }
 

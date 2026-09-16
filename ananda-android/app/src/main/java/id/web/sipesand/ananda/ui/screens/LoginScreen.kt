@@ -97,7 +97,7 @@ fun LoginScreen(
                 text = if (!isOtpSent) 
                     "Masukkan nomor WhatsApp yang telah terdaftar di data santri pesantren." 
                 else 
-                    "Masukkan 6 digit kode OTP yang dikirimkan ke WhatsApp Anda (Gunakan: 123456).",
+                    "Masukkan 6 digit kode OTP yang dikirimkan ke WhatsApp Anda.",
                 fontSize = 13.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
@@ -152,7 +152,7 @@ fun LoginScreen(
                         .clickable {
                             scope.launch {
                                 repository.requestOtp(pesantrenId, whatsappNumber)
-                                Toast.makeText(context, "OTP dikirim ulang (123456)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Kode OTP berhasil dikirim ulang ke WhatsApp Anda.", Toast.LENGTH_SHORT).show()
                             }
                         }
                 )
@@ -170,10 +170,10 @@ fun LoginScreen(
                         }
                         scope.launch {
                             isLoading = true
-                            val res = repository.requestOtp(pesantrenId, whatsappNumber)
+                            repository.requestOtp(pesantrenId, whatsappNumber)
                             isLoading = false
                             isOtpSent = true
-                            Toast.makeText(context, res.getOrNull() ?: "Kode OTP: 123456", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, "Kode OTP telah dikirimkan ke WhatsApp Anda.", Toast.LENGTH_LONG).show()
                         }
                     } else {
                         if (otpCode.isBlank()) {

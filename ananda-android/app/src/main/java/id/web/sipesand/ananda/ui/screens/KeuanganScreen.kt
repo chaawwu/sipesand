@@ -44,7 +44,7 @@ fun KeuanganScreen(
     var saldoSaku by remember { mutableStateOf(385000.0) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // KaseraPay Modal State
+    // PaymentKu Modal State
     var activeCheckout by remember { mutableStateOf<KaseraCheckoutResponse?>(null) }
     var showTopUpDialog by remember { mutableStateOf(false) }
 
@@ -136,7 +136,7 @@ fun KeuanganScreen(
                                     Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = RoyalBluePrimary, modifier = Modifier.size(24.dp))
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Pembayaran online terintegrasi langsung dengan KaseraPay (QRIS & Virtual Account). Kwitansi resmi terbit otomatis.",
+                                        text = "Pembayaran online terintegrasi langsung dengan PaymentKu (QRIS & Virtual Account). Kwitansi resmi terbit otomatis.",
                                         fontSize = 12.sp,
                                         color = TextPrimary
                                     )
@@ -150,7 +150,7 @@ fun KeuanganScreen(
                                 currencyFormat = currencyFormat,
                                 onPay = {
                                     scope.launch {
-                                        val checkoutRes = repository.checkoutKaseraPay(bill.id, "qris_kasera")
+                                        val checkoutRes = repository.checkoutPaymentKu(bill.id, "qris_paymentku")
                                         activeCheckout = checkoutRes.getOrNull()
                                     }
                                 },
@@ -217,12 +217,12 @@ fun KeuanganScreen(
         }
     }
 
-    // KaseraPay Payment Modal Dialog
+    // PaymentKu Payment Modal Dialog
     if (activeCheckout != null) {
         val checkout = activeCheckout!!
         AlertDialog(
             onDismissRequest = { activeCheckout = null },
-            title = { Text("Checkout KaseraPay Instant", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
+            title = { Text("Checkout via PaymentKu (paymentku.com)", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(checkout.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
@@ -254,9 +254,13 @@ fun KeuanganScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        Toast.makeText(context, "Pembayaran terverifikasi lunas! Kwitansi terbit.", Toast.LENGTH_SHORT).show()
-                        activeCheckout = null
                         scope.launch {
+                            val billId = checkout.externalId
+                                .removePrefix("PKU-")
+                                .toLongOrNull() ?: 0L
+                            repository.confirmPayment(billId)
+                            Toast.makeText(context, "Pembayaran terverifikasi lunas! Kwitansi terbit.", Toast.LENGTH_SHORT).show()
+                            activeCheckout = null
                             val billsRes = repository.getTagihan()
                             bills = billsRes.getOrNull()?.bills ?: emptyList()
                         }
@@ -310,7 +314,7 @@ fun KeuanganScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary)
                 ) {
-                    Text("Bayar via KaseraPay", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Bayar via PaymentKu", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

@@ -118,6 +118,8 @@ data class KaseraCheckoutResponse(
     @SerializedName("qr_string") val qrString: String?
 )
 
+typealias PaymentKuCheckoutResponse = KaseraCheckoutResponse
+
 // 5. Uang Saku
 data class UangSakuResponse(
     @SerializedName("saldo") val saldo: Double,

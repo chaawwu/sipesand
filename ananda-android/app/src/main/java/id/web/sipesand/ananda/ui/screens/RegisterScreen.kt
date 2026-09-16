@@ -21,15 +21,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.web.sipesand.ananda.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
+    pesantrenId: Long = 1L,
     pesantrenName: String,
     onBack: () -> Unit,
     onRegisterSuccess: () -> Unit
 ) {
     val context = LocalContext.current
+    val repository = remember { id.web.sipesand.ananda.data.repository.AnandaRepository() }
+    val scope = rememberCoroutineScope()
     var namaWali by remember { mutableStateOf("") }
     var noWa by remember { mutableStateOf("") }
     var relationship by remember { mutableStateOf("Ayah") }
@@ -37,6 +41,7 @@ fun RegisterScreen(
     var namaAnanda by remember { mutableStateOf("") }
     var nisAnanda by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -167,7 +172,18 @@ fun RegisterScreen(
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (errorMsg != null) {
+                Text(
+                    text = errorMsg!!,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                    modifier = androidx.compose.ui.Modifier.padding(vertical = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -175,9 +191,26 @@ fun RegisterScreen(
                         Toast.makeText(context, "Harap lengkapi semua kolom wajib", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    isLoading = true
-                    Toast.makeText(context, "Pendaftaran berhasil! Akun sedang diverifikasi admin.", Toast.LENGTH_LONG).show()
-                    onRegisterSuccess()
+                    scope.launch {
+                        isLoading = true
+                        errorMsg = null
+                        val result = repository.register(
+                            pesantrenId = pesantrenId,
+                            namaWali = namaWali,
+                            noWa = noWa,
+                            hubungan = relationship,
+                            namaAnanda = namaAnanda,
+                            nis = nisAnanda,
+                            alamat = alamat
+                        )
+                        isLoading = false
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Pendaftaran berhasil! Akun sedang diverifikasi admin.", Toast.LENGTH_LONG).show()
+                            onRegisterSuccess()
+                        } else {
+                            errorMsg = result.exceptionOrNull()?.message ?: "Pendaftaran gagal. Silakan coba lagi."
+                        }
+                    }
                 },
                 enabled = !isLoading,
                 shape = RoundedCornerShape(12.dp),
@@ -186,12 +219,16 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text(
-                    text = "Daftarkan Akun Wali",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text(
+                        text = "Daftarkan Akun Wali",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
