@@ -75,7 +75,7 @@ export default function AnandaPortalPage({ onOpenPortalWali, onBackToHome }) {
               Portal Wali Web
             </button>
             <a
-              href="/ananda-wali-sipesand.apk"
+              href="https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/ananda-wali-sipesand.apk"
               download
               className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#1E2B4D] to-[#3E4095] hover:opacity-95 rounded-xl shadow-md transition"
             >
@@ -116,7 +116,7 @@ export default function AnandaPortalPage({ onOpenPortalWali, onBackToHome }) {
               <div className="p-6 rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 max-w-xl mx-auto lg:mx-0 space-y-4">
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                   <a
-                    href="/ananda-wali-sipesand.apk"
+                    href="https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/ananda-wali-sipesand.apk"
                     download
                     className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-3 px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-base shadow-lg transition"
                   >
@@ -402,7 +402,7 @@ export default function AnandaPortalPage({ onOpenPortalWali, onBackToHome }) {
               </p>
             </div>
             <a
-              href="/ananda-wali-sipesand.apk"
+              href="https://github.com/chaawwu/sipesand/releases/download/v1.5.0-ananda/ananda-wali-sipesand.apk"
               download
               className="inline-flex items-center space-x-2 px-6 py-3.5 rounded-xl bg-[#1E2B4D] hover:bg-[#2A3370] text-white font-bold text-sm shadow-md transition whitespace-nowrap"
             >
