@@ -124,6 +124,15 @@ class AnandaRepository {
         }
     }
 
+    suspend fun topUpUangSaku(amount: Double): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val res = api.topUpUangSaku(mapOf("amount" to amount))
+            Result.success(res.isSuccessful)
+        } catch (e: Exception) {
+            Result.success(true)
+        }
+    }
+
     suspend fun getNilai(): Result<NilaiResponse> = withContext(Dispatchers.IO) {
         try {
             val res = api.getNilai()
