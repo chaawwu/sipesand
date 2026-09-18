@@ -2462,13 +2462,13 @@ export default function DashboardDeveloper({
                         </label>
                         <input
                           type="password"
-                          placeholder="pku_live_xxxxxxxxxxxxxxxx"
+                          placeholder="sk_live_xxxxxxxxxxxxxxxx (atau sk_test_... untuk uji coba)"
                           value={mitraConfig.paymentkuApiKey || mitraConfig.kaserapayApiKey || ''}
                           onChange={(e) => setMitraConfig({ ...mitraConfig, paymentkuApiKey: e.target.value, kaserapayApiKey: e.target.value })}
                           className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
                         />
                         <span className="text-[10px] text-slate-400 mt-1 block">
-                          Jika diisi, link pembayaran instan PaymentKu (paymentku.com) akan diterbitkan otomatis saat mitra mendaftar.
+                          Wajib diawali <code>sk_live_</code> (produksi) atau <code>sk_test_</code> (uji coba). Ambil dari Dashboard Paymenku → Settings → API Keys → Secret Key. Bukan public key, bukan webhook secret, tanpa spasi.
                         </span>
                       </div>
 

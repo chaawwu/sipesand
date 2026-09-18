@@ -153,9 +153,13 @@ async function getPaymenkuConfig(context) {
 }
 
 async function paymenkuCreateTransaction(context, request, opts) {
-  const { apiKey, baseUrl } = await getPaymenkuConfig(context);
+  const { apiKey: rawKey, baseUrl } = await getPaymenkuConfig(context);
+  const apiKey = String(rawKey || '').trim();
   if (!apiKey) {
     return { ok: false, status: 503, error: 'PAYMENTKU_API_KEY belum dikonfigurasi. Masukkan API Key Paymenku (sk_live_...) di Dashboard Mitra > Billing > PaymentKu Gateway atau Environment Variable PAYMENTKU_API_KEY.' };
+  }
+  if (!/^sk_(live|test)_/i.test(apiKey)) {
+    return { ok: false, status: 401, error: 'Format API Key salah. Pakai Secret Key dari Dashboard Paymenku → Settings → API Keys yang diawali sk_live_ (produksi) atau sk_test_ (sandbox). Bukan public key, bukan webhook secret, tanpa spasi.' };
   }
   const origin = new URL(request.url).origin;
   const payload = {
@@ -192,9 +196,13 @@ async function paymenkuCreateTransaction(context, request, opts) {
 }
 
 async function paymenkuCheckStatus(context, orderId) {
-  const { apiKey, baseUrl } = await getPaymenkuConfig(context);
+  const { apiKey: rawKey, baseUrl } = await getPaymenkuConfig(context);
+  const apiKey = String(rawKey || '').trim();
   if (!apiKey) {
     return { ok: false, status: 503, error: 'PAYMENTKU_API_KEY belum dikonfigurasi.' };
+  }
+  if (!/^sk_(live|test)_/i.test(apiKey)) {
+    return { ok: false, status: 401, error: 'Format API Key salah. Pakai Secret Key sk_live_ / sk_test_ dari Dashboard Paymenku → Settings → API Keys.' };
   }
   let res;
   try {
