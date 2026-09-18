@@ -583,6 +583,25 @@ export const getMitraOrderStatus = async (orderId) => {
   }
 };
 
+export const requestMitraPayLink = async (orderId, channelCode = 'qris') => {
+  try {
+    const res = await api.post('/mitra/pay-paymentku', { orderId, channel_code: channelCode });
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    const errData = err.response?.data || { success: false, message: 'Gagal membuat link pembayaran Paymenku.' };
+    return { data: errData, ...errData };
+  }
+};
+
+export const getPayChannels = async () => {
+  try {
+    const res = await api.get('/payments/channels');
+    return { data: res.data, ...res.data };
+  } catch (err) {
+    return { data: { success: false, data: [] } };
+  }
+};
+
 export const uploadMitraPaymentProof = async (payload) => {
   try {
     const res = await api.post('/mitra/upload-proof', payload);

@@ -28,7 +28,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { 
   getMitraConfig, 
   getMitraOrderStatus, 
-  uploadMitraPaymentProof
+  uploadMitraPaymentProof,
+  requestMitraPayLink,
+  getPayChannels
 } from '../services/api';
 import { compressImage } from '../utils/imageCompressor';
 import AestheticToast from './AestheticToast';
@@ -42,6 +44,64 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
   const [copiedOrderId, setCopiedOrderId] = useState(false);
   const [checking, setChecking] = useState(false);
   const [provisionResult, setProvisionResult] = useState(null);
+
+  // Pilihan channel Paymenku (QRIS / VA / E-Wallet)
+  const [payChannel, setPayChannel] = useState('qris');
+  const [payChannels, setPayChannels] = useState([
+    { code: 'qris', name: 'QRIS', type: 'qris', desc: 'Scan QR universal' },
+    { code: 'bca_va', name: 'BCA Virtual Account', type: 'va', desc: 'Transfer via BCA' },
+    { code: 'bni_va', name: 'BNI Virtual Account', type: 'va', desc: 'Transfer via BNI' },
+    { code: 'bri_va', name: 'BRI Virtual Account', type: 'va', desc: 'Transfer via BRI' },
+    { code: 'mandiri_va', name: 'Mandiri Virtual Account', type: 'va', desc: 'Transfer via Mandiri' },
+    { code: 'dana', name: 'DANA', type: 'ewallet', desc: 'Via aplikasi DANA' },
+    { code: 'ovo', name: 'OVO', type: 'ewallet', desc: 'Via aplikasi OVO' },
+    { code: 'shopeepay', name: 'ShopeePay', type: 'ewallet', desc: 'Via ShopeePay' },
+    { code: 'linkaja', name: 'LinkAja', type: 'ewallet', desc: 'Via LinkAja' },
+  ]);
+  const [generatingLink, setGeneratingLink] = useState(false);
+
+  const channelLabel = (code) => {
+    const found = payChannels.find(c => c.code === code);
+    return found ? found.name : code;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPayChannels() {
+      try {
+        const res = await getPayChannels();
+        if (!cancelled && res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+          setPayChannels(res.data.data);
+        }
+      } catch (e) {}
+    }
+    loadPayChannels();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Alur bayar langganan: 1) pilih channel → 2) buat/ambil link pay_url → 3) bayar di Paymenku → 4) cek status / webhook → aktif
+  const handleGeneratePayLink = async () => {
+    try {
+      setGeneratingLink(true);
+      const res = await requestMitraPayLink(order.orderId, payChannel);
+      if (res.data?.success && (res.data?.checkoutUrl || res.data?.pay_url)) {
+        const link = res.data.checkoutUrl || res.data.pay_url;
+        setOrder(prev => ({ ...prev, checkoutUrl: link, payUrl: link, paymentChannel: res.data.paymentChannel || payChannel }));
+        window.open(link, '_blank');
+      } else {
+        throw new Error(res.data?.message || 'Gagal membuat link pembayaran.');
+      }
+    } catch (err) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Membuat Link',
+        message: err.response?.data?.message || err.message || 'Gateway belum dikonfigurasi. Hubungi admin.'
+      });
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
   
   // Upload Bukti Pembayaran State
   const [proofFile, setProofFile] = useState(null);
@@ -530,41 +590,63 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-2.5 z-10 flex-shrink-0 w-full md:w-auto">
-          {order.checkoutUrl && !order.checkoutUrl.includes(`/checkout/${order.orderId}`) ? (
-            <a
-              href={order.checkoutUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
+        <div className="flex flex-col items-stretch gap-2.5 z-10 flex-shrink-0 w-full md:w-72">
+          <div className="bg-white/10 border border-white/20 rounded-2xl p-3 space-y-2 backdrop-blur-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-blue-100 block">1 • Pilih Channel Pembayaran</span>
+            <select
+              value={payChannel}
+              onChange={(e) => setPayChannel(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-white text-slate-900 font-bold text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 cursor-pointer"
             >
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              <span>Bayar via PaymentKu Sekarang (paymentku.com)</span>
-              <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-            </a>
-          ) : (
+              <optgroup label="QRIS">
+                {payChannels.filter(c => c.type === 'qris').map(c => (
+                  <option key={c.code} value={c.code}>{c.name} — {c.desc}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Virtual Account">
+                {payChannels.filter(c => c.type === 'va').map(c => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="E-Wallet">
+                {payChannels.filter(c => c.type === 'ewallet').map(c => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </optgroup>
+            </select>
             <button
               type="button"
-              onClick={() => {
-                const el = document.getElementById('transfer-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-6 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-2xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-white"
+              onClick={handleGeneratePayLink}
+              disabled={generatingLink}
+              className="w-full px-4 py-3 bg-white hover:bg-slate-50 text-blue-700 rounded-xl font-black text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              <span>Bayar via Rekening Bank / QRIS</span>
+              {generatingLink ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Membuat Link...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 text-blue-600" />
+                  <span>2 • Bayar via {channelLabel(payChannel)}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+                </>
+              )}
             </button>
-          )}
+            {order.paymentChannel && (
+              <span className="text-[10px] text-blue-100 block text-center">Link aktif: <strong>{channelLabel(order.paymentChannel)}</strong></span>
+            )}
+          </div>
 
-          <div className="flex items-center gap-2 w-full justify-end">
+          <div className="flex items-center gap-2 w-full">
             <button
               type="button"
               onClick={handleManualCheckStatus}
               disabled={checking}
-              className="px-4 py-2 bg-blue-900/50 hover:bg-blue-900/80 border border-white/20 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="flex-1 px-4 py-2 bg-blue-900/50 hover:bg-blue-900/80 border border-white/20 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
-              <span>{checking ? 'Memeriksa...' : 'Cek Status'}</span>
+              <span>{checking ? 'Memeriksa...' : '3 • Cek Status & Aktivasi'}</span>
             </button>
           </div>
         </div>

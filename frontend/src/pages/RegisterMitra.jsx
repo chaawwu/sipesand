@@ -33,6 +33,7 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
     email: '',
     noWhatsapp: '',
     packageType: 'TAHUNAN', // 'TAHUNAN' | 'LIFETIME'
+    channel_code: 'qris', // channel Paymenku: qris / *_va / dana / ovo / shopeepay / linkaja
   });
 
   const [prices, setPrices] = useState(null);
@@ -424,13 +425,42 @@ export default function RegisterMitra({ onBackToLanding, onGoToTenant }) {
                 </div>
               </div>
 
+              {/* 6. Pilihan Channel Pembayaran Paymenku */}
+              <div className="pt-2">
+                <label className="block font-bold text-slate-700 mb-2">Pilih Channel Pembayaran Paymenku:</label>
+                <select
+                  value={formData.channel_code}
+                  onChange={(e) => setFormData({ ...formData, channel_code: e.target.value })}
+                  className="w-full px-3.5 py-3 border border-slate-300 rounded-2xl bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none text-xs font-bold text-slate-800 cursor-pointer"
+                >
+                  <optgroup label="QRIS">
+                    <option value="qris">QRIS — Scan universal semua e-wallet & m-banking</option>
+                  </optgroup>
+                  <optgroup label="Virtual Account">
+                    <option value="bca_va">BCA Virtual Account</option>
+                    <option value="bni_va">BNI Virtual Account</option>
+                    <option value="bri_va">BRI Virtual Account (BRIVA)</option>
+                    <option value="mandiri_va">Mandiri Virtual Account</option>
+                    <option value="permata_va">Permata Virtual Account</option>
+                    <option value="cimb_va">CIMB Niaga Virtual Account</option>
+                  </optgroup>
+                  <optgroup label="E-Wallet">
+                    <option value="dana">DANA</option>
+                    <option value="ovo">OVO (wajib no. HP aktif)</option>
+                    <option value="shopeepay">ShopeePay</option>
+                    <option value="linkaja">LinkAja</option>
+                  </optgroup>
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">Alur: daftar → link pay_url channel ini → bayar → webhook aktif otomatis + kredensial admin via email.</p>
+              </div>
+
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs mt-4"
               >
-                {loading ? 'Membuat Invoice Payment Gateway...' : 'Lanjut ke Pembayaran QRIS / Virtual Account'}
+                {loading ? 'Membuat Invoice Payment Gateway...' : 'Lanjut ke Pembayaran Paymenku'}
                 <ArrowRight className="w-4 h-4" />
               </button>
 

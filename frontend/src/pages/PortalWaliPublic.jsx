@@ -68,6 +68,51 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
   const [pgLoading, setPgLoading] = useState(false);
   const [pgTransaction, setPgTransaction] = useState(null);
   const [viewProofUrl, setViewProofUrl] = useState(null);
+  const [payChannels, setPayChannels] = useState([
+    { code: 'qris', name: 'QRIS', type: 'qris', desc: 'Scan QR universal — semua e-wallet & m-banking' },
+    { code: 'bca_va', name: 'BCA Virtual Account', type: 'va', desc: 'Transfer via BCA' },
+    { code: 'bni_va', name: 'BNI Virtual Account', type: 'va', desc: 'Transfer via BNI' },
+    { code: 'bri_va', name: 'BRI Virtual Account (BRIVA)', type: 'va', desc: 'Transfer via BRI' },
+    { code: 'mandiri_va', name: 'Mandiri Virtual Account', type: 'va', desc: 'Transfer via Mandiri' },
+    { code: 'dana', name: 'DANA', type: 'ewallet', desc: 'Bayar via aplikasi DANA' },
+    { code: 'ovo', name: 'OVO', type: 'ewallet', desc: 'Bayar via aplikasi OVO' },
+    { code: 'shopeepay', name: 'ShopeePay', type: 'ewallet', desc: 'Bayar via ShopeePay' },
+    { code: 'linkaja', name: 'LinkAja', type: 'ewallet', desc: 'Bayar via LinkAja' },
+  ]);
+  const [payChannel, setPayChannel] = useState('qris');
+  const [channelsLoading, setChannelsLoading] = useState(false);
+
+  // Alur bayar Paymenku: 1) pilih tagihan → 2) pilih metode Paymenku → 3) pilih channel → 4) buat transaksi → 5) bayar di pay_url → 6) cek status / webhook → lunas + kwitansi
+  useEffect(() => {
+    let cancelled = false;
+    async function loadChannels() {
+      if (!isPaymentModalOpen || paymentStep !== 3) return;
+      if (paymentMethod !== 'PAYMENTKU' && paymentMethod !== 'KASERAPAY') return;
+      if (pgTransaction) return;
+      try {
+        setChannelsLoading(true);
+        const res = await axios.get('/api/payments/channels', {
+          params: resolvedTenant ? { tenant: resolvedTenant } : {}
+        });
+        if (!cancelled && res.data?.success && Array.isArray(res.data.data)) {
+          setPayChannels(res.data.data);
+        }
+      } catch (e) {
+        console.warn('Gagal memuat channel Paymenku:', e);
+      } finally {
+        if (!cancelled) setChannelsLoading(false);
+      }
+    }
+    loadChannels();
+    return () => { cancelled = true; };
+  }, [isPaymentModalOpen, paymentStep, paymentMethod]);
+
+  const channelLabel = (code) => {
+    const found = payChannels.find(c => c.code === code);
+    if (found) return found.name;
+    const map = { qris: 'QRIS', bca_va: 'BCA Virtual Account', bni_va: 'BNI Virtual Account', bri_va: 'BRI Virtual Account', mandiri_va: 'Mandiri Virtual Account', permata_va: 'Permata Virtual Account', cimb_va: 'CIMB Niaga Virtual Account', dana: 'DANA', ovo: 'OVO', shopeepay: 'ShopeePay', linkaja: 'LinkAja' };
+    return map[code] || code;
+  };
 
   // Aesthetic Toast State
   const [toast, setToast] = useState({
@@ -200,6 +245,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
     setPaymentStep(1);
     setPaymentSuccessMsg('');
     setPaymentMethod('PAYMENTKU');
+    setPayChannel('qris');
     setPgTransaction(null);
     setIsPaymentModalOpen(true);
   };
@@ -241,8 +287,8 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         bill_ids: selectedBillIds,
         bill_id: selectedBillIds[0],
         santri_id: santriData?.id,
-        channel_code: 'qris',
-        payment_method: 'qris'
+        channel_code: payChannel,
+        payment_method: payChannel
       };
 
       const res = await axios.post('/api/payments/create', payload, {
@@ -257,13 +303,11 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
       }
     } catch (err) {
       console.warn('PaymentKu create error:', err);
-      const extId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      setPgTransaction({
-        id: extId,
-        external_id: extId,
-        checkout_url: null,
-        amount: totalPaymentAmount,
-        status: 'PENDING'
+      setToast({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Membuat Transaksi',
+        message: err.response?.data?.message || err.message || 'Gateway belum dikonfigurasi. Hubungi admin pesantren.'
       });
     } finally {
       setPgLoading(false);
@@ -1062,9 +1106,7 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                           type="button"
                           onClick={() => {
                             setPaymentStep(3);
-                            if ((paymentMethod === 'PAYMENTKU' || paymentMethod === 'KASERAPAY') && !pgTransaction) {
-                              handleGeneratePaymentKuPayment();
-                            }
+                            setPgTransaction(null);
                           }}
                           className="flex-1 py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
@@ -1086,9 +1128,9 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                               <Zap className="w-6 h-6 text-[#8CE829] fill-[#8CE829]" />
                             </div>
                             <div>
-                              <h4 className="font-black text-slate-900 text-sm">PaymentKu Payment Gateway (paymentku.com)</h4>
+                              <h4 className="font-black text-slate-900 text-sm">Paymenku Payment Gateway (paymenku.com)</h4>
                               <p className="text-xs text-stone-600 mt-1 max-w-sm mx-auto leading-relaxed">
-                                Pembayaran lunas instan detik itu juga melalui QRIS Dinamis & Virtual Account Bank Syariah / Nasional via paymentku.com.
+                                Alur: 1) pilih channel → 2) buat transaksi → 3) bayar di halaman Paymenku → 4) status lunas otomatis + kwitansi.
                               </p>
                             </div>
 
@@ -1099,47 +1141,124 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                             {pgTransaction && (
                               <div className="text-[11px] text-stone-500 font-mono">
                                 No. Transaksi: <strong className="text-slate-800">{pgTransaction.external_id}</strong>
+                                {pgTransaction.payment_channel && (
+                                  <span> • <strong className="text-slate-800">{channelLabel(pgTransaction.payment_channel)}</strong></span>
+                                )}
                               </div>
                             )}
                           </div>
 
-                          {/* Tombol Aksi Gateway */}
+                          {/* Langkah 1: Pilih Channel Pembayaran */}
+                          <div className="space-y-2">
+                            <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-[#0B52E2] text-white text-[10px] font-black flex items-center justify-center">1</span>
+                              <span>Pilih Channel Pembayaran {pgTransaction && <span className="font-medium text-stone-500">(terkunci — transaksi sudah dibuat)</span>}</span>
+                            </div>
+                            {channelsLoading && (
+                              <div className="text-[11px] text-stone-500">Memuat daftar channel Paymenku...</div>
+                            )}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {payChannels.map((ch) => (
+                                <button
+                                  key={ch.code}
+                                  type="button"
+                                  disabled={!!pgTransaction}
+                                  onClick={() => setPayChannel(ch.code)}
+                                  className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+                                    payChannel === ch.code
+                                      ? 'border-[#0B52E2] bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20'
+                                      : 'border-stone-200 hover:bg-stone-50'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="font-black text-slate-900 text-[11px] leading-tight">{ch.name}</span>
+                                    {payChannel === ch.code && <Check className="w-3.5 h-3.5 text-[#0B52E2] stroke-[3] flex-shrink-0" />}
+                                  </div>
+                                  <span className="text-[10px] text-stone-500 block mt-0.5 leading-tight">{ch.desc}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Langkah 2-3: Buat Transaksi & Bayar */}
                           <div className="space-y-2 pt-1">
-                            {pgTransaction?.checkout_url ? (
-                              <a
-                                href={pgTransaction.checkout_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs"
+                            <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-[#0B52E2] text-white text-[10px] font-black flex items-center justify-center">2</span>
+                              <span>Buat Transaksi & Bayar</span>
+                            </div>
+                            {!pgTransaction ? (
+                              <button
+                                type="button"
+                                onClick={handleGeneratePaymentKuPayment}
+                                disabled={pgLoading}
+                                className="w-full py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer disabled:opacity-50"
                               >
-                                <Zap className="w-4 h-4 text-[#8CE829] fill-[#8CE829]" />
-                                <span>Buka Halaman Pembayaran PaymentKu (paymentku.com)</span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                                {pgLoading ? (
+                                  <>
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                    <span>Membuat Transaksi...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="w-4 h-4 text-[#8CE829] fill-[#8CE829]" />
+                                    <span>Buat Transaksi {channelLabel(payChannel)}</span>
+                                  </>
+                                )}
+                              </button>
                             ) : (
-                              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] text-center space-y-1">
-                                <span className="font-bold block">Link pembayaran belum tersedia</span>
-                                <span className="text-stone-600 block text-[10px]">Gagal membuat transaksi Paymenku (API Key belum dikonfigurasi atau nominal tidak valid). Hubungi admin pesantren atau coba lagi.</span>
+                              <div className="space-y-2">
+                                {pgTransaction.va_number && (
+                                  <div className="p-3 bg-white rounded-xl border border-blue-100 text-center space-y-1">
+                                    <span className="text-[10px] font-bold text-stone-500 uppercase block">No. Virtual Account ({pgTransaction.va_bank || channelLabel(pgTransaction.payment_channel)})</span>
+                                    <span className="font-mono font-black text-lg text-[#0B52E2] tracking-wider">{pgTransaction.va_number}</span>
+                                  </div>
+                                )}
+                                {pgTransaction.qr_url && !pgTransaction.va_number && (
+                                  <div className="p-3 bg-white rounded-xl border border-blue-100 text-center">
+                                    <img src={pgTransaction.qr_url} alt="QRIS Paymenku" className="w-44 h-44 mx-auto rounded-lg border border-stone-200" />
+                                    <span className="text-[10px] text-stone-500 block mt-1">Scan QRIS ini dari e-wallet / m-banking apa pun</span>
+                                  </div>
+                                )}
+                                {pgTransaction.checkout_url && (
+                                  <a
+                                    href={pgTransaction.checkout_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-3 bg-[#0B52E2] hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs"
+                                  >
+                                    <Zap className="w-4 h-4 text-[#8CE829] fill-[#8CE829]" />
+                                    <span>Buka Halaman Pembayaran Paymenku</span>
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
                               </div>
                             )}
 
-                            <div className="grid grid-cols-1 gap-2">
-                              <button
-                                type="button"
-                                onClick={handleCheckPgStatus}
-                                disabled={pgLoading}
-                                className="py-2.5 px-3 bg-stone-100 hover:bg-stone-200 text-slate-800 font-bold rounded-xl border border-stone-300 transition-colors flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
-                              >
-                                <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${pgLoading ? 'animate-spin' : ''}`} />
-                                <span>Cek Status Otomatis</span>
-                              </button>
-                            </div>
+                            {/* Langkah 4: Konfirmasi Otomatis */}
+                            {pgTransaction && (
+                              <div className="space-y-2">
+                                <div className="text-xs font-black text-slate-800 flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">3</span>
+                                  <span>Setelah Bayar — Konfirmasi Otomatis</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleCheckPgStatus}
+                                  disabled={pgLoading}
+                                  className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+                                >
+                                  <RefreshCw className={`w-3.5 h-3.5 ${pgLoading ? 'animate-spin' : ''}`} />
+                                  <span>Cek Status & Terbitkan Kwitansi</span>
+                                </button>
+                                <p className="text-[10px] text-stone-500 text-center">Webhook Paymenku juga melunaskan otomatis — tombol ini untuk verifikasi manual bila notifikasi terlambat.</p>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex gap-2.5 pt-2 border-t border-stone-200">
                             <button
                               type="button"
-                              onClick={() => setPaymentStep(2)}
+                              onClick={() => { setPaymentStep(2); setPgTransaction(null); }}
                               className="w-full py-2.5 border border-stone-300 text-stone-700 font-bold rounded-xl hover:bg-stone-100 cursor-pointer text-xs"
                             >
                               Ganti Metode Pembayaran

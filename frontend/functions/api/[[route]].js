@@ -232,20 +232,37 @@ async function settlePaymenkuReference(tenantHint, referenceId, pku) {
   const nowIso = new Date().toISOString();
   const out = { settledBills: [], mitraActivated: null, tenant: tenantHint };
 
-  // 1. Order langganan SaaS?
+  // 1. Order langganan SaaS? (langsung, atau via linked_order_id utk reference turunan per-channel)
   let ord = null;
+  let ordRef = referenceId;
   try {
     const mitraRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${referenceId}`);
     if (mitraRes.ok) {
       const ordDoc = await mitraRes.json();
       ord = decodeFields(ordDoc.fields);
+    } else {
+      const linkRes = await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${referenceId}`);
+      if (linkRes.ok) {
+        const linkDoc = await linkRes.json();
+        const linkData = decodeFields(linkDoc.fields);
+        if (linkData.linked_order_id) {
+          const ordRes2 = await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${linkData.linked_order_id}`);
+          void ordRes2;
+          const oRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${linkData.linked_order_id}`);
+          if (oRes.ok) {
+            const ordDoc2 = await oRes.json();
+            ord = decodeFields(ordDoc2.fields);
+            ordRef = linkData.linked_order_id;
+          }
+        }
+      }
     }
   } catch (e) {}
   if (ord) {
     const targetSubdomain = ord.subdomain;
     out.tenant = targetSubdomain;
     if (ord.status !== 'PAID' && ord.status !== 'ACTIVE') {
-      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${referenceId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordRef}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(encodeDoc({
@@ -1146,6 +1163,41 @@ export async function onRequest(context) {
     }
 
     // -------------------------------------------------------------------------
+    // 5G. GET /api/payments/channels — daftar channel Paymenku (QRIS/VA/E-Wallet)
+    // -------------------------------------------------------------------------
+    if (route === 'payments/channels' && method === 'GET') {
+      const fallbackChannels = [
+        { code: 'qris', name: 'QRIS', type: 'qris', desc: 'Scan QR universal — semua e-wallet & m-banking' },
+        { code: 'bca_va', name: 'BCA Virtual Account', type: 'va', desc: 'Transfer via BCA' },
+        { code: 'bni_va', name: 'BNI Virtual Account', type: 'va', desc: 'Transfer via BNI' },
+        { code: 'bri_va', name: 'BRI Virtual Account (BRIVA)', type: 'va', desc: 'Transfer via BRI' },
+        { code: 'mandiri_va', name: 'Mandiri Virtual Account', type: 'va', desc: 'Transfer via Mandiri' },
+        { code: 'permata_va', name: 'Permata Virtual Account', type: 'va', desc: 'Transfer via Permata' },
+        { code: 'cimb_va', name: 'CIMB Niaga Virtual Account', type: 'va', desc: 'Transfer via CIMB Niaga' },
+        { code: 'dana', name: 'DANA', type: 'ewallet', desc: 'Bayar via aplikasi DANA' },
+        { code: 'ovo', name: 'OVO', type: 'ewallet', desc: 'Bayar via aplikasi OVO (wajib no. HP)' },
+        { code: 'shopeepay', name: 'ShopeePay', type: 'ewallet', desc: 'Bayar via ShopeePay' },
+        { code: 'linkaja', name: 'LinkAja', type: 'ewallet', desc: 'Bayar via LinkAja' },
+      ];
+      try {
+        const { apiKey, baseUrl } = await getPaymenkuConfig(context);
+        if (apiKey) {
+          const chRes = await fetch(`${baseUrl}/payment-channels`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+          });
+          if (chRes.ok) {
+            const chJson = await chRes.json();
+            const remote = chJson.data || chJson.channels || null;
+            if (Array.isArray(remote) && remote.length > 0) {
+              return jsonResponse({ success: true, data: remote, source: 'paymenku' });
+            }
+          }
+        }
+      } catch (e) {}
+      return jsonResponse({ success: true, data: fallbackChannels, source: 'default' });
+    }
+
     // 5H. /api/payments/create (PaymentKu Gateway Checkout Creation - paymentku.com)
     // -------------------------------------------------------------------------
     if (route === 'payments/create' && method === 'POST') {
@@ -1912,7 +1964,8 @@ export async function onRequest(context) {
     // C. /api/mitra/register - Pendaftaran Pesantren Baru & Penerbitan Invoice
     if (route === 'mitra/register' && method === 'POST') {
       const body = await request.json();
-      const { namaPondok, subdomain, namaPengelola, email, noWhatsapp, packageType = 'TAHUNAN' } = body;
+      const { namaPondok, subdomain, namaPengelola, email, noWhatsapp, packageType = 'TAHUNAN', channel_code, channel } = body;
+      const registerChannel = normalizePaymenkuChannel(channel_code || channel || 'qris');
 
       if (!namaPondok || !subdomain || !namaPengelola || !email || !noWhatsapp) {
         return jsonResponse({ success: false, message: 'Semua kolom pendaftaran wajib diisi.' }, 400);
@@ -1978,7 +2031,7 @@ export async function onRequest(context) {
 
       {
         const created = await paymenkuCreateTransaction(context, request, {
-          channel_code: 'qris',
+          channel_code: registerChannel,
           amount: parseInt(totalAmount, 10),
           reference_id: orderId,
           customer_name: namaPengelola,
@@ -2000,6 +2053,7 @@ export async function onRequest(context) {
       orderData.payUrl = checkoutUrl;
       orderData.qrString = qrString;
       orderData.paymenkuTrxId = paymenkuTrxId;
+      orderData.paymentChannel = registerChannel;
 
       await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
         method: 'PATCH',
@@ -2025,6 +2079,7 @@ export async function onRequest(context) {
           customer_email: email,
           customer_phone: noWhatsapp,
           status: 'PENDING',
+          payment_channel: registerChannel,
           checkout_url: checkoutUrl,
           pay_url: checkoutUrl,
           qr_string: qrString,
@@ -2041,63 +2096,93 @@ export async function onRequest(context) {
       });
     }
 
-    // C2. /api/mitra/pay-paymentku (alias pay-kaserapay) - Ambil atau buat ulang link pembayaran PaymentKu (paymentku.com)
+    // C2. /api/mitra/pay-paymentku — ambil link aktif atau buat transaksi channel lain (reference unik per channel)
     if ((route === 'mitra/pay-paymentku' || route === 'mitra/pay-kaserapay') && method === 'POST') {
-      const body = await request.json();
-      const { orderId } = body;
+      const body = await request.json().catch(() => ({}));
+      const { orderId, channel_code, channel } = body;
       if (!orderId) return jsonResponse({ success: false, message: 'Order ID wajib disertakan' }, 400);
+      const wantedChannel = normalizePaymenkuChannel(channel_code || channel || null);
 
       const ordRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`);
       if (!ordRes.ok) return jsonResponse({ success: false, message: 'Data pesanan tidak ditemukan' }, 404);
       const ordJson = await ordRes.json();
       const ord = decodeFields(ordJson.fields);
 
-      let cfg = {};
-      try {
-        const cfgRes = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
-        if (cfgRes.ok) {
-          const cfgDoc = await cfgRes.json();
-          cfg = decodeFields(cfgDoc.fields);
-        }
-      } catch (e) {}
-
-      let checkoutUrl = (ord.checkoutUrl && String(ord.checkoutUrl).startsWith('https://paymenku.com/pay/')) ? ord.checkoutUrl
+      const activeCheckout = (ord.checkoutUrl && String(ord.checkoutUrl).startsWith('https://paymenku.com/pay/')) ? ord.checkoutUrl
         : ((ord.payUrl && String(ord.payUrl).startsWith('https://paymenku.com/pay/')) ? ord.payUrl : null);
-      let qrString = ord.qrString || ord.qrisString || null;
-
-      if (!checkoutUrl) {
-        const created = await paymenkuCreateTransaction(context, request, {
-          channel_code: 'qris',
-          amount: parseInt(ord.amount, 10),
+      // Jika link aktif sudah sesuai channel yang diminta (atau tanpa preferensi), pakai ulang
+      if (activeCheckout && (!channel_code && !channel || (ord.paymentChannel || 'qris') === wantedChannel)) {
+        return jsonResponse({
+          success: true,
+          orderId,
           reference_id: orderId,
-          customer_name: ord.namaPengelola || 'Pengelola Pesantren',
-          customer_email: ord.email || 'admin@sipesand.web.id',
-          customer_phone: ord.noWhatsapp || undefined,
-          title: `Langganan SiPesand - ${ord.namaPondok}`,
+          checkoutUrl: activeCheckout,
+          pay_url: activeCheckout,
+          qrString: ord.qrString || ord.qrisString || null,
+          paymentChannel: ord.paymentChannel || 'qris',
+          amount: ord.amount,
+          status: ord.status
         });
-        if (!created.ok) {
-          return jsonResponse({ success: false, message: created.error || 'Gagal membuat transaksi Paymenku.' }, created.status || 400);
-        }
-        checkoutUrl = created.data.pay_url;
-        const info = created.data.payment_info || {};
-        if (info.qr_string) qrString = info.qr_string;
-        await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(encodeDoc({ checkoutUrl, payUrl: checkoutUrl, qrString, paymenkuTrxId: created.data.trx_id || null }))
-        });
-        await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${orderId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(encodeDoc({ checkout_url: checkoutUrl, pay_url: checkoutUrl, qr_string: qrString, trx_id: created.data.trx_id || null, status: 'PENDING', updatedAt: new Date().toISOString() }))
-        }).catch(() => {});
       }
+
+      // Channel berbeda / belum ada link: buat reference turunan (unik) yang tertaut ke order ini
+      const childRef = `${orderId}-${wantedChannel.toUpperCase().replace(/[^A-Z0-9]/g, '')}`;
+      const created = await paymenkuCreateTransaction(context, request, {
+        channel_code: wantedChannel,
+        amount: parseInt(ord.amount, 10),
+        reference_id: childRef,
+        customer_name: ord.namaPengelola || 'Pengelola Pesantren',
+        customer_email: ord.email || 'admin@sipesand.web.id',
+        customer_phone: ord.noWhatsapp || undefined,
+        title: `Langganan SiPesand - ${ord.namaPondok}`,
+      });
+      if (!created.ok) {
+        return jsonResponse({ success: false, message: created.error || 'Gagal membuat transaksi Paymenku.' }, created.status || 400);
+      }
+      const cInfo = created.data.payment_info || {};
+      const nowIso2 = new Date().toISOString();
+      await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${childRef}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          id: childRef,
+          external_id: childRef,
+          reference_id: childRef,
+          trx_id: created.data.trx_id || null,
+          linked_order_id: orderId,
+          tenant_subdomain: ord.subdomain,
+          nama_pondok: ord.namaPondok,
+          amount: Number(String(created.data.amount).replace(/[^0-9.]/g, '')) || Number(ord.amount),
+          title: `Langganan SiPesand Paket ${ord.packageType}`,
+          customer_name: ord.namaPengelola,
+          customer_email: ord.email,
+          customer_phone: ord.noWhatsapp,
+          status: 'PENDING',
+          payment_channel: wantedChannel,
+          checkout_url: created.data.pay_url,
+          pay_url: created.data.pay_url,
+          qr_string: cInfo.qr_string || null,
+          createdAt: nowIso2,
+          updatedAt: nowIso2,
+        }))
+      }).catch(() => {});
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({ checkoutUrl: created.data.pay_url, payUrl: created.data.pay_url, qrString: cInfo.qr_string || ord.qrString || null, paymenkuTrxId: created.data.trx_id || null, paymentChannel: wantedChannel, activeReferenceId: childRef }))
+      });
 
       return jsonResponse({
         success: true,
         orderId,
-        checkoutUrl,
-        qrString,
+        reference_id: childRef,
+        checkoutUrl: created.data.pay_url,
+        pay_url: created.data.pay_url,
+        qrString: cInfo.qr_string || null,
+        qr_url: cInfo.qr_url || null,
+        va_number: cInfo.va_number || null,
+        va_bank: cInfo.bank || null,
+        paymentChannel: wantedChannel,
         amount: ord.amount,
         status: ord.status
       });
