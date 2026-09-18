@@ -1,17 +1,22 @@
 const prisma = require('../config/prisma');
 const { provisionNewTenant } = require('../services/tenantProvisioner');
 const { sendTenantWelcomeEmail } = require('../services/mailerService');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 // ============================================================================
-// DEVELOPER AUTH HELPERS
+// DEVELOPER AUTH HELPERS (Email-based, bcrypt)
 // ============================================================================
-const DEFAULT_DEV_USERNAME = 'admin_dev';
-const DEFAULT_DEV_PASSWORD = 'KingDigital2026#';
+const DEFAULT_DEV_EMAIL = 'kingdigitaldev@gmail.com';
+const DEFAULT_DEV_PASSWORD = 'admin123#';
 const DEV_SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 jam
 
-function hashPassword(plain) {
-  return crypto.createHash('sha256').update(plain + 'sipesand_salt_2026').digest('hex');
+async function hashPassword(plain) {
+  return bcrypt.hash(plain, 12);
+}
+
+async function verifyPassword(plain, hash) {
+  return bcrypt.compare(plain, hash);
 }
 
 function generateToken() {
@@ -20,13 +25,22 @@ function generateToken() {
 
 async function getDevCredentials() {
   const rows = await prisma.systemSetting.findMany({
-    where: { key: { in: ['DEV_USERNAME', 'DEV_PASSWORD_HASH'] } }
+    where: { key: { in: ['DEV_EMAIL', 'DEV_PASSWORD_HASH'] } }
   });
   const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
   return {
-    username: map['DEV_USERNAME'] || DEFAULT_DEV_USERNAME,
-    passwordHash: map['DEV_PASSWORD_HASH'] || hashPassword(DEFAULT_DEV_PASSWORD),
+    email: map['DEV_EMAIL'] || DEFAULT_DEV_EMAIL,
+    passwordHash: map['DEV_PASSWORD_HASH'] || await hashPassword(DEFAULT_DEV_PASSWORD),
   };
+}
+
+async function ensureDevCredentialsInitialized() {
+  const existing = await prisma.systemSetting.findUnique({ where: { key: 'DEV_EMAIL' } });
+  if (!existing) {
+    const passwordHash = await hashPassword(DEFAULT_DEV_PASSWORD);
+    await prisma.systemSetting.create({ key: 'DEV_EMAIL', value: DEFAULT_DEV_EMAIL });
+    await prisma.systemSetting.create({ key: 'DEV_PASSWORD_HASH', value: passwordHash });
+  }
 }
 
 // Audit log: simpan max 200 entri terakhir di SystemSetting (key: AUDIT_LOG_JSON)
@@ -50,7 +64,7 @@ async function appendAuditLog(entry) {
 }
 
 // Active dev sessions: simpan di SystemSetting key AUDIT_DEV_SESSIONS_JSON
-async function saveDevSession(token, username) {
+async function saveDevSession(token, email) {
   try {
     const row = await prisma.systemSetting.findUnique({ where: { key: 'DEV_SESSIONS_JSON' } });
     let sessions = {};
@@ -104,6 +118,27 @@ async function invalidateDevSession(token) {
     console.warn('[DEV SESSION] Gagal menghapus sesi:', e.message);
   }
 }
+
+// ============================================================================
+// AUTH MIDDLEWARE
+// ============================================================================
+exports.authMiddleware = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'Token autentikasi wajib disertakan (Bearer token).' });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const session = await verifyDevSession(token);
+    if (!session) {
+      return res.status(401).json({ success: false, message: 'Token tidak valid atau sudah kedaluwarsa.' });
+    }
+    req.devSession = session;
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memverifikasi token.', error: err.message });
+  }
+};
 
 const DEFAULT_MITRA_CONFIG = {
   bankName: 'Bank Syariah Indonesia (BSI)',
@@ -671,34 +706,34 @@ exports.deleteMitraOrder = async (req, res) => {
 // ============================================================================
 exports.loginDeveloper = async (req, res) => {
   try {
-    const { username, password } = req.body || {};
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: 'Username dan password wajib diisi.' });
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email dan password wajib diisi.' });
     }
 
+    await ensureDevCredentialsInitialized();
     const creds = await getDevCredentials();
-    const inputHash = hashPassword(password);
+    const isValid = await verifyPassword(password, creds.passwordHash);
 
-    if (username !== creds.username || inputHash !== creds.passwordHash) {
-      // Catat percobaan login gagal
+    if (email.toLowerCase() !== creds.email.toLowerCase() || !isValid) {
       const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
       await appendAuditLog({
         action: 'LOGIN_FAILED',
-        actor: username,
+        actor: email,
         target: 'mitra.sipesand.web.id',
         ip,
         detail: 'Kredensial salah'
       });
-      return res.status(401).json({ success: false, message: 'Username atau password developer salah.' });
+      return res.status(401).json({ success: false, message: 'Email atau password salah.' });
     }
 
     const token = generateToken();
-    await saveDevSession(token, username);
+    await saveDevSession(token, creds.email);
 
     const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
     await appendAuditLog({
       action: 'LOGIN_SUCCESS',
-      actor: username,
+      actor: creds.email,
       target: 'mitra.sipesand.web.id',
       ip,
       detail: 'Login developer berhasil'
@@ -708,7 +743,7 @@ exports.loginDeveloper = async (req, res) => {
       success: true,
       message: 'Login developer berhasil.',
       token,
-      username,
+      email: creds.email,
       expiresIn: '8 jam'
     });
   } catch (err) {
@@ -731,7 +766,7 @@ exports.verifyDeveloperToken = async (req, res) => {
     res.json({
       success: true,
       valid: true,
-      username: session.username,
+      email: session.username,
       expiresAt: new Date(session.expiresAt).toISOString(),
       message: 'Token valid.'
     });
@@ -780,39 +815,41 @@ exports.getAuditLogs = async (req, res) => {
   }
 };
 
-// PUT /api/mitra/auth/credentials — ubah username/password developer dari mitra dashboard
+// PUT /api/mitra/auth/credentials — ubah email/password developer dari mitra dashboard
 exports.updateDevCredentials = async (req, res) => {
   try {
-    const { currentPassword, newUsername, newPassword } = req.body || {};
+    const { currentPassword, newEmail, newPassword } = req.body || {};
     if (!currentPassword) {
       return res.status(400).json({ success: false, message: 'Password lama wajib diisi untuk konfirmasi.' });
     }
 
+    await ensureDevCredentialsInitialized();
     const creds = await getDevCredentials();
-    const currentHash = hashPassword(currentPassword);
+    const isValid = await verifyPassword(currentPassword, creds.passwordHash);
 
-    if (currentHash !== creds.passwordHash) {
+    if (!isValid) {
       return res.status(401).json({ success: false, message: 'Password lama salah.' });
     }
 
     const updates = [];
-    if (newUsername && newUsername.length >= 4) {
+    if (newEmail && newEmail.includes('@')) {
       updates.push(prisma.systemSetting.upsert({
-        where: { key: 'DEV_USERNAME' },
-        update: { value: newUsername.trim() },
-        create: { key: 'DEV_USERNAME', value: newUsername.trim() },
+        where: { key: 'DEV_EMAIL' },
+        update: { value: newEmail.trim().toLowerCase() },
+        create: { key: 'DEV_EMAIL', value: newEmail.trim().toLowerCase() },
       }));
     }
     if (newPassword && newPassword.length >= 8) {
       updates.push(prisma.systemSetting.upsert({
         where: { key: 'DEV_PASSWORD_HASH' },
-        update: { value: hashPassword(newPassword) },
-        create: { key: 'DEV_PASSWORD_HASH', value: hashPassword(newPassword) },
+        update: { value: await hashPassword(newPassword) },
+        create: { key: 'DEV_PASSWORD_HASH', value: await hashPassword(newPassword) },
       }));
     }
 
     if (updates.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada perubahan yang valid. Username minimal 4 karakter, password minimal 8 karakter.' });
+      return res.status(400).json({ success: false, message: 'Tidak ada perubahan yang valid. Email harus valid, password minimal 8 karakter.' });
+    }
     }
 
     await Promise.all(updates);

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\KaserapayPayment;
+use App\Models\PaymentKu;
 use App\Models\Pembayaran;
 use App\Services\PaymentKuService;
 use Illuminate\Http\Request;
@@ -46,7 +46,7 @@ class WebhookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Missing reference_id'], 400);
         }
 
-        $payment = KaserapayPayment::where('external_id', $externalId)->first();
+        $payment = PaymentKu::where('external_id', $externalId)->first();
 
         if (!$payment) {
             Log::warning("PaymentKu payment with reference_id {$externalId} not found");

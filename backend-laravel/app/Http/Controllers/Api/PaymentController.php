@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\KaserapayPayment;
+use App\Models\PaymentKu;
 use App\Models\Santri;
 use App\Services\PaymentKuService;
 use Illuminate\Http\Request;
@@ -64,7 +64,7 @@ class PaymentController extends Controller
         $transactionId = $data['trx_id'] ?? null;
 
         // 2. Simpan record di database
-        $payment = KaserapayPayment::create([
+        $payment = PaymentKu::create([
             'tenant_subdomain' => $tenant,
             'santri_id' => $validated['santri_id'] ?? null,
             'bill_id' => $validated['bill_id'] ?? null,

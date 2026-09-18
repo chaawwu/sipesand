@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Server, 
   Lock, 
-  User, 
+  Mail, 
   ArrowRight, 
   X, 
   ShieldCheck, 
@@ -16,7 +16,7 @@ import { loginDeveloper } from '../services/api';
 export default function DeveloperLoginModal({ isOpen, onClose, onLoginSuccess }) {
   if (!isOpen) return null;
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('kingdigitaldev@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,32 +26,32 @@ export default function DeveloperLoginModal({ isOpen, onClose, onLoginSuccess })
     if (e) e.preventDefault();
     setErrorMsg('');
 
-    if (!username.trim() || !password) {
-      setErrorMsg('Username dan password wajib diisi.');
+    if (!email.trim() || !password) {
+      setErrorMsg('Email dan password wajib diisi.');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await loginDeveloper({ username: username.trim(), password });
+      const res = await loginDeveloper({ email: email.trim(), password });
 
       if (res.success && res.token) {
         // Simpan token di sessionStorage
         try {
           sessionStorage.setItem('sipesand_dev_token', res.token);
-          sessionStorage.setItem('sipesand_dev_username', res.username || username);
+          sessionStorage.setItem('sipesand_dev_email', res.email || email);
           sessionStorage.setItem('sipesand_dev_auth', 'true');
         } catch (e) {}
 
         onLoginSuccess({
-          username: res.username || username,
+          email: res.email || email,
           role: 'SUPERADMIN_DEVELOPER',
-          name: res.username || username,
+          name: 'Lead SaaS Architect',
           token: res.token
         });
         onClose();
       } else {
-        setErrorMsg(res.message || 'Autentikasi gagal. Periksa username dan password.');
+        setErrorMsg(res.message || 'Autentikasi gagal. Periksa email dan password.');
       }
     } catch (err) {
       setErrorMsg('Gagal terhubung ke server. Pastikan backend aktif dan coba lagi.');
@@ -95,7 +95,7 @@ export default function DeveloperLoginModal({ isOpen, onClose, onLoginSuccess })
             <div>
               <p className="font-bold text-[11px]">Akses Terbatas • Developer Only</p>
               <p className="text-[10px] text-blue-600 mt-0.5">
-                Gunakan kredensial developer King Digital Dev. Default username: <code className="bg-blue-100 px-1 rounded">admin_dev</code>
+                Gunakan kredensial developer King Digital Dev. Default email: <code className="bg-blue-100 px-1 rounded">kingdigitaldev@gmail.com</code>
               </p>
             </div>
           </div>
@@ -112,16 +112,16 @@ export default function DeveloperLoginModal({ isOpen, onClose, onLoginSuccess })
           )}
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Username Developer *</label>
+            <label className="block font-bold text-slate-700 mb-1">Email Developer *</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
-                type="text"
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin_dev"
-                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="kingdigitaldev@gmail.com"
+                autoComplete="email"
                 className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 focus:outline-none font-medium text-xs bg-slate-50 focus:bg-white"
               />
             </div>
