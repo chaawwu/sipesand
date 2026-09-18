@@ -261,3 +261,26 @@ model TagihanLisensi {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
+
+// PaymentKu Transaction Records
+model PaymentTransaction {
+  id            Int       @id @default(autoincrement())
+  orderId       String    @unique
+  externalId    String?   // PaymentKu transaction_id
+  type          String    // "LICENSE" | "BILL"
+  amount        Float
+  status        String    @default("PENDING") // "PENDING", "PAID", "EXPIRED", "FAILED"
+  paymentUrl    String?
+  qrCode        String?
+  vaNumber      String?
+  vaBank        String?
+  paymentMethod String?
+  paidAt        DateTime?
+  rawResponse   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([externalId])
+  @@index([status])
+}

@@ -152,6 +152,11 @@ const DEFAULT_MITRA_CONFIG = {
   heroSubheadline: 'Satu platform terintegrasi untuk pesantren.',
   ctaText: 'Cari Santri',
   badgeText: 'SiPesand',
+  // PaymentKu Gateway (paymentku.com)
+  paymentkuEnabled: false,
+  paymentkuMerchantId: '',
+  paymentkuSecretKey: '',
+  paymentkuApiUrl: 'https://api.paymentku.com/v1',
 };
 
 async function readMitraConfig() {
@@ -548,6 +553,308 @@ exports.updateKingDigitalPgConfig = async (req, res) => {
   } catch (err) {
     console.error('Error updateKingDigitalPgConfig:', err);
     res.status(500).json({ success: false, message: 'Gagal menyimpan konfigurasi Payment Gateway.' });
+  }
+};
+
+// ============================================================================
+// PAYMENTKU GATEWAY INTEGRATION (paymentku.com)
+// ============================================================================
+
+function generatePaymentKuSignature(params, secretKey) {
+  const crypto = require('crypto');
+  const sortedKeys = Object.keys(params).sort();
+  const signString = sortedKeys.map(k => `${k}=${params[k]}`).join('&') + `&key=${secretKey}`;
+  return crypto.createHash('md5').update(signString).digest('hex').toUpperCase();
+}
+
+function verifyPaymentKuSignature(params, secretKey) {
+  const { sign, ...rest } = params;
+  const expectedSign = generatePaymentKuSignature(rest, secretKey);
+  return sign && sign.toUpperCase() === expectedSign.toUpperCase();
+}
+
+// 1. Create PaymentKu Transaction
+exports.createPaymentKuTransaction = async (req, res) => {
+  try {
+    const config = await readMitraConfig();
+    
+    if (!config.paymentkuEnabled) {
+      return res.status(400).json({ success: false, message: 'PaymentKu gateway belum diaktifkan. Aktifkan di pengaturan PaymentKu.' });
+    }
+    if (!config.paymentkuMerchantId || !config.paymentkuSecretKey) {
+      return res.status(400).json({ success: false, message: 'Konfigurasi PaymentKu (Merchant ID & Secret Key) belum lengkap.' });
+    }
+
+    const { amount, orderId, name, email, phone, callbackUrl, returnUrl, description } = req.body;
+    
+    if (!amount || !orderId) {
+      return res.status(400).json({ success: false, message: 'Amount dan Order ID wajib diisi.' });
+    }
+
+    const paymentParams = {
+      merchant_id: config.paymentkuMerchantId,
+      amount: Math.round(amount),
+      order_id: orderId,
+      name: name || 'Wali Santri',
+      email: email || 'wali@sipesand.web.id',
+      phone: phone || '08123456789',
+      description: description || 'Pembayaran Lisensi SiPesand',
+      callback_url: callbackUrl || `${req.protocol}://${req.get('host')}/api/webhook/paymentku`,
+      return_url: returnUrl || `${req.protocol}://${req.get('host')}/payment/success`,
+    };
+
+    const sign = generatePaymentKuSignature(paymentParams, config.paymentkuSecretKey);
+    paymentParams.sign = sign;
+
+    const apiUrl = `${config.paymentkuApiUrl}/transaction/create`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(paymentParams),
+    });
+
+    const result = await response.json();
+    
+    if (result.status === 'success' && result.data) {
+      // Simpan payment record ke database
+      await prisma.paymentTransaction.create({
+        data: {
+          orderId: orderId,
+          externalId: result.data.transaction_id || result.data.id,
+          amount: Math.round(amount),
+          status: 'PENDING',
+          paymentUrl: result.data.payment_url || result.data.checkout_url,
+          qrCode: result.data.qr_code,
+          vaNumber: result.data.va_number,
+          vaBank: result.data.va_bank,
+          rawResponse: JSON.stringify(result),
+          type: 'LICENSE',
+          createdAt: new Date(),
+        }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Transaksi PaymentKu berhasil dibuat',
+        data: {
+          checkoutUrl: result.data.payment_url || result.data.checkout_url,
+          qrCode: result.data.qr_code,
+          vaNumber: result.data.va_number,
+          vaBank: result.data.va_bank,
+          transactionId: result.data.transaction_id || result.data.id,
+          externalId: orderId,
+        }
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: result.message || 'Gagal membuat transaksi PaymentKu',
+        error: result
+      });
+    }
+  } catch (err) {
+    console.error('Error createPaymentKuTransaction:', err);
+    res.status(500).json({ success: false, message: 'Gagal membuat transaksi PaymentKu', error: err.message });
+  }
+};
+
+// 2. Check PaymentKu Transaction Status
+exports.checkPaymentKuStatus = async (req, res) => {
+  try {
+    const config = await readMitraConfig();
+    const { orderId, transactionId } = req.params;
+    
+    if (!config.paymentkuEnabled || !config.paymentkuMerchantId || !config.paymentkuSecretKey) {
+      return res.status(400).json({ success: false, message: 'PaymentKu gateway tidak dikonfigurasi.' });
+    }
+
+    const queryId = transactionId || orderId;
+    const checkParams = {
+      merchant_id: config.paymentkuMerchantId,
+      order_id: queryId,
+    };
+    checkParams.sign = generatePaymentKuSignature(checkParams, config.paymentkuSecretKey);
+
+    const apiUrl = `${config.paymentkuApiUrl}/transaction/status`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(checkParams),
+    });
+
+    const result = await response.json();
+
+    if (result.status === 'success' && result.data) {
+      const paymentStatus = result.data.status; // 'pending', 'paid', 'expired', 'failed'
+      const isPaid = paymentStatus === 'paid' || paymentStatus === 'settlement';
+
+      // Update local payment record
+      await prisma.paymentTransaction.updateMany({
+        where: { OR: [{ orderId: queryId }, { externalId: result.data.transaction_id }] },
+        data: {
+          status: isPaid ? 'PAID' : paymentStatus.toUpperCase(),
+          paidAt: isPaid ? new Date() : null,
+          rawResponse: JSON.stringify(result),
+        }
+      });
+
+      // Jika paid dan belum di-provisioning, trigger provisioning
+      if (isPaid) {
+        const payment = await prisma.paymentTransaction.findFirst({
+          where: { OR: [{ orderId: queryId }, { externalId: result.data.transaction_id }] }
+        });
+        
+        if (payment && payment.type === 'LICENSE') {
+          // Trigger provisioning via existing webhook logic
+          req.body = { orderId: payment.orderId, status: 'PAID' };
+          return exports.handlePaymentWebhook(req, res);
+        }
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          orderId: queryId,
+          transactionId: result.data.transaction_id,
+          status: paymentStatus,
+          amount: result.data.amount,
+          paidAt: result.data.paid_at,
+          paymentMethod: result.data.payment_method,
+        }
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: result.message || 'Gagal cek status PaymentKu',
+        error: result
+      });
+    }
+  } catch (err) {
+    console.error('Error checkPaymentKuStatus:', err);
+    res.status(500).json({ success: false, message: 'Gagal cek status PaymentKu', error: err.message });
+  }
+};
+
+// 3. PaymentKu Webhook Handler
+exports.handlePaymentKuWebhook = async (req, res) => {
+  try {
+    const config = await readMitraConfig();
+    
+    if (!config.paymentkuEnabled) {
+      return res.status(400).json({ success: false, message: 'PaymentKu gateway tidak aktif.' });
+    }
+
+    const payload = req.body;
+    
+    // Verifikasi signature
+    if (!verifyPaymentKuSignature(payload, config.paymentkuSecretKey)) {
+      console.warn('[PaymentKu Webhook] Invalid signature:', payload);
+      return res.status(401).json({ success: false, message: 'Invalid signature' });
+    }
+
+    const { order_id, transaction_id, status, amount, payment_method, paid_at } = payload;
+    const isPaid = status === 'paid' || status === 'settlement';
+
+    // Update payment transaction
+    await prisma.paymentTransaction.updateMany({
+      where: { OR: [{ orderId: order_id }, { externalId: transaction_id }] },
+      data: {
+        status: isPaid ? 'PAID' : status.toUpperCase(),
+        paidAt: isPaid && paid_at ? new Date(paid_at) : null,
+        paymentMethod: payment_method,
+        rawResponse: JSON.stringify(payload),
+      }
+    });
+
+    // Jika paid, trigger provisioning
+    if (isPaid) {
+      const payment = await prisma.paymentTransaction.findFirst({
+        where: { OR: [{ orderId: order_id }, { externalId: transaction_id }] }
+      });
+      
+      if (payment) {
+        if (payment.type === 'LICENSE') {
+          // Provision tenant license
+          req.body = { orderId: payment.orderId, status: 'PAID' };
+          return exports.handlePaymentWebhook(req, res);
+        } else if (payment.type === 'BILL') {
+          // Update bill status
+          const bill = await prisma.santriBill.findUnique({ where: { id: parseInt(payment.orderId) } });
+          if (bill) {
+            await prisma.santriBill.update({
+              where: { id: bill.id },
+              data: {
+                status: 'PAID',
+                paymentMethod: 'PAYMENTKU',
+                paymentDate: new Date(),
+                verifiedAt: new Date(),
+                verifiedBy: 'PaymentKu Instant Gateway (paymentku.com)',
+                receiptNumber: `KWT-${Date.now().toString().slice(-6)}`,
+              }
+            });
+            // Catat ke ledger
+            await prisma.generalLedger.create({
+              data: {
+                code: `KAS-IN-${Date.now().toString().slice(-6)}`,
+                date: new Date(),
+                type: 'INCOME',
+                category: 'SYAHRIYAH_SANTRI',
+                amount: bill.amount,
+                description: `Pembayaran ${bill.title} via PaymentKu - Santri: ${bill.santri?.nama}`,
+                reference: bill.receiptNumber,
+              }
+            });
+          }
+        }
+      }
+    }
+
+    // Respond OK to PaymentKu
+    res.json({ success: true, message: 'Webhook processed' });
+  } catch (err) {
+    console.error('[PaymentKu Webhook ERROR]:', err);
+    res.status(500).json({ success: false, message: 'Gagal memproses webhook PaymentKu', error: err.message });
+  }
+};
+
+// 4. Get/Update PaymentKu Config
+exports.getPaymentKuConfig = async (req, res) => {
+  try {
+    const config = await readMitraConfig();
+    const paymentkuConfig = {
+      paymentkuEnabled: config.paymentkuEnabled,
+      paymentkuMerchantId: config.paymentkuMerchantId,
+      paymentkuApiUrl: config.paymentkuApiUrl,
+      // Don't return secret key
+    };
+    res.json({ success: true, data: paymentkuConfig });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil konfigurasi PaymentKu', error: err.message });
+  }
+};
+
+exports.updatePaymentKuConfig = async (req, res) => {
+  try {
+    const { paymentkuEnabled, paymentkuMerchantId, paymentkuSecretKey, paymentkuApiUrl } = req.body;
+    
+    const updates = [];
+    if (paymentkuEnabled !== undefined) updates.push({ key: 'MITRA_paymentkuEnabled', value: paymentkuEnabled ? 'true' : 'false' });
+    if (paymentkuMerchantId !== undefined) updates.push({ key: 'MITRA_paymentkuMerchantId', value: paymentkuMerchantId });
+    if (paymentkuSecretKey !== undefined) updates.push({ key: 'MITRA_paymentkuSecretKey', value: paymentkuSecretKey });
+    if (paymentkuApiUrl !== undefined) updates.push({ key: 'MITRA_paymentkuApiUrl', value: paymentkuApiUrl });
+
+    for (const u of updates) {
+      await prisma.systemSetting.upsert({
+        where: { key: u.key },
+        update: { value: u.value },
+        create: { key: u.key, value: u.value },
+      });
+    }
+
+    const config = await readMitraConfig();
+    res.json({ success: true, message: 'Konfigurasi PaymentKu berhasil diperbarui', data: config });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal menyimpan konfigurasi PaymentKu', error: err.message });
   }
 };
 
