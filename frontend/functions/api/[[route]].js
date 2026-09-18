@@ -2114,19 +2114,22 @@ export async function onRequest(context) {
         return jsonResponse({ success: false, message: 'Email / Username dan Password wajib diisi.' }, 400);
       }
 
-      // Kredensial developer default
-      const DEFAULT_DEV_PASS = 'KingDigital2026#';
-      let isValidUser = (cleanEmail === 'admin_dev' || cleanEmail === 'dev@sipesand.web.id' || cleanEmail === 'admin' || cleanEmail === 'superadmin');
+      // Kredensial developer default - REAL credentials
+      const DEFAULT_DEV_EMAIL = 'kingdigitaldev@gmail.com';
+      const DEFAULT_DEV_PASS = 'admin123#';
+      let isValidUser = cleanEmail === DEFAULT_DEV_EMAIL;
       let isCorrectPass = cleanPass === DEFAULT_DEV_PASS;
 
-      // Cek apakah ada kustomisasi kredensial di Firestore master
+      // Cek kustomisasi kredensial di Firestore master
       try {
         const authDocRes = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/developer_auth`);
         if (authDocRes.ok) {
           const authDoc = await authDocRes.json();
           const authFields = decodeFields(authDoc.fields);
           if (authFields.email && authFields.password) {
-            if (cleanEmail === String(authFields.email).toLowerCase().trim() && cleanPass === String(authFields.password).trim()) {
+            const storedEmail = String(authFields.email).toLowerCase().trim();
+            const storedPass = String(authFields.password).trim();
+            if (cleanEmail === storedEmail && cleanPass === storedPass) {
               isValidUser = true;
               isCorrectPass = true;
             }
