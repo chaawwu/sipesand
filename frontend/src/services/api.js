@@ -601,15 +601,6 @@ export const verifyMitraOrder = async (orderId) => {
   }
 };
 
-export const simulateMitraPayment = async (orderId) => {
-  try {
-    const res = await api.post(`/mitra/simulate-payment/${orderId}`);
-    return { data: res.data, ...res.data };
-  } catch (err) {
-    return { data: { success: false, message: err.response?.data?.message || err.message || 'Gagal memproses simulasi pembayaran.' } };
-  }
-};
-
 export const deleteMitraOrder = async (orderId) => {
   try {
     const res = await api.delete(`/mitra/orders/${orderId}`);

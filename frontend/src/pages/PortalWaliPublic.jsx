@@ -241,7 +241,8 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
         bill_ids: selectedBillIds,
         bill_id: selectedBillIds[0],
         santri_id: santriData?.id,
-        payment_method: 'ALL'
+        channel_code: 'qris',
+        payment_method: 'qris'
       };
 
       const res = await axios.post('/api/payments/create', payload, {
@@ -301,36 +302,6 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
       }
     } catch (err) {
       console.warn('Check PG status error:', err);
-    } finally {
-      setPgLoading(false);
-    }
-  };
-
-  const handleSimulatePgSuccess = async () => {
-    if (!pgTransaction?.external_id) return;
-    try {
-      setPgLoading(true);
-      const res = await axios.post(`/api/payments/simulate-success/${pgTransaction.external_id}`, {}, {
-        params: resolvedTenant ? { tenant: resolvedTenant } : {}
-      });
-      if (res.data?.success) {
-        setPaymentSuccessMsg('Pembayaran lunas via Simulasi PaymentKu (paymentku.com)! Dana otomatis tercatat dan kwitansi resmi telah terbit.');
-        setToast({
-          isOpen: true,
-          type: 'success',
-          title: 'Pembayaran Berhasil!',
-          message: 'Simulasi gateway PaymentKu sukses. Tagihan berstatus LUNAS.'
-        });
-        loadSantriData(santriData.nis || santriData.nama);
-        setSelectedBillIds([]);
-        setTimeout(() => {
-          setIsPaymentModalOpen(false);
-          setPaymentStep(1);
-          setPgTransaction(null);
-        }, 3000);
-      }
-    } catch (err) {
-      console.warn('Simulate error:', err);
     } finally {
       setPgLoading(false);
     }
@@ -1147,12 +1118,12 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                               </a>
                             ) : (
                               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] text-center space-y-1">
-                                <span className="font-bold block">Gateway Beroperasi dalam Mode Sandbox / Demo</span>
-                                <span className="text-stone-600 block text-[10px]">Klik tombol <strong>Simulasi Sukses (Demo)</strong> di bawah untuk menguji pelunasan otomatis atau kembali untuk transfer manual.</span>
+                                <span className="font-bold block">Link pembayaran belum tersedia</span>
+                                <span className="text-stone-600 block text-[10px]">Gagal membuat transaksi Paymenku (API Key belum dikonfigurasi atau nominal tidak valid). Hubungi admin pesantren atau coba lagi.</span>
                               </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 gap-2">
                               <button
                                 type="button"
                                 onClick={handleCheckPgStatus}
@@ -1161,17 +1132,6 @@ export default function PortalWaliPublic({ initialQuery = '', tenant = null, onB
                               >
                                 <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${pgLoading ? 'animate-spin' : ''}`} />
                                 <span>Cek Status Otomatis</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={handleSimulatePgSuccess}
-                                disabled={pgLoading}
-                                className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black rounded-xl border border-emerald-300 transition-colors flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
-                                title="Gunakan untuk uji coba kelunasan instan sandbox"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Simulasi Sukses (Demo)</span>
                               </button>
                             </div>
                           </div>

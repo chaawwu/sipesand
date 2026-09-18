@@ -109,8 +109,283 @@ async function logAuditEvent(action, detail, adminUser = 'dev@sipesand.web.id', 
       body: JSON.stringify(payload)
     });
   } catch (e) {
-    console.warn('Gagal mencatat audit log:', e);
+    console.warn('Gagal mencatat audit log:', e.message);
   }
+}
+
+// -----------------------------------------------------------------------------
+// PAYMENKU (paymenku.com) REAL GATEWAY HELPERS — 100% Cloudflare Pages
+// Docs: https://docs.paymenku.com (Bearer sk_live_/sk_test_, HMAC webhook)
+// -----------------------------------------------------------------------------
+const PAYMENKU_DEFAULT_BASE_URL = 'https://paymenku.com/api/v1';
+
+function normalizePaymenkuChannel(input) {
+  const c = String(input || 'qris').toLowerCase().trim();
+  if (c.startsWith('qris')) return 'qris';
+  if (c.includes('bca')) return 'bca_va';
+  if (c.includes('bni')) return 'bni_va';
+  if (c.includes('bri')) return 'bri_va';
+  if (c.includes('mandiri')) return 'mandiri_va';
+  if (c.includes('permata')) return 'permata_va';
+  if (c.includes('cimb') || c.includes('niaga')) return 'cimb_va';
+  if (c === 'dana') return 'dana';
+  if (c === 'ovo') return 'ovo';
+  if (c.includes('shopee')) return 'shopeepay';
+  if (c.includes('linkaja') || c.includes('link_aja')) return 'linkaja';
+  if (['qris', 'bca_va', 'bni_va', 'bri_va', 'mandiri_va', 'permata_va', 'cimb_va', 'dana', 'ovo', 'shopeepay', 'linkaja'].includes(c)) return c;
+  return 'qris';
+}
+
+async function getPaymenkuConfig(context) {
+  const env = (context && context.env) || {};
+  let cfg = {};
+  try {
+    const cfgRes = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
+    if (cfgRes.ok) {
+      const doc = await cfgRes.json();
+      cfg = decodeFields(doc.fields);
+    }
+  } catch (e) {}
+  const apiKey = env.PAYMENTKU_API_KEY || cfg.paymentkuApiKey || env.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
+  const baseUrl = (env.PAYMENTKU_BASE_URL || cfg.paymentkuBaseUrl || env.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || PAYMENKU_DEFAULT_BASE_URL).replace(/\/$/, '');
+  const webhookSecret = env.PAYMENTKU_WEBHOOK_SECRET || cfg.paymentkuWebhookSecret || env.KASERAPAY_WEBHOOK_SECRET || cfg.kaserapayWebhookSecret || '';
+  return { apiKey, baseUrl, webhookSecret, cfg };
+}
+
+async function paymenkuCreateTransaction(context, request, opts) {
+  const { apiKey, baseUrl } = await getPaymenkuConfig(context);
+  if (!apiKey) {
+    return { ok: false, status: 503, error: 'PAYMENTKU_API_KEY belum dikonfigurasi. Masukkan API Key Paymenku (sk_live_...) di Dashboard Mitra > Billing > PaymentKu Gateway atau Environment Variable PAYMENTKU_API_KEY.' };
+  }
+  const origin = new URL(request.url).origin;
+  const payload = {
+    channel_code: normalizePaymenkuChannel(opts.channel_code),
+    amount: parseInt(opts.amount, 10),
+    reference_id: opts.reference_id,
+    customer_name: opts.customer_name || 'Wali Santri',
+    customer_email: opts.customer_email || 'wali@sipesand.web.id',
+    return_url: opts.return_url || `${origin}/payment/success?ref=${encodeURIComponent(opts.reference_id)}`,
+    ...(opts.customer_phone ? { customer_phone: opts.customer_phone } : {}),
+    ...(opts.title ? { order_items: [{ name: String(opts.title).slice(0, 120) }] } : {}),
+  };
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/transaction/create`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Idempotency-Key': opts.reference_id,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    return { ok: false, status: 502, error: 'Tidak dapat menghubungi API Paymenku. Periksa koneksi / base URL.' };
+  }
+  let json = {};
+  try { json = await res.json(); } catch (e) { json = {}; }
+  if (!res.ok || json.status !== 'success' || !json.data) {
+    return { ok: false, status: res.status || 400, error: json.message || `Paymenku menolak transaksi (HTTP ${res.status}).` };
+  }
+  return { ok: true, data: json.data };
+}
+
+async function paymenkuCheckStatus(context, orderId) {
+  const { apiKey, baseUrl } = await getPaymenkuConfig(context);
+  if (!apiKey) {
+    return { ok: false, status: 503, error: 'PAYMENTKU_API_KEY belum dikonfigurasi.' };
+  }
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/check-status/${encodeURIComponent(orderId)}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+    });
+  } catch (e) {
+    return { ok: false, status: 502, error: 'Tidak dapat menghubungi API Paymenku.' };
+  }
+  let json = {};
+  try { json = await res.json(); } catch (e) { json = {}; }
+  if (!res.ok || json.status !== 'success' || !json.data) {
+    return { ok: false, status: res.status || 400, error: json.message || 'Transaksi tidak ditemukan di Paymenku.' };
+  }
+  return { ok: true, data: json.data };
+}
+
+async function verifyPaymenkuSignature(rawBody, timestamp, signature, webhookSecret) {
+  if (!webhookSecret || !signature) return { verified: false, skipped: !webhookSecret };
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(webhookSecret);
+    const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+    const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(`${timestamp}.${rawBody}`));
+    const expectedSig = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return { verified: expectedSig === String(signature).toLowerCase(), skipped: false };
+  } catch (e) {
+    return { verified: false, skipped: false };
+  }
+}
+
+// Settlement terpusat: update payment + tagihan + kas + order langganan (idempoten)
+async function settlePaymenkuReference(tenantHint, referenceId, pku) {
+  const nowIso = new Date().toISOString();
+  const out = { settledBills: [], mitraActivated: null, tenant: tenantHint };
+
+  // 1. Order langganan SaaS?
+  let ord = null;
+  try {
+    const mitraRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${referenceId}`);
+    if (mitraRes.ok) {
+      const ordDoc = await mitraRes.json();
+      ord = decodeFields(ordDoc.fields);
+    }
+  } catch (e) {}
+  if (ord) {
+    const targetSubdomain = ord.subdomain;
+    out.tenant = targetSubdomain;
+    if (ord.status !== 'PAID' && ord.status !== 'ACTIVE') {
+      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${referenceId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          status: 'PAID',
+          verifiedAt: nowIso,
+          activeData: {
+            subdomain: targetSubdomain,
+            adminUsername: 'admin',
+            tempPassword: 'Pesand-2026!',
+            licenseKey: `KGD-${String(targetSubdomain).toUpperCase()}-VERIFIED`,
+            activatedAt: nowIso,
+            trxId: pku.trx_id || null,
+            paymentChannel: pku.payment_channel || pku.paymentChannel || null,
+          }
+        }))
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/settings/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          NAMA_LEMBAGA: ord.namaPondok,
+          NAMA_KEPALA_PONDOK: ord.namaPengelola || 'Pengasuh Pesantren',
+          EMAIL_LEMBAGA: ord.email,
+          WHATSAPP_CENTER: ord.noWhatsapp,
+          PACKAGE_TYPE: ord.packageType,
+          LICENSE_KEY: `KGD-${String(targetSubdomain).toUpperCase()}-VERIFIED`,
+          SUBDOMAIN: targetSubdomain,
+          IS_ACTIVE: true,
+          CREATED_AT: nowIso,
+          TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Pesantren Modern Terpadu'
+        }))
+      });
+      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/user_accounts/acc_admin_root`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          id: 'acc_admin_root',
+          username: 'admin',
+          password: 'Pesand-2026!',
+          name: ord.namaPengelola || 'Super Admin Lembaga',
+          role: 'SUPER_ADMIN',
+          division: 'PUSAT',
+          createdAt: nowIso
+        }))
+      });
+      await logAuditEvent('SUBSCRIPTION_PAID_PAYMENTKU', `Langganan ${ord.namaPondok} (${targetSubdomain}) aktif via Paymenku trx ${pku.trx_id || '-'}`, ord.email || 'system');
+    }
+    out.mitraActivated = targetSubdomain;
+  }
+
+  // 2. Cari payment doc: tenant hint -> master index
+  let pData = null;
+  let pTenant = tenantHint;
+  try {
+    const tRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenantHint}/payments/${referenceId}`);
+    if (tRes.ok) {
+      const d = await tRes.json();
+      pData = decodeFields(d.fields);
+    }
+  } catch (e) {}
+  if (!pData) {
+    try {
+      const mRes = await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${referenceId}`);
+      if (mRes.ok) {
+        const d = await mRes.json();
+        pData = decodeFields(d.fields);
+        if (pData.tenant_subdomain) pTenant = pData.tenant_subdomain;
+      }
+    } catch (e) {}
+  }
+  out.tenant = pTenant;
+
+  if (pData) {
+    const patch = {
+      status: 'PAID',
+      paid_at: pku.paid_at || nowIso,
+      updatedAt: nowIso,
+      trx_id: pku.trx_id || pData.trx_id || null,
+      payment_channel: pku.payment_channel || pData.payment_channel || null,
+      amount_received: pku.amount_received || pData.amount_received || null,
+    };
+    await fetch(`${FIRESTORE_BASE}/tenants/${pTenant}/payments/${referenceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(encodeDoc(patch))
+    });
+    await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${referenceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(encodeDoc({ ...patch, tenant_subdomain: pTenant }))
+    }).catch(() => {});
+
+    const targetBillIds = Array.isArray(pData.bill_ids) && pData.bill_ids.length > 0
+      ? pData.bill_ids
+      : (pData.bill_id ? [pData.bill_id] : []);
+    const receiptNo = `KWT-PKU-${String(referenceId).slice(-8)}`;
+    for (const bId of targetBillIds) {
+      let existingBill = {};
+      try {
+        const bRes = await fetch(`${FIRESTORE_BASE}/tenants/${pTenant}/bills/${bId}`);
+        if (bRes.ok) {
+          const bJson = await bRes.json();
+          existingBill = decodeFields(bJson.fields);
+        }
+      } catch (e) {}
+      if (!existingBill || existingBill.status === 'PAID') continue;
+      const updatedBill = {
+        ...existingBill,
+        status: 'PAID',
+        paymentMethod: 'PAYMENTKU',
+        paidAt: nowIso,
+        paymentDate: nowIso,
+        verifiedAt: nowIso,
+        receiptNumber: existingBill.receiptNumber || receiptNo,
+        verifiedBy: 'Paymenku Gateway (paymenku.com)',
+      };
+      await fetch(`${FIRESTORE_BASE}/tenants/${pTenant}/bills/${bId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(updatedBill))
+      });
+      out.settledBills.push(bId);
+      const ledgerId = `LEDGER-PKU-${Date.now()}-${bId}`;
+      await fetch(`${FIRESTORE_BASE}/tenants/${pTenant}/ledger/${ledgerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc({
+          id: ledgerId,
+          type: 'INCOME',
+          category: 'SPP',
+          amount: Number(updatedBill.amount) || Number(pData.amount) || 0,
+          description: `Pembayaran ${updatedBill.title || 'Tagihan'} via Paymenku (paymenku.com)`,
+          reference: updatedBill.receiptNumber || receiptNo,
+          date: nowIso.split('T')[0],
+          createdAt: nowIso
+        }))
+      });
+    }
+  }
+  return out;
 }
 
 // -----------------------------------------------------------------------------
@@ -874,42 +1149,71 @@ export async function onRequest(context) {
     // 5H. /api/payments/create (PaymentKu Gateway Checkout Creation - paymentku.com)
     // -------------------------------------------------------------------------
     if (route === 'payments/create' && method === 'POST') {
-      const body = await request.json();
+      const body = await request.json().catch(() => ({}));
       const amount = Number(body.amount) || 0;
       const title = body.title || 'Pembayaran Tagihan Santri SiPesand';
-      const extId = 'PKU-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
-      const checkoutUrl = `https://paymentku.com/checkout/${extId}?amount=${amount}`;
+      if (!amount || amount < 1000) {
+        return jsonResponse({ success: false, message: 'Nominal pembayaran minimal Rp 1.000' }, 400);
+      }
+      const extId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
       const nowIso = new Date().toISOString();
+      const billIds = Array.isArray(body.bill_ids) && body.bill_ids.length > 0 ? body.bill_ids : (body.bill_id ? [body.bill_id] : []);
 
+      const created = await paymenkuCreateTransaction(context, request, {
+        channel_code: body.channel_code || body.channel || body.payment_method || 'qris',
+        amount,
+        reference_id: extId,
+        customer_name: body.customer_name || 'Wali Santri',
+        customer_email: body.customer_email || 'wali@sipesand.web.id',
+        customer_phone: body.customer_phone || undefined,
+        title,
+      });
+      if (!created.ok) {
+        return jsonResponse({ success: false, message: created.error || 'Gagal membuat transaksi Paymenku.' }, created.status || 400);
+      }
+      const pku = created.data;
+      const payUrl = pku.pay_url;
+      const info = pku.payment_info || {};
       const paymentRecord = {
         id: extId,
         external_id: extId,
-        amount,
+        reference_id: extId,
+        trx_id: pku.trx_id || null,
+        tenant_subdomain: tenant,
+        amount: Number(String(pku.amount).replace(/[^0-9.]/g, '')) || amount,
         title,
         customer_name: body.customer_name || 'Wali Santri',
-        customer_phone: body.customer_phone || '08123456789',
+        customer_phone: body.customer_phone || '',
         customer_email: body.customer_email || 'wali@sipesand.web.id',
-        bill_ids: body.bill_ids || (body.bill_id ? [body.bill_id] : []),
-        bill_id: body.bill_id || (body.bill_ids && body.bill_ids[0]) || null,
+        bill_ids: billIds,
+        bill_id: billIds[0] || null,
         santri_id: body.santri_id || null,
         status: 'PENDING',
-        checkout_url: checkoutUrl,
-        qr_string: '00020101021226580016ID.CO.PAYMENTKU.WWW01189360091800000000005204581253033605405' + amount + '5802ID5918SIPESAND6007JAKARTA6304E8A2',
+        payment_channel: normalizePaymenkuChannel(body.channel_code || body.channel || body.payment_method || 'qris'),
+        checkout_url: payUrl,
+        pay_url: payUrl,
+        qr_string: info.qr_string || null,
+        qr_url: info.qr_url || null,
+        va_number: info.va_number || null,
+        va_bank: info.bank || null,
         createdAt: nowIso,
         updatedAt: nowIso
       };
 
-      try {
-        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(encodeDoc(paymentRecord))
-        });
-      } catch (e) {}
+      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(paymentRecord))
+      }).catch(() => {});
+      await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${extId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(encodeDoc(paymentRecord))
+      }).catch(() => {});
 
       return jsonResponse({
         success: true,
-        message: 'Transaksi PaymentKu (paymentku.com) berhasil digenerate',
+        message: 'Transaksi Paymenku (paymenku.com) berhasil dibuat. Selesaikan pembayaran di halaman checkout.',
         data: paymentRecord
       }, 201);
     }
@@ -919,93 +1223,63 @@ export async function onRequest(context) {
     // -------------------------------------------------------------------------
     if (route.startsWith('payments/status/') && method === 'GET') {
       const extId = route.replace('payments/status/', '').trim();
-      let payment = null;
-      try {
-        const pRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`);
-        if (pRes.ok) {
-          const pJson = await pRes.json();
-          payment = decodeFields(pJson.fields);
-        }
-      } catch (e) {}
-
-      if (!payment) {
-        payment = {
-          external_id: extId,
-          status: 'PAID',
-          amount: 0,
-          paid_at: new Date().toISOString()
-        };
-      } else {
-        payment.status = 'PAID';
-        payment.paid_at = new Date().toISOString();
-        try {
-          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(encodeDoc(payment))
-          });
-
-          // Tandai tagihan terkait menjadi PAID
-          const targetBillIds = payment.bill_ids || (payment.bill_id ? [payment.bill_id] : []);
-          const receiptNo = `KW-${Date.now().toString().slice(-6)}`;
-          for (const bId of targetBillIds) {
-            let existingBill = {};
-            try {
-              const bRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`);
-              if (bRes.ok) {
-                const bJson = await bRes.json();
-                existingBill = decodeFields(bJson.fields);
-              }
-            } catch (e) {}
-            const nowIso = new Date().toISOString();
-            const updatedBill = {
-              ...existingBill,
-              status: 'PAID',
-              paymentMethod: 'PAYMENTKU',
-              paidAt: nowIso,
-              paymentDate: nowIso,
-              verifiedAt: nowIso,
-              receiptNumber: existingBill.receiptNumber || receiptNo,
-              verifiedBy: 'PaymentKu Instant Gateway (paymentku.com)'
-            };
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc(updatedBill))
-            });
-
-            // Catat otomatis ke buku kas umum (ledger)
-            const ledgerId = `LEDGER-PAY-${Date.now()}-${bId}`;
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc({
-                id: ledgerId,
-                type: 'INCOME',
-                category: 'SPP',
-                amount: Number(updatedBill.amount) || Number(payment.amount) || 0,
-                description: `Pembayaran ${updatedBill.title || 'Tagihan'} via PaymentKu (paymentku.com)`,
-                reference: updatedBill.receiptNumber || receiptNo,
-                date: nowIso.split('T')[0],
-                createdAt: nowIso
-              }))
-            });
-          }
-        } catch (e) {}
+      if (!extId) {
+        return jsonResponse({ success: false, message: 'ID transaksi wajib diisi.' }, 400);
       }
-
+      const checked = await paymenkuCheckStatus(context, extId);
+      if (!checked.ok) {
+        return jsonResponse({ success: false, message: checked.error || 'Gagal mengecek status Paymenku.' }, checked.status || 400);
+      }
+      const d = checked.data;
+      const liveStatus = String(d.status || 'pending').toLowerCase();
+      if (d.is_sandbox === true) {
+        return jsonResponse({
+          success: true,
+          data: {
+            external_id: extId,
+            reference_id: d.reference_id || extId,
+            trx_id: d.trx_id || null,
+            status: 'SANDBOX',
+            amount: d.amount,
+            message: 'Transaksi ini dibuat di mode SANDBOX Paymenku sehingga tidak mengaktifkan layanan produksi.',
+          }
+        });
+      }
+      if (liveStatus === 'paid') {
+        const settled = await settlePaymenkuReference(tenant, d.reference_id || extId, {
+          trx_id: d.trx_id,
+          payment_channel: d.payment_channel?.code || d.payment_channel || null,
+          amount_received: d.amount_received || null,
+          paid_at: d.paid_at || new Date().toISOString(),
+        });
+        return jsonResponse({
+          success: true,
+          data: {
+            external_id: extId,
+            reference_id: d.reference_id || extId,
+            trx_id: d.trx_id,
+            status: 'PAID',
+            amount: d.amount,
+            amount_received: d.amount_received,
+            payment_channel: d.payment_channel,
+            paid_at: d.paid_at,
+            settledBills: settled.settledBills,
+            mitraActivated: settled.mitraActivated,
+          }
+        });
+      }
       return jsonResponse({
         success: true,
-        data: payment
+        data: {
+          external_id: extId,
+          reference_id: d.reference_id || extId,
+          trx_id: d.trx_id,
+          status: liveStatus.toUpperCase(),
+          amount: d.amount,
+          pay_url: d.pay_url || null,
+          paid_at: d.paid_at || null,
+        }
       });
-    }
-
-    // -------------------------------------------------------------------------
-    // 5J. /api/payments/webhook
-    // -------------------------------------------------------------------------
-    if (route === 'payments/webhook' && method === 'POST') {
-      const body = await request.json();
-      return jsonResponse({ success: true, message: 'Webhook processed' });
     }
 
     // 6. /api/ledger
@@ -1568,7 +1842,10 @@ export async function onRequest(context) {
             waConfirmationNumber: '+62 851-2373-4342',
             tahunanPrice: 1500000,
             lifetimePrice: 3500000,
-            instructions: 'Silakan transfer tepat sesuai nominal hingga 3 digit terakhir. Setelah transfer, unggah bukti pembayaran atau hubungi WhatsApp resmi pusat.'
+            paymentkuApiKey: '',
+            paymentkuBaseUrl: 'https://paymenku.com/api/v1',
+            paymentkuWebhookSecret: '',
+            instructions: 'Bayar via Paymenku (QRIS/VA/E-Wallet) untuk aktivasi otomatis, atau transfer manual lalu unggah bukti.'
           }
         });
       }
@@ -1692,45 +1969,37 @@ export async function onRequest(context) {
       };
 
       // -----------------------------------------------------------------------
-      // PAYMENTKU GATEWAY (paymentku.com): Terbitkan Transaksi & Checkout Link Otomatis
+      // PAYMENKU GATEWAY (paymenku.com): Terbitkan Transaksi & pay_url Otomatis
+      // API asli: POST {base}/transaction/create (Bearer sk_live_/sk_test_)
       // -----------------------------------------------------------------------
-      const apiKey = context.env?.PAYMENTKU_API_KEY || cfg.paymentkuApiKey || context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
-      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || cfg.paymentkuBaseUrl || context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://api.paymentku.com/v1').replace(/\/$/, '');
       let checkoutUrl = null;
       let qrString = cfg.qrisString;
+      let paymenkuTrxId = null;
 
-      if (apiKey) {
-        try {
-          const pkuRes = await fetch(`${baseUrl}/transactions`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              external_id: orderId,
-              amount: parseInt(totalAmount, 10),
-              customer_name: namaPengelola,
-              customer_phone: noWhatsapp,
-              customer_email: email,
-              description: `Langganan SiPesand - ${namaPondok} (${packageType})`,
-              payment_method: 'ALL',
-              callback_url: `https://sipesand.web.id/api/payments/status/${orderId}`
-            })
-          });
-          if (pkuRes.ok) {
-            const pJson = await pkuRes.json();
-            checkoutUrl = pJson.checkout_url || pJson.payment_url || null;
-            if (pJson.qr_string) qrString = pJson.qr_string;
-          }
-        } catch (e) {
-          console.warn('PaymentKu subscription create error:', e);
+      {
+        const created = await paymenkuCreateTransaction(context, request, {
+          channel_code: 'qris',
+          amount: parseInt(totalAmount, 10),
+          reference_id: orderId,
+          customer_name: namaPengelola,
+          customer_email: email,
+          customer_phone: noWhatsapp,
+          title: `Langganan SiPesand - ${namaPondok} (${packageType})`,
+        });
+        if (created.ok) {
+          checkoutUrl = created.data.pay_url;
+          paymenkuTrxId = created.data.trx_id || null;
+          const info = created.data.payment_info || {};
+          if (info.qr_string) qrString = info.qr_string;
+        } else {
+          console.warn('Paymenku subscription create:', created.error);
         }
       }
 
       orderData.checkoutUrl = checkoutUrl;
+      orderData.payUrl = checkoutUrl;
       orderData.qrString = qrString;
+      orderData.paymenkuTrxId = paymenkuTrxId;
 
       await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
         method: 'PATCH',
@@ -1738,14 +2007,16 @@ export async function onRequest(context) {
         body: JSON.stringify(encodeDoc(orderData))
       });
 
-      // Simpan juga referensi payment di koleksi master/payments
+      // Simpan juga referensi payment di koleksi master/payments (index untuk webhook)
       await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(encodeDoc({
           id: orderId,
           external_id: orderId,
+          reference_id: orderId,
           order_id: orderId,
+          trx_id: paymenkuTrxId,
           tenant_subdomain: cleanSub,
           nama_pondok: namaPondok,
           amount: parseFloat(totalAmount),
@@ -1755,6 +2026,7 @@ export async function onRequest(context) {
           customer_phone: noWhatsapp,
           status: 'PENDING',
           checkout_url: checkoutUrl,
+          pay_url: checkoutUrl,
           qr_string: qrString,
           createdAt: new Date().toISOString()
         }))
@@ -1789,45 +2061,36 @@ export async function onRequest(context) {
         }
       } catch (e) {}
 
-      const apiKey = context.env?.PAYMENTKU_API_KEY || cfg.paymentkuApiKey || context.env?.KASERAPAY_API_KEY || cfg.kaserapayApiKey || '';
-      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || cfg.paymentkuBaseUrl || context.env?.KASERAPAY_BASE_URL || cfg.kaserapayBaseUrl || 'https://api.paymentku.com/v1').replace(/\/$/, '');
-      let checkoutUrl = ord.checkoutUrl && !ord.checkoutUrl.includes(`/checkout/${orderId}`) ? ord.checkoutUrl : null;
+      let checkoutUrl = (ord.checkoutUrl && String(ord.checkoutUrl).startsWith('https://paymenku.com/pay/')) ? ord.checkoutUrl
+        : ((ord.payUrl && String(ord.payUrl).startsWith('https://paymenku.com/pay/')) ? ord.payUrl : null);
       let qrString = ord.qrString || ord.qrisString || null;
 
-      if (apiKey && !checkoutUrl) {
-        try {
-          const kaseraRes = await fetch(`${baseUrl}/transactions`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              external_id: orderId,
-              amount: parseInt(ord.amount, 10),
-              customer_name: ord.namaPengelola || 'Pengelola Pesantren',
-              customer_phone: ord.noWhatsapp || '08123456789',
-              customer_email: ord.email || 'admin@sipesand.web.id',
-              description: `Langganan SiPesand - ${ord.namaPondok}`,
-              payment_method: 'ALL',
-              callback_url: `https://sipesand.web.id/api/payments/status/${orderId}`
-            })
-          });
-          if (kaseraRes.ok) {
-            const kJson = await kaseraRes.json();
-            checkoutUrl = kJson.checkout_url || kJson.payment_url || null;
-            if (kJson.qr_string) qrString = kJson.qr_string;
-
-            await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc({ checkoutUrl, qrString }))
-            });
-          }
-        } catch (e) {
-          console.warn('KaseraPay regenerator error:', e);
+      if (!checkoutUrl) {
+        const created = await paymenkuCreateTransaction(context, request, {
+          channel_code: 'qris',
+          amount: parseInt(ord.amount, 10),
+          reference_id: orderId,
+          customer_name: ord.namaPengelola || 'Pengelola Pesantren',
+          customer_email: ord.email || 'admin@sipesand.web.id',
+          customer_phone: ord.noWhatsapp || undefined,
+          title: `Langganan SiPesand - ${ord.namaPondok}`,
+        });
+        if (!created.ok) {
+          return jsonResponse({ success: false, message: created.error || 'Gagal membuat transaksi Paymenku.' }, created.status || 400);
         }
+        checkoutUrl = created.data.pay_url;
+        const info = created.data.payment_info || {};
+        if (info.qr_string) qrString = info.qr_string;
+        await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${orderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ checkoutUrl, payUrl: checkoutUrl, qrString, paymenkuTrxId: created.data.trx_id || null }))
+        });
+        await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${orderId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ checkout_url: checkoutUrl, pay_url: checkoutUrl, qr_string: qrString, trx_id: created.data.trx_id || null, status: 'PENDING', updatedAt: new Date().toISOString() }))
+        }).catch(() => {});
       }
 
       return jsonResponse({
@@ -2013,89 +2276,9 @@ export async function onRequest(context) {
       });
     }
 
-    // H. /api/mitra/simulate-payment/:orderId
+    // H. /api/mitra/simulate-payment/:orderId (DINONAKTIFKAN — produksi wajib via Paymenku asli)
     if (route.startsWith('mitra/simulate-payment/')) {
-      const ordId = route.replace('mitra/simulate-payment/', '').trim();
-      const ordRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}`);
-      if (!ordRes.ok) {
-        return jsonResponse({
-          success: true,
-          message: 'Simulasi sukses (offline fallback)',
-          data: {
-            subdomain: 'demo',
-            adminUsername: 'admin',
-            tempPassword: 'Pesand-2026!',
-            licenseKey: 'KGD-DEMO-2026-SIMULATED'
-          }
-        });
-      }
-      const ordDoc = await ordRes.json();
-      const ord = decodeFields(ordDoc.fields);
-      const targetSubdomain = ord.subdomain;
-      const verifiedAt = new Date().toISOString();
-
-      const licenseKey = `KGD-${targetSubdomain.toUpperCase()}-SIMULATED-2026`;
-      const activeData = {
-        subdomain: targetSubdomain,
-        adminUsername: 'admin',
-        tempPassword: 'Pesand-2026!',
-        licenseKey,
-        activatedAt: verifiedAt
-      };
-
-      const updateOrderPayload = encodeDoc({
-        status: 'PAID',
-        verifiedAt,
-        activeData
-      });
-      await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}?updateMask.fieldPaths=status&updateMask.fieldPaths=verifiedAt&updateMask.fieldPaths=activeData`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateOrderPayload)
-      });
-
-      // Auto-Provisioning: Buat profil tenant di Firestore
-      const tenantConfigPayload = encodeDoc({
-        NAMA_LEMBAGA: ord.namaPondok || 'Pondok Pesantren Mitra',
-        NAMA_KEPALA_PONDOK: ord.namaPengelola || 'Pengasuh Pesantren',
-        EMAIL_LEMBAGA: ord.email || 'admin@sipesand.web.id',
-        WHATSAPP_CENTER: ord.noWhatsapp || '08123456789',
-        PACKAGE_TYPE: ord.packageType || 'LIFETIME',
-        LICENSE_KEY: licenseKey,
-        SUBDOMAIN: targetSubdomain,
-        IS_ACTIVE: true,
-        CREATED_AT: verifiedAt,
-        TAGLINE_LEMBAGA: 'Sistem Informasi Manajemen Pesantren Modern Terpadu'
-      });
-      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/settings/config`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tenantConfigPayload)
-      });
-
-      // Buat Akun Super Admin di tenant tersebut
-      const adminAccountPayload = encodeDoc({
-        id: 'acc_admin_root',
-        username: 'admin',
-        password: 'Pesand-2026!',
-        name: ord.namaPengelola || 'Super Admin Lembaga',
-        role: 'SUPER_ADMIN',
-        division: 'PUSAT',
-        createdAt: verifiedAt
-      });
-      await fetch(`${FIRESTORE_BASE}/tenants/${targetSubdomain}/user_accounts/acc_admin_root`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(adminAccountPayload)
-      });
-
-      await logAuditEvent('TENANT_SIMULATED', `Pesantren ${ord.namaPondok} (${targetSubdomain}) disimulasikan lunas & akun Super Admin aktif`, 'Superadmin Dev');
-
-      return jsonResponse({
-        success: true,
-        message: 'Simulasi pembayaran sukses',
-        data: activeData
-      });
+      return jsonResponse({ success: false, message: 'Endpoint simulasi dinonaktifkan. Gunakan pembayaran Paymenku asli lewat checkout_url.' }, 410);
     }
 
     // -------------------------------------------------------------------------
@@ -2427,87 +2610,8 @@ export async function onRequest(context) {
     // 16. PAYMENTKU (paymentku.com) PAYMENT GATEWAY SERVERLESS ENGINE
     // -------------------------------------------------------------------------
 
-    // A. POST /api/payments/create
-    if (route === 'payments/create' && method === 'POST') {
-      const body = await request.json();
-      const { amount, title, customer_name, customer_phone, customer_email, bill_id, payment_method = 'ALL' } = body;
-
-      if (!amount || amount < 1000) {
-        return jsonResponse({ success: false, message: 'Nominal pembayaran minimal Rp 1.000' }, 400);
-      }
-
-      const externalId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const apiKey = context.env?.PAYMENTKU_API_KEY || context.env?.KASERAPAY_API_KEY || '';
-      const baseUrl = (context.env?.PAYMENTKU_BASE_URL || context.env?.KASERAPAY_BASE_URL || 'https://api.paymentku.com/v1').replace(/\/$/, '');
-
-      let checkoutUrl = `https://paymentku.com/checkout/${externalId}?amount=${encodeURIComponent(amount)}`;
-      let qrString = `00020101021226580016ID.CO.PAYMENTKU.WWW0118936009180000000000520458125303360540${amount}5802ID5918SIPESAND6007JAKARTA6304E8A2`;
-      let remoteData = null;
-
-      // Hubungi API PaymentKu jika API Key sudah dipasang di Environment Cloudflare Pages
-      if (apiKey) {
-        try {
-          const pkuRes = await fetch(`${baseUrl}/transactions`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              external_id: externalId,
-              amount: parseInt(amount, 10),
-              customer_name: customer_name || 'Wali Santri',
-              customer_phone: customer_phone || '08123456789',
-              customer_email: customer_email || 'wali@sipesand.web.id',
-              description: title || 'Pembayaran Tagihan Santri',
-              payment_method,
-              callback_url: `https://sipesand.web.id/api/payments/status/${externalId}`
-            })
-          });
-
-          if (pkuRes.ok) {
-            const pkuJson = await pkuRes.json();
-            remoteData = pkuJson;
-            checkoutUrl = pkuJson.checkout_url || pkuJson.payment_url || checkoutUrl;
-            qrString = pkuJson.qr_string || qrString;
-          }
-        } catch (e) {
-          console.warn('PaymentKu API call error:', e);
-        }
-      }
-
-      // Simpan record pembayaran di Firestore
-      const targetBills = Array.isArray(body.bill_ids) && body.bill_ids.length > 0 ? body.bill_ids : (bill_id ? [bill_id] : []);
-      const paymentDoc = {
-        id: externalId,
-        external_id: externalId,
-        tenant_subdomain: tenant,
-        bill_id: bill_id || (targetBills[0] || null),
-        bill_ids: targetBills,
-        santri_id: body.santri_id || null,
-        amount: parseFloat(amount),
-        title: title || 'Pembayaran Tagihan Santri',
-        customer_name: customer_name || 'Wali Santri',
-        status: 'PENDING',
-        payment_method,
-        checkout_url: checkoutUrl,
-        qr_string: qrString,
-        createdAt: new Date().toISOString()
-      };
-
-      await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(encodeDoc(paymentDoc))
-      });
-
-      return jsonResponse({
-        success: true,
-        message: 'Transaksi PaymentKu (paymentku.com) berhasil digenerate',
-        data: paymentDoc
-      }, 201);
-    }
+    // A. POST /api/payments/create — DITANGANI di blok 5H di atas (handler kanonis).
+    // Blok duplikat ini sengaja dikosongkan agar tidak ada fallback mock.
 
     // B. POST /api/payments/webhook (Realtime Callback dari PaymentKu paymentku.com)
     if (route === 'payments/webhook' && method === 'POST') {
@@ -2515,37 +2619,33 @@ export async function onRequest(context) {
       let body = {};
       try { body = JSON.parse(rawPayload); } catch(e) {}
 
-      const signature = request.headers.get('x-signature') || request.headers.get('x-paymentku-signature') || request.headers.get('x-kaserapay-signature');
-      const webhookSecret = context.env?.PAYMENTKU_WEBHOOK_SECRET || context.env?.KASERAPAY_WEBHOOK_SECRET || '';
-
-      // Verifikasi Signature HMAC jika webhook secret tersedia
-      if (webhookSecret && signature) {
-        try {
-          const encoder = new TextEncoder();
-          const keyData = encoder.encode(webhookSecret);
-          const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-          const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(rawPayload));
-          const expectedSig = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-          
-          if (expectedSig !== signature.toLowerCase()) {
-            return jsonResponse({ success: false, message: 'Invalid webhook signature' }, 401);
-          }
-        } catch (sigErr) {
-          console.warn('Signature verification error:', sigErr);
-        }
+      // Verifikasi signature resmi Paymenku: HMAC-SHA256(timestamp + "." + raw_body, webhook_secret)
+      const timestamp = request.headers.get('x-paymenku-timestamp') || request.headers.get('x-timestamp') || '';
+      const signature = request.headers.get('x-paymenku-signature') || request.headers.get('x-signature') || '';
+      const { webhookSecret } = await getPaymenkuConfig(context);
+      const sigCheck = await verifyPaymenkuSignature(rawPayload, timestamp, signature, webhookSecret);
+      if (!sigCheck.skipped && !sigCheck.verified) {
+        await logAuditEvent('WEBHOOK_INVALID_SIGNATURE', 'Webhook Paymenku ditolak: signature tidak valid', 'system');
+        return jsonResponse({ success: false, message: 'Invalid webhook signature' }, 401);
       }
 
-      const externalId = body.external_id || body.data?.external_id;
-      const event = (body.event || body.status || body.data?.status || '').toLowerCase();
+      const externalId = body.reference_id || body.external_id || body.data?.reference_id || body.data?.external_id;
+      const event = String(body.event || body.status || body.data?.status || '').toLowerCase();
 
       if (!externalId) {
-        return jsonResponse({ success: false, message: 'Missing external_id' }, 400);
+        return jsonResponse({ success: false, message: 'Missing reference_id' }, 400);
+      }
+
+      // Transaksi sandbox tidak boleh mengaktifkan layanan produksi
+      if (body.is_sandbox === true) {
+        await logAuditEvent('WEBHOOK_SANDBOX_IGNORED', `Webhook sandbox diabaikan untuk ${externalId}`, 'system');
+        return jsonResponse({ success: true, message: 'Sandbox webhook ignored (tidak mengaktifkan produksi).', sandbox: true });
       }
 
       // 1. Periksa apakah transaksi ini adalah pesanan langganan SaaS (sipesand.web.id)
-      const isMitraOrder = externalId.startsWith('KGD-ORD-');
+      const isMitraOrder = String(externalId).startsWith('KGD-ORD-');
       const mitraRes = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${externalId}`);
-      const isPaid = ['payment.paid', 'paid', 'success', 'settled'].includes(event);
+      const isPaid = event === 'paid' || body.status === 'paid';
       const nowIso = new Date().toISOString();
 
       if (isMitraOrder || mitraRes.ok) {
@@ -2632,64 +2732,37 @@ export async function onRequest(context) {
 
       if (paymentRes.ok) {
         if (isPaid) {
-          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(encodeDoc({
-              status: 'PAID',
-              paid_at: nowIso,
-              updatedAt: nowIso
-            }))
+          const settled = await settlePaymenkuReference(tenant, externalId, {
+            trx_id: body.trx_id || null,
+            payment_channel: body.payment_channel || null,
+            amount_received: body.amount_received || null,
+            paid_at: body.paid_at || nowIso,
           });
-
-          // Otomatis tandai tagihan santri menjadi Lunas jika ada bill_ids / bill_id
-          const currentDoc = await paymentRes.json();
-          const pData = decodeFields(currentDoc.fields);
-          const targetBillIds = Array.isArray(pData.bill_ids) && pData.bill_ids.length > 0
-            ? pData.bill_ids
-            : (pData.bill_id ? [pData.bill_id] : []);
-
-          for (const bId of targetBillIds) {
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${bId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc({
-                status: 'PAID',
-                paidAt: nowIso,
-                paymentMethod: 'PAYMENTKU_ONLINE',
-                receiptNumber: `KWT-PKU-${externalId}`
-              }))
-            });
-          }
-
-          // Catat otomatis ke Buku Kas Umum (Ledger)
-          if (targetBillIds.length > 0) {
-            const ledgerId = `TX-${Date.now()}`;
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc({
-                id: ledgerId,
-                type: 'INCOME',
-                category: 'SPP',
-                amount: parseFloat(pData.amount || 0),
-                description: `Pembayaran Online PaymentKu: ${pData.title || pData.customer_name} - Ref: ${externalId}`,
-                reference: `KWT-PKU-${externalId}`,
-                date: nowIso,
-                createdAt: nowIso
-              }))
-            });
-          }
+          return jsonResponse({ success: true, message: 'Webhook processed', external_id: externalId, status: 'PAID', settledBills: settled.settledBills, mitraActivated: settled.mitraActivated });
         }
-
-        return jsonResponse({ success: true, message: 'Webhook processed', external_id: externalId, status: isPaid ? 'PAID' : event });
+        const finalStatus = ['failed', 'expired', 'cancelled', 'refunded'].includes(event) ? event.toUpperCase() : event.toUpperCase();
+        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${externalId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ status: finalStatus, updatedAt: nowIso }))
+        });
+        await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${externalId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(encodeDoc({ status: finalStatus, updatedAt: nowIso }))
+        }).catch(() => {});
+        return jsonResponse({ success: true, message: 'Webhook processed', external_id: externalId, status: finalStatus });
       }
 
       return jsonResponse({ success: false, message: 'Payment not found' }, 404);
     }
 
-    // C. POST /api/payments/simulate-success/:externalId (Untuk Demo / Testing Instan Gateway)
+    // C. POST /api/payments/simulate-success/:externalId (DINONAKTIFKAN — produksi wajib via Paymenku asli)
     if (route.startsWith('payments/simulate-success/') && method === 'POST') {
+      return jsonResponse({ success: false, message: 'Endpoint simulasi dinonaktifkan. Gunakan pembayaran Paymenku asli lewat checkout_url.' }, 410);
+    }
+    if (false) {
+      const __disabled_simulate_placeholder = route;
       const extId = route.replace('payments/simulate-success/', '').trim();
       const nowIso = new Date().toISOString();
       let paymentRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/payments/${extId}`);
@@ -3079,30 +3152,62 @@ export async function onRequest(context) {
         });
       }
 
-      // 7. POST /api/v1/wali/keuangan/checkout (PaymentKu paymentku.com Integration)
+      // 7. POST /api/v1/wali/keuangan/checkout (Paymenku paymenku.com — API asli)
       if (subRoute === 'keuangan/checkout' && method === 'POST') {
         let body = {};
         try { body = await request.json(); } catch(e) {}
-        const billId = body.bill_id || 2;
-        const channel = body.channel || 'qris_paymentku';
+        const billId = body.bill_id || body.billId || null;
+        const channelCode = normalizePaymenkuChannel(body.channel || body.channel_code || 'qris');
+        let amount = Number(body.amount) || 0;
+        let billTitle = body.title || 'Pembayaran Tagihan Wali Santri';
+        if ((!amount || amount < 1000) && billId) {
+          try {
+            const bRes = await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${billId}`);
+            if (bRes.ok) {
+              const bDoc = await bRes.json();
+              const bData = decodeFields(bDoc.fields);
+              amount = Number(bData.amount) || 0;
+              billTitle = bData.title || billTitle;
+            }
+          } catch (e) {}
+        }
+        if (!amount || amount < 1000) {
+          return anandaRes(null, 'Nominal pembayaran minimal Rp 1.000 (sertakan bill_id yang valid atau amount).', 'error', 400);
+        }
         const externalId = `PKU-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        const amount = 452500;
-        const checkoutUrl = `https://paymentku.com/checkout/${externalId}?amount=${amount}`;
-        const qrString = `00020101021226580016ID.CO.PAYMENTKU.WWW0118936009180000000000520458125303360540${amount}5802ID5918${namaLembaga.replace(/[^A-Za-z0-9]/g, '').substring(0, 20).toUpperCase()}6007JAKARTA6304E8A2`;
-
-        // Simpan transaksi di Firestore
+        const created = await paymenkuCreateTransaction(context, request, {
+          channel_code: channelCode,
+          amount,
+          reference_id: externalId,
+          customer_name: body.customer_name || 'Wali Santri',
+          customer_email: body.customer_email || 'wali@sipesand.web.id',
+          customer_phone: body.customer_phone || undefined,
+          title: billTitle,
+        });
+        if (!created.ok) {
+          return anandaRes(null, created.error || 'Gagal membuat transaksi Paymenku.', 'error', created.status || 400);
+        }
+        const info = created.data.payment_info || {};
         const paymentDoc = {
           id: externalId,
           external_id: externalId,
+          reference_id: externalId,
+          trx_id: created.data.trx_id || null,
           tenant_subdomain: tenant,
-          bill_id: String(billId),
-          amount: amount,
-          title: 'Pembayaran SPP & Operasional Wali Santri',
-          customer_name: 'Wali Santri',
+          bill_id: billId ? String(billId) : null,
+          bill_ids: billId ? [String(billId)] : [],
+          amount: Number(String(created.data.amount).replace(/[^0-9.]/g, '')) || amount,
+          title: billTitle,
+          customer_name: body.customer_name || 'Wali Santri',
           status: 'PENDING',
-          payment_method: 'PAYMENTKU_ONLINE',
-          checkout_url: checkoutUrl,
-          qr_string: qrString,
+          payment_method: 'PAYMENTKU',
+          payment_channel: channelCode,
+          checkout_url: created.data.pay_url,
+          pay_url: created.data.pay_url,
+          qr_string: info.qr_string || null,
+          qr_url: info.qr_url || null,
+          va_number: info.va_number || null,
+          va_bank: info.bank || null,
           createdAt: nowIso
         };
 
@@ -3111,46 +3216,57 @@ export async function onRequest(context) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(encodeDoc(paymentDoc))
         });
-
-        return anandaRes({
-          external_id: externalId,
-          bill_id: billId,
-          bill_no: 'INV-202609-0045',
-          title: 'SPP Syahriyah & Operasional September 2026',
-          total_amount: amount,
-          checkout_url: checkoutUrl,
-          channel: channel,
-          qr_string: qrString
-        }, 'Transaksi PaymentKu (paymentku.com) berhasil dibuat');
-      }
-
-      // 8. POST /api/v1/wali/keuangan/confirm-payment/:id
-      if (subRoute.startsWith('keuangan/confirm-payment/') && method === 'POST') {
-        const bId = subRoute.replace('keuangan/confirm-payment/', '').trim();
-        const receiptNo = `KW-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(bId).padStart(4, '0')}`;
-
-        // Catat ke Firestore ledger
-        const ledgerId = `TX-${Date.now()}`;
-        await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/ledger/${ledgerId}`, {
+        await fetch(`${FIRESTORE_BASE}/tenants/master/payments/${externalId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(encodeDoc({
-            id: ledgerId,
-            type: 'INCOME',
-            category: 'SPP',
-            amount: 452500,
-            description: `Pembayaran Tagihan SPP Wali Santri via PaymentKu (paymentku.com) - Kwitansi ${receiptNo}`,
-            reference: receiptNo,
-            date: nowIso,
-            createdAt: nowIso
-          }))
+          body: JSON.stringify(encodeDoc(paymentDoc))
         }).catch(() => {});
 
         return anandaRes({
-          receipt_no: receiptNo,
+          external_id: externalId,
+          reference_id: externalId,
+          trx_id: created.data.trx_id || null,
+          bill_id: billId,
+          title: billTitle,
+          total_amount: paymentDoc.amount,
+          checkout_url: created.data.pay_url,
+          pay_url: created.data.pay_url,
+          channel: channelCode,
+          qr_string: info.qr_string || null,
+          qr_url: info.qr_url || null,
+          va_number: info.va_number || null,
+          va_bank: info.bank || null
+        }, 'Transaksi Paymenku (paymenku.com) berhasil dibuat. Selesaikan pembayaran di halaman checkout.');
+      }
+
+      // 8. POST /api/v1/wali/keuangan/confirm-payment — verifikasi via check-status Paymenku asli
+      if (subRoute.startsWith('keuangan/confirm-payment/') && method === 'POST') {
+        let cBody = {};
+        try { cBody = await request.json(); } catch(e) {}
+        const ref = cBody.external_id || cBody.reference_id || cBody.trx_id || subRoute.replace('keuangan/confirm-payment/', '').trim();
+        if (!ref || ref === 'keuangan/confirm-payment') {
+          return anandaRes(null, 'external_id / reference_id wajib disertakan.', 'error', 400);
+        }
+        const checked = await paymenkuCheckStatus(context, ref);
+        if (!checked.ok) {
+          return anandaRes(null, checked.error || 'Gagal mengecek status Paymenku.', 'error', checked.status || 400);
+        }
+        if (String(checked.data.status).toLowerCase() !== 'paid') {
+          return anandaRes({ reference_id: checked.data.reference_id || ref, status: String(checked.data.status).toUpperCase() }, 'Pembayaran belum lunas di Paymenku.', 'error', 402);
+        }
+        const settled = await settlePaymenkuReference(tenant, checked.data.reference_id || ref, {
+          trx_id: checked.data.trx_id,
+          payment_channel: checked.data.payment_channel?.code || checked.data.payment_channel || null,
+          amount_received: checked.data.amount_received || null,
+          paid_at: checked.data.paid_at || new Date().toISOString(),
+        });
+        return anandaRes({
+          reference_id: checked.data.reference_id || ref,
+          trx_id: checked.data.trx_id,
           status: 'paid',
-          verified_by: 'Verifikasi Otomatis PaymentKu (paymentku.com)'
-        }, 'Pembayaran berhasil diverifikasi lunas oleh PaymentKu dan kwitansi resmi telah diterbitkan.');
+          verified_by: 'Paymenku Gateway (paymenku.com)',
+          settledBills: settled.settledBills,
+        }, 'Pembayaran terverifikasi lunas oleh Paymenku dan kwitansi resmi telah diterbitkan.');
       }
 
       // 9. GET /api/v1/wali/keuangan/uang-saku

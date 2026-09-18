@@ -28,8 +28,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { 
   getMitraConfig, 
   getMitraOrderStatus, 
-  uploadMitraPaymentProof,
-  simulateMitraPayment 
+  uploadMitraPaymentProof
 } from '../services/api';
 import { compressImage } from '../utils/imageCompressor';
 import AestheticToast from './AestheticToast';
@@ -288,33 +287,6 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
   };
 
   const handleManualCheckStatus = handleManualCheck;
-
-  const handleSimulatePayment = async () => {
-    try {
-      setChecking(true);
-      const res = await simulateMitraPayment(order.orderId);
-      if (res.data?.success || res.success) {
-        setProvisionResult(res.data?.data?.activeData || res.data?.data || res.data);
-        setToast({
-          isOpen: true,
-          type: 'success',
-          title: 'Simulasi Lunas Berhasil!',
-          message: 'Instans pesantren Anda telah berhasil diaktifkan secara otomatis!'
-        });
-      } else {
-        throw new Error(res.data?.message || res.message || 'Gagal memproses simulasi');
-      }
-    } catch (err) {
-      setToast({
-        isOpen: true,
-        type: 'error',
-        title: 'Simulasi Gagal',
-        message: err.message || 'Terjadi kesalahan saat memproses simulasi.'
-      });
-    } finally {
-      setChecking(false);
-    }
-  };
 
   // =========================================================================
   // TAMPILAN 1: SUKSES AKTIVASI & KREDENSIAL TENANT TER-PROVISIONING
@@ -585,17 +557,6 @@ export default function PaymentCheckout({ orderData, onBackToRegister, onGoToTen
           )}
 
           <div className="flex items-center gap-2 w-full justify-end">
-            <button
-              type="button"
-              onClick={handleSimulatePayment}
-              disabled={checking}
-              className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold text-[11px] shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Gunakan untuk uji coba aktivasi instan tanpa transfer riil"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Simulasi Lunas (Sandbox)</span>
-            </button>
-
             <button
               type="button"
               onClick={handleManualCheckStatus}

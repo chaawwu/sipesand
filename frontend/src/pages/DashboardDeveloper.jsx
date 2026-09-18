@@ -2478,15 +2478,37 @@ export default function DashboardDeveloper({
                         </label>
                         <input
                           type="text"
-                          placeholder="https://api.paymentku.com/v1"
+                          placeholder="https://paymenku.com/api/v1"
                           value={mitraConfig.paymentkuBaseUrl || mitraConfig.kaserapayBaseUrl || ''}
                           onChange={(e) => setMitraConfig({ ...mitraConfig, paymentkuBaseUrl: e.target.value, kaserapayBaseUrl: e.target.value })}
                           className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
                         />
                         <span className="text-[10px] text-slate-400 mt-1 block">
-                          Default: https://api.paymentku.com/v1 (paymentku.com)
+                          Default: https://paymenku.com/api/v1 (paymenku.com)
                         </span>
                       </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          PaymentKu Webhook Secret:
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="whsec_xxxxxxxxxxxxxxxx"
+                          value={mitraConfig.paymentkuWebhookSecret || mitraConfig.kaserapayWebhookSecret || ''}
+                          onChange={(e) => setMitraConfig({ ...mitraConfig, paymentkuWebhookSecret: e.target.value, kaserapayWebhookSecret: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          Dari Dashboard Paymenku → Settings → Webhook. Wajib agar callback pembayaran terverifikasi (HMAC-SHA256).
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] leading-relaxed">
+                      <strong>URL Webhook untuk ditempel di Dashboard Paymenku (Settings → Webhook):</strong>
+                      <code className="block mt-1 font-mono bg-white px-2 py-1 rounded border border-blue-200 break-all">https://sipesand.web.id/api/payments/webhook</code>
+                      <span className="block mt-1 text-blue-700">Fungsi ini 100% berjalan di Cloudflare Pages — online 24/7 tanpa server tambahan.</span>
                     </div>
                   </div>
 
