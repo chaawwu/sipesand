@@ -1,8 +1,8 @@
-const prisma = require('../config/prisma');
 const { provisionNewTenant } = require('../services/tenantProvisioner');
 const { sendTenantWelcomeEmail } = require('../services/mailerService');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { PrismaClient } = require('@prisma/client');
 
 // ============================================================================
 // DEVELOPER AUTH HELPERS (Email-based, bcrypt)
@@ -436,13 +436,15 @@ exports.handlePaymentWebhook = async (req, res) => {
       });
     }
 
+    const prisma = new PrismaClient();
+
     // 1. Update Status MitraPending
     await prisma.mitraPending.update({
       where: { id: pending.id },
       data: { status: 'PAID' },
     });
 
-    // 2. Auto-Provisioning Database Tenant Baru
+    // 2. Auto-Provisioning Tenant di Shared PostgreSQL
     const provisionResult = await provisionNewTenant({
       namaPondok: pending.namaPondok,
       subdomain: pending.subdomain,
@@ -452,33 +454,11 @@ exports.handlePaymentWebhook = async (req, res) => {
       packageType: pending.packageType,
     });
 
-    // 3. Simpan Data ke Tabel Utama MitraAktif
-    const activeMitra = await prisma.mitraAktif.upsert({
-      where: { subdomain: pending.subdomain },
-      update: {
-        namaPondok: pending.namaPondok,
-        namaPengelola: pending.namaPengelola,
-        email: pending.email,
-        noWhatsapp: pending.noWhatsapp,
-        packageType: pending.packageType,
+    // 3. Update MitraAktif record (created by provisioner) with additional info
+    const activeMitra = await prisma.mitraAktif.update({
+      where: { id: provisionResult.mitraId },
+      data: {
         amount: pending.amount,
-        licenseKey: provisionResult.licenseKey,
-        dbPath: provisionResult.dbPath,
-        adminUsername: provisionResult.adminUsername,
-        adminPasswordHash: provisionResult.passwordHash,
-        status: 'ACTIVE',
-        provisionedAt: new Date(),
-      },
-      create: {
-        namaPondok: pending.namaPondok,
-        subdomain: pending.subdomain,
-        namaPengelola: pending.namaPengelola,
-        email: pending.email,
-        noWhatsapp: pending.noWhatsapp,
-        packageType: pending.packageType,
-        amount: pending.amount,
-        licenseKey: provisionResult.licenseKey,
-        dbPath: provisionResult.dbPath,
         adminUsername: provisionResult.adminUsername,
         adminPasswordHash: provisionResult.passwordHash,
         status: 'ACTIVE',

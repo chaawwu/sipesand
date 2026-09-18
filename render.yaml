@@ -7,10 +7,19 @@ services:
     startCommand: node backend/src/server.js
     envVars:
       - key: PORT
-        value: 5000
+        value: 10000
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:./dev.db
+        fromDatabase:
+          name: sipesand-db
+          property: connectionString
       - key: BASE_DOMAIN
         value: sipesand.web.id
+
+databases:
+  - name: sipesand-db
+    databaseName: sipesand
+    user: sipesand
+    plan: free
+    region: singapore

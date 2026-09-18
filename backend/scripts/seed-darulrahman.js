@@ -1,18 +1,10 @@
-const path = require('path');
-const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
+const prisma = new PrismaClient();
+
 async function seedDarulRahman() {
   console.log('🚀 Memulai Pembuatan Akun & Database Real: Pondok Pesantren Darul Rahman Sumbersari...');
-
-  const masterPrisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: `file:${path.join(__dirname, '../prisma/dev.db')}`,
-      },
-    },
-  });
 
   const passwordHash = await bcrypt.hash('admin123', 10);
   const subdomain = 'darulrahman';
@@ -22,23 +14,11 @@ async function seedDarulRahman() {
   const noWhatsapp = '+6285123734342';
   const licenseKey = 'KGD-DARULRAHMAN-2026-REAL';
 
-  const tenantsDir = path.join(__dirname, '../prisma/tenants');
-  if (!fs.existsSync(tenantsDir)) {
-    fs.mkdirSync(tenantsDir, { recursive: true });
-  }
-  const tenantDbPath = path.join(tenantsDir, `tenant_${subdomain}.db`);
-  const masterDbPath = path.join(__dirname, '../prisma/dev.db');
-
-  // Copy struktur schema dari dev.db jika belum ada
-  if (!fs.existsSync(tenantDbPath) && fs.existsSync(masterDbPath)) {
-    fs.copyFileSync(masterDbPath, tenantDbPath);
-  }
-
-  // 1. Setup di Master Database (dev.db)
+  // 1. Setup di Master Database (PostgreSQL)
   console.log('📦 [1/3] Mengonfigurasi Master Database...');
 
   // Upsert Akun Super Admin di Master DB
-  await masterPrisma.userAccount.upsert({
+  await prisma.userAccount.upsert({
     where: { username: 'admin' },
     update: {
       name: namaPengelola,
@@ -76,7 +56,7 @@ async function seedDarulRahman() {
   ];
 
   for (const s of settingsMaster) {
-    await masterPrisma.systemSetting.upsert({
+    await prisma.systemSetting.upsert({
       where: { key: s.key },
       update: { value: s.value },
       create: { key: s.key, value: s.value },
@@ -84,7 +64,7 @@ async function seedDarulRahman() {
   }
 
   // Daftarkan ke MitraAktif
-  await masterPrisma.mitraAktif.upsert({
+  const mitraAktif = await prisma.mitraAktif.upsert({
     where: { subdomain },
     update: {
       namaPondok,
@@ -94,7 +74,6 @@ async function seedDarulRahman() {
       packageType: 'LIFETIME',
       amount: 3500000,
       licenseKey,
-      dbPath: tenantDbPath,
       adminUsername: 'admin',
       adminPasswordHash: passwordHash,
       status: 'ACTIVE',
@@ -109,7 +88,6 @@ async function seedDarulRahman() {
       packageType: 'LIFETIME',
       amount: 3500000,
       licenseKey,
-      dbPath: tenantDbPath,
       adminUsername: 'admin',
       adminPasswordHash: passwordHash,
       status: 'ACTIVE',
@@ -117,64 +95,24 @@ async function seedDarulRahman() {
     },
   });
 
-  // 2. Setup Database Tenant Mandiri (tenant_darulrahman.db)
-  console.log('🏛️ [2/3] Mengonfigurasi Database Tenant Mandiri (tenant_darulrahman.db)...');
-  const tenantPrisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: `file:${tenantDbPath}`,
-      },
-    },
-  });
-
-  // Buat/Update Akun Super Admin di DB Tenant
-  await tenantPrisma.userAccount.upsert({
-    where: { username: 'admin' },
-    update: {
-      name: namaPengelola,
-      password: passwordHash,
-      role: 'SUPER_ADMIN',
-      division: 'PENGASUHAN_PUSAT',
-      isActive: true,
-    },
-    create: {
-      username: 'admin',
-      name: namaPengelola,
-      password: passwordHash,
-      role: 'SUPER_ADMIN',
-      division: 'PENGASUHAN_PUSAT',
-      isActive: true,
-    },
-  });
-
-  // Simpan seluruh Pengaturan Identitas di DB Tenant
-  for (const s of settingsMaster) {
-    await tenantPrisma.systemSetting.upsert({
-      where: { key: s.key },
-      update: { value: s.value },
-      create: { key: s.key, value: s.value },
-    });
-  }
-
-  // 3. Pastikan Master Tarif Tagihan Resmi Siap Pakai
-  console.log('💳 [3/3] Menyiapkan Tarif Tagihan Syahriyah...');
+  // 2. Inisialisasi Master Tarif Tagihan Standar
+  console.log('💳 [2/3] Menyiapkan Tarif Tagihan Syahriyah...');
   const defaultBills = [
     { name: 'SPP Syahriyah Bulanan', amount: 1200000, type: 'BULANAN_HIJRIYAH', description: 'Biaya pendidikan dan operasional asrama bulanan' },
-    { name: 'Uang Makan & Konsumsi', amount: 600000, type: 'BULANAN_HIJRIYAH', description: 'Konsumsi dapur santri 3x makan sehari' },
-    { name: 'Infaq Sarana & Prasarana', amount: 500000, type: 'SEKALI_BAYAR', description: 'Pengembangan sarana & gedung pondok' },
+    { name: 'Uang Makan & Konsumsi', amount: 600000, type: 'BULANAN_HIJRIYAH', description: 'Konsumsi dapur santri 3x sehari' },
+    { name: 'Infaq Sarana & Prasarana', amount: 500000, type: 'SEKALI_BAYAR', description: 'Pengembangan fasilitas pondok' },
   ];
 
   for (const b of defaultBills) {
-    const ex = await tenantPrisma.masterBill.findFirst({ where: { name: b.name } });
+    const ex = await prisma.masterBill.findFirst({ where: { name: b.name } });
     if (!ex) {
-      await tenantPrisma.masterBill.create({
+      await prisma.masterBill.create({
         data: { ...b, isActive: true },
       });
     }
   }
 
-  await masterPrisma.$disconnect();
-  await tenantPrisma.$disconnect();
+  await prisma.$disconnect();
 
   console.log('====================================================================');
   console.log('🎉 AKUN REAL PONDOK PESANTREN DARUL RAHMAN SUMBERSARI BERHASIL DIBUAT!');
