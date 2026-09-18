@@ -131,105 +131,22 @@ function getStorageKey(tenant = null) {
 // INITIAL SEED DATA BUILDER
 // -----------------------------------------------------------------------------
 function buildInitialDatabase(tenant) {
-  const isDarulRahman = tenant === 'darulrahman';
   const now = new Date();
 
-  // Template Kategori Tagihan Master Standar Pesantren (Siap digunakan tanpa santri dummy)
-  const masterBills = [
-    {
-      id: 1,
-      name: 'SPP Syahriyah Pesantren',
-      amount: 1200000,
-      type: 'BULANAN_HIJRIYAH',
-      description: 'SPP Pendidikan, Muhafadzoh, & Asrama Bulanan',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 2,
-      name: 'Biaya Konsumsi Dapur Santri',
-      amount: 650000,
-      type: 'BULANAN_HIJRIYAH',
-      description: 'Konsumsi dapur santri 3x sehari berstandar gizi',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 3,
-      name: 'Paket Kitab & Modul Salafiyah',
-      amount: 350000,
-      type: 'TAHUNAN',
-      description: isDarulRahman 
-        ? 'Nadzom Alfiyah Ibnu Malik, Imrithi, Taqrib, & Kitab Salaf' 
-        : 'Kitab Kuning, Kamus Bahasa, & Buku Panduan Tahunan',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-  ];
+  // Template Kategori Tagihan Master Standar Pesantren (Kosong - akan diisi manual oleh admin)
+  const masterBills = [];
 
-  // Template Akun Devisi Awal (Dapat diedit & ditambah sepenuhnya oleh Super Admin)
+  // Template Akun Devisi Awal - Hanya Super Admin, sisanya dibuat manual
   const userAccounts = [
     {
       id: 1,
       username: 'admin',
       password: 'admin123',
-      name: isDarulRahman ? 'Super Administrator Darul Rahman' : 'Super Administrator',
+      name: 'Super Administrator',
       role: 'SUPER_ADMIN',
       division: 'PUSAT',
       managedSantriIds: null,
       performanceNotes: 'Mengelola seluruh operasional sistem.',
-      performanceGrade: 'Mumtaz',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 2,
-      username: 'uangsaku',
-      password: 'admin123',
-      name: 'Ustadz Ridwan (Pengurus Uang Saku)',
-      role: 'PENGURUS_SAKU',
-      division: 'ASRAMA_POS',
-      managedSantriIds: null,
-      performanceNotes: 'Pencatatan uang saku santri tertib dan amanah.',
-      performanceGrade: 'Mumtaz',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 3,
-      username: 'bendahara',
-      password: 'admin123',
-      name: 'Ustadz Bendahara, S.E.',
-      role: 'BENDAHARA',
-      division: 'KEUANGAN',
-      managedSantriIds: null,
-      performanceNotes: 'Pembukuan keuangan dan tagihan syahriyah rapi.',
-      performanceGrade: 'Mumtaz',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 4,
-      username: 'kamtib',
-      password: 'admin123',
-      name: 'Ustadz Danang (Keamanan & Kamtib)',
-      role: 'KEAMANAN',
-      division: 'KAMTIB',
-      managedSantriIds: null,
-      performanceNotes: 'Disiplin dan aktif memantau perizinan santri.',
-      performanceGrade: 'Mumtaz',
-      isActive: true,
-      createdAt: now.toISOString(),
-    },
-    {
-      id: 5,
-      username: 'pengasuh',
-      password: 'admin123',
-      name: 'K.H. Pengasuh Pondok',
-      role: 'KEPALA_PONDOK',
-      division: 'PENGASUHAN',
-      managedSantriIds: null,
-      performanceNotes: 'Pengasuh Utama Pondok Pesantren.',
       performanceGrade: 'Mumtaz',
       isActive: true,
       createdAt: now.toISOString(),

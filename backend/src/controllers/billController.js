@@ -349,7 +349,8 @@ exports.payOnline = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Silakan pilih tagihan yang ingin dibayar' });
     }
 
-    if (paymentMethod !== 'KING_DIGITAL_PG' && !proofImage) {
+    const autoVerifyMethods = ['KING_DIGITAL_PG', 'PAYMENTKU'];
+    if (!autoVerifyMethods.includes(paymentMethod) && !proofImage) {
       return res.status(400).json({ success: false, message: 'Bukti transfer wajib diunggah untuk pembayaran manual' });
     }
 
@@ -357,23 +358,33 @@ exports.payOnline = async (req, res) => {
     for (const id of targetIds) {
       const existing = await prisma.santriBill.findUnique({ where: { id } });
       if (existing) {
+        const newStatus = autoVerifyMethods.includes(paymentMethod) ? 'PAID' : 'PENDING_VERIFICATION';
         const updated = await prisma.santriBill.update({
           where: { id },
           data: {
-            status: 'PENDING_VERIFICATION',
+            status: newStatus,
             paymentMethod: paymentMethod || 'TRANSFER_BSI',
             paymentDate: new Date(),
             proofImage: proofImage || null,
             notes: notes || 'Konfirmasi pembayaran dari Portal Wali online',
+            ...(newStatus === 'PAID' && {
+              verifiedAt: new Date(),
+              verifiedBy: paymentMethod === 'PAYMENTKU' ? 'PaymentKu Instant Gateway (paymentku.com)' : 'King Digital Payment Gateway',
+              receiptNumber: `KWT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random() * 9000)}`
+            })
           }
         });
         updatedBills.push(updated);
       }
     }
 
+    const msg = autoVerifyMethods.includes(paymentMethod) 
+      ? `Pembayaran via ${paymentMethod} berhasil diverifikasi otomatis! Kwitansi resmi telah diterbitkan.` 
+      : `Bukti transfer untuk ${updatedBills.length} tagihan berhasil dikirim! Status saat ini Menunggu Verifikasi Bendahara.`;
+
     res.json({
       success: true,
-      message: `Bukti transfer untuk ${updatedBills.length} tagihan berhasil dikirim! Status saat ini Menunggu Verifikasi Bendahara.`,
+      message: msg,
       data: updatedBills
     });
   } catch (err) {

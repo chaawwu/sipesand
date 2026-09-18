@@ -516,55 +516,7 @@ export async function onRequest(context) {
           .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       }
 
-      // Jika belum ada riwayat uang saku untuk santri ini, auto-seed riwayat awal
-      if (pocketTxs.length === 0) {
-        const now = Date.now();
-        const currentBal = parseFloat(santri.saldo_saku || 185000);
-        const demoTxs = [
-          {
-            id: `TX-PKT-${now}-1`,
-            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-            santriId: String(santri.id),
-            type: 'TOPUP',
-            amount: 200000,
-            description: 'Top-Up Saldo Uang Saku oleh Wali Santri',
-            merchant: 'Transfer M-Banking',
-            balanceAfter: currentBal,
-            createdAt: new Date(now - 7 * 24 * 3600 * 1000).toISOString()
-          },
-          {
-            id: `TX-PKT-${now}-2`,
-            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-            santriId: String(santri.id),
-            type: 'PURCHASE',
-            amount: 15000,
-            description: 'Pembelian Kitab & Alat Tulis Santri',
-            merchant: 'Koperasi Pondok Putra',
-            balanceAfter: currentBal - 50000,
-            createdAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString()
-          },
-          {
-            id: `TX-PKT-${now}-3`,
-            txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-            santriId: String(santri.id),
-            type: 'WITHDRAW',
-            amount: 50000,
-            description: 'Penarikan Tunai Uang Saku Mingguan di Asrama',
-            merchant: 'Pos Keuangan Asrama',
-            balanceAfter: currentBal,
-            createdAt: new Date(now - 1 * 24 * 3600 * 1000).toISOString()
-          }
-        ];
-
-        for (const t of demoTxs) {
-          await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs/${t.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(encodeDoc(t))
-          });
-          pocketTxs.push(t);
-        }
-      }
+      // No auto-seed demo data - clean production-ready database
 
       const unpaidBills = bills.filter(b => b.status !== 'PAID');
       const paidBills = bills.filter(b => b.status === 'PAID');
@@ -601,22 +553,7 @@ export async function onRequest(context) {
           list = (json.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
         }
 
-        // Auto-seed template master tagihan standar pesantren jika masih kosong
-        if (list.length === 0) {
-          const defaultMasters = [
-            { id: '1', name: 'SPP Syahriyah Pesantren', amount: 1200000, type: 'BULANAN_HIJRIYAH', description: 'SPP Pendidikan, Muhafadzoh, & Asrama Bulanan', isActive: true, createdAt: new Date().toISOString() },
-            { id: '2', name: 'Biaya Konsumsi Dapur Santri', amount: 650000, type: 'BULANAN_HIJRIYAH', description: 'Konsumsi dapur santri 3x sehari berstandar gizi', isActive: true, createdAt: new Date().toISOString() },
-            { id: '3', name: 'Paket Kitab & Modul Salafiyah', amount: 350000, type: 'TAHUNAN', description: 'Kitab Salafiyah, Kamus Bahasa, & Buku Panduan Tahunan', isActive: true, createdAt: new Date().toISOString() }
-          ];
-          for (const m of defaultMasters) {
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/master_bills/${m.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc(m))
-            });
-          }
-          list = defaultMasters;
-        }
+        // No auto-seed demo data - clean production-ready database
 
         return jsonResponse({ success: true, data: list });
       }
@@ -898,76 +835,7 @@ export async function onRequest(context) {
         bills = (bJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
       }
 
-      // Jika belum ada tagihan di Firestore DAN ada data santri, auto-seed tagihan awal
-      if (bills.length === 0 && santriList.length > 0) {
-        const initialBills = [];
-        for (const s of santriList) {
-          const now = new Date();
-          const lastMonth = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-
-          // 1. Tagihan SPP Bulan Ini (UNPAID)
-          const b1Id = `BILL-${Date.now().toString(36).toUpperCase()}-1`;
-          const b1 = {
-            id: b1Id,
-            billCode: `SPP-${Math.floor(100000 + Math.random() * 900000)}`,
-            santriId: String(s.id),
-            masterBillId: '1',
-            title: 'SPP Syahriyah Ramadhan 1447 H',
-            hijriMonth: 'Ramadhan',
-            hijriYear: '1447 H',
-            amount: 1200000,
-            dueDate: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
-            status: 'UNPAID',
-            createdAt: now.toISOString()
-          };
-
-          // 2. Tagihan Konsumsi Bulan Ini (UNPAID)
-          const b2Id = `BILL-${Date.now().toString(36).toUpperCase()}-2`;
-          const b2 = {
-            id: b2Id,
-            billCode: `KNS-${Math.floor(100000 + Math.random() * 900000)}`,
-            santriId: String(s.id),
-            masterBillId: '2',
-            title: 'Biaya Konsumsi Dapur Ramadhan 1447 H',
-            hijriMonth: 'Ramadhan',
-            hijriYear: '1447 H',
-            amount: 650000,
-            dueDate: new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
-            status: 'UNPAID',
-            createdAt: now.toISOString()
-          };
-
-          // 3. Tagihan Bulan Lalu (PAID) - Untuk Riwayat Kwitansi Sah
-          const b3Id = `BILL-${Date.now().toString(36).toUpperCase()}-PAID`;
-          const b3 = {
-            id: b3Id,
-            billCode: `SPP-144708`,
-            receiptNumber: `KWT-SPP-144708-001`,
-            santriId: String(s.id),
-            masterBillId: '1',
-            title: 'SPP Syahriyah Sya\'ban 1447 H',
-            hijriMonth: 'Sya\'ban',
-            hijriYear: '1447 H',
-            amount: 1200000,
-            dueDate: lastMonth.toISOString().split('T')[0],
-            status: 'PAID',
-            paymentMethod: 'TRANSFER_BANK_BSI',
-            paidAt: lastMonth.toISOString(),
-            verifiedAt: lastMonth.toISOString(),
-            createdAt: lastMonth.toISOString()
-          };
-
-          for (const b of [b1, b2, b3]) {
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/bills/${b.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc(b))
-            });
-            initialBills.push(b);
-          }
-        }
-        bills = initialBills;
-      }
+      // No auto-seed demo data - clean production-ready database
 
       // Hubungkan relasi santri dan masterBill ke setiap tagihan
       const enriched = bills.map(b => {
@@ -1249,55 +1117,7 @@ export async function onRequest(context) {
           santriList = (sJson.documents || []).map(d => ({ id: d.name.split('/').pop(), ...decodeFields(d.fields) }));
         }
 
-        // Auto-seed histori uang saku jika masih kosong dan ada santri
-        if (items.length === 0 && santriList.length > 0) {
-          const s = santriList[0];
-          const now = Date.now();
-          const currentBal = parseFloat(s.saldo_saku || 185000);
-          const initialTxs = [
-            {
-              id: `TX-PKT-${now}-1`,
-              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-              santriId: String(s.id),
-              type: 'TOPUP',
-              amount: 200000,
-              description: 'Top-Up Saldo Uang Saku oleh Wali Santri',
-              merchant: 'Transfer M-Banking',
-              balanceAfter: currentBal,
-              createdAt: new Date(now - 7 * 24 * 3600 * 1000).toISOString()
-            },
-            {
-              id: `TX-PKT-${now}-2`,
-              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-              santriId: String(s.id),
-              type: 'PURCHASE',
-              amount: 15000,
-              description: 'Pembelian Kitab & Alat Tulis Santri',
-              merchant: 'Koperasi Pondok Putra',
-              balanceAfter: currentBal - 50000,
-              createdAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString()
-            },
-            {
-              id: `TX-PKT-${now}-3`,
-              txCode: `TRX-${Math.floor(100000 + Math.random() * 900000)}`,
-              santriId: String(s.id),
-              type: 'WITHDRAW',
-              amount: 50000,
-              description: 'Penarikan Tunai Uang Saku Mingguan di Asrama',
-              merchant: 'Pos Keuangan Asrama',
-              balanceAfter: currentBal,
-              createdAt: new Date(now - 1 * 24 * 3600 * 1000).toISOString()
-            }
-          ];
-          for (const t of initialTxs) {
-            await fetch(`${FIRESTORE_BASE}/tenants/${tenant}/pocket_txs/${t.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(encodeDoc(t))
-            });
-            items.push(t);
-          }
-        }
+        // No auto-seed demo data - clean production-ready database
 
         const enriched = items.map(tx => ({
           ...tx,

@@ -206,7 +206,7 @@ exports.checkSubdomainAvailability = async (req, res) => {
   }
 };
 
-// 1. Pendaftaran Mitra Baru & Pembuatan Invoice Payment Gateway
+// 1. Pendaftaran Mitra Baru & Pembuatan Invoice Payment Gateway (PaymentKu.com)
 exports.registerMitra = async (req, res) => {
   try {
     const { namaPondok, subdomain, namaPengelola, email, noWhatsapp, packageType } = req.body;
@@ -259,15 +259,14 @@ exports.registerMitra = async (req, res) => {
     const pkg = packageType === 'LIFETIME' ? 'LIFETIME' : 'TAHUNAN';
     const amount = pkg === 'LIFETIME' ? config.lifetimePrice : config.tahunanPrice;
 
-    // Membuat invoice pembayaran. Status lunas hanya berasal dari webhook atau verifikasi admin.
+    // Membuat invoice pembayaran via PaymentKu.com
     const timestamp = Date.now().toString();
     const orderId = `KGD-ORD-${cleanSubdomain.toUpperCase()}-${timestamp.slice(-6)}`;
-    const vaNumber = `8809${timestamp.slice(-8)}`;
-    const qrisString = `00020101021226580016ID.CO.KINGDIGITAL.WWW01189360099281928374655204581453033605407${amount}5802ID5915KING_DIGITAL_DEV6007BANDUNG61054011562070703A016304${orderId.slice(-4)}`;
-    const qrisUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrisString)}`;
+    const extId = `PKU-${timestamp.slice(-8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const checkoutUrl = `https://paymentku.com/checkout/${extId}?amount=${amount}&name=${encodeURIComponent(namaPondok)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(noWhatsapp)}`;
     const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Jam
 
-    // Simpan ke Tabel MitraPending
+    // Simpan ke Tabel MitraPending dengan paymentku checkout URL
     const pendingRecord = await prisma.mitraPending.create({
       data: {
         namaPondok,
@@ -278,10 +277,10 @@ exports.registerMitra = async (req, res) => {
         packageType: pkg,
         amount,
         orderId,
-        qrisUrl,
-        qrisString,
-        vaNumber,
-        vaBank: 'Bank Syariah Indonesia (BSI)',
+        qrisUrl: checkoutUrl,
+        qrisString: '',
+        vaNumber: '',
+        vaBank: 'PaymentKu Gateway (paymentku.com)',
         status: 'PENDING',
         expiredAt,
       },
@@ -289,7 +288,7 @@ exports.registerMitra = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Pendaftaran mitra berhasil dibuat. Silakan selesaikan pembayaran lisensi platform.',
+      message: 'Pendaftaran mitra berhasil dibuat. Silakan selesaikan pembayaran lisensi platform via PaymentKu.',
       data: {
         orderId: pendingRecord.orderId,
         namaPondok: pendingRecord.namaPondok,
@@ -299,10 +298,8 @@ exports.registerMitra = async (req, res) => {
         noWhatsapp: pendingRecord.noWhatsapp,
         packageType: pendingRecord.packageType,
         amount: pendingRecord.amount,
-        qrisUrl: pendingRecord.qrisUrl,
-        qrisString: pendingRecord.qrisString,
-        vaNumber: pendingRecord.vaNumber,
-        vaBank: pendingRecord.vaBank,
+        checkoutUrl: checkoutUrl,
+        paymentGateway: 'PaymentKu (paymentku.com)',
         status: pendingRecord.status,
         expiredAt: pendingRecord.expiredAt,
       },

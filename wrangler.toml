@@ -1,0 +1,13 @@
+name = "sipesand-app"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "frontend/dist"
+
+[vars]
+FIRESTORE_PROJECT_ID = "sipesand-app"
+
+[[r2_bucket_bindings]]
+binding = "SIPESAND_R2"
+bucket_name = "sipesand-storage"
+
+[build]
+command = "npm --prefix frontend run build"
