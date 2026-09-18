@@ -414,6 +414,61 @@ async function settlePaymenkuReference(tenantHint, referenceId, pku) {
 }
 
 // -----------------------------------------------------------------------------
+// MITRA ADMIN AUTH GUARD — lindungi endpoint sensitif + rahasiakan secret
+// Secret (API key / webhook secret) TIDAK PERNAH dikembalikan ke browser.
+// Penyimpanan terbaik: Environment Variable Cloudflare Pages (terenkripsi).
+// -----------------------------------------------------------------------------
+const SECRET_CONFIG_KEYS = [
+  'paymentkuApiKey', 'kaserapayApiKey', 'paymentkuSecretKey',
+  'paymentkuWebhookSecret', 'kaserapayWebhookSecret',
+];
+
+function publicMitraConfig(cfg) {
+  const pub = { ...(cfg || {}) };
+  let apiKeySet = false;
+  let webhookSecretSet = false;
+  for (const k of SECRET_CONFIG_KEYS) {
+    if (pub[k]) {
+      if (k.toLowerCase().includes('webhook')) webhookSecretSet = true;
+      else apiKeySet = true;
+    }
+    delete pub[k];
+  }
+  pub.paymentkuApiKeySet = apiKeySet;
+  pub.paymentkuWebhookSecretSet = webhookSecretSet;
+  return pub;
+}
+
+const MITRA_CONFIG_ALLOWLIST = [
+  'bankName', 'bankAccountNo', 'bankAccountHolder', 'waConfirmationNumber',
+  'tahunanPrice', 'lifetimePrice', 'qrisImageUrl', 'qrisString',
+  'heroHeadline', 'heroSubheadline', 'ctaText', 'badgeText', 'instructions',
+  'paymentkuApiKey', 'kaserapayApiKey', 'paymentkuBaseUrl', 'kaserapayBaseUrl',
+  'paymentkuWebhookSecret', 'kaserapayWebhookSecret',
+];
+
+async function requireDevSession(request) {
+  try {
+    const authHeader = request.headers.get('authorization') || '';
+    const url = new URL(request.url);
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim() || (url.searchParams.get('token') || '').trim();
+    if (!token || token.length < 8) return null;
+    const sessRes = await fetch(`${FIRESTORE_BASE}/tenants/master/developer_sessions/${encodeURIComponent(token)}`);
+    if (!sessRes.ok) return null;
+    const doc = await sessRes.json();
+    const sess = decodeFields(doc.fields);
+    if (!sess.expiresAt || new Date(sess.expiresAt).getTime() <= Date.now()) return null;
+    return sess;
+  } catch (e) {
+    return null;
+  }
+}
+
+function unauthorizedResponse() {
+  return jsonResponse({ success: false, message: 'Akses ditolak. Login developer diperlukan (sesi kedaluwarsa / token tidak valid).' }, 401);
+}
+
+// -----------------------------------------------------------------------------
 // CLOUDFLARE R2 OBJECT STORAGE ENGINE & 10 GB QUOTA SAFEGUARD
 // -----------------------------------------------------------------------------
 // Cloudflare R2 Free Tier:
@@ -1888,7 +1943,8 @@ export async function onRequest(context) {
         const res = await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`);
         if (res.ok) {
           const doc = await res.json();
-          return jsonResponse({ success: true, data: decodeFields(doc.fields) });
+          // JANGAN PERNAH kirim secret (API key / webhook secret) ke browser
+          return jsonResponse({ success: true, data: publicMitraConfig(decodeFields(doc.fields)) });
         }
         // Default master payment config
         return jsonResponse({
@@ -1911,9 +1967,18 @@ export async function onRequest(context) {
       }
 
       if (method === 'POST') {
-        const body = await request.json();
+        const sess = await requireDevSession(request);
+        if (!sess) return unauthorizedResponse();
+        const body = await request.json().catch(() => ({}));
+        // Allowlist + abaikan secret kosong agar key yang tersimpan tidak terhapus
+        const clean = {};
+        for (const k of MITRA_CONFIG_ALLOWLIST) {
+          if (body[k] === undefined) continue;
+          if (SECRET_CONFIG_KEYS.includes(k) && String(body[k]).trim() === '') continue;
+          clean[k] = body[k];
+        }
         const firestorePayload = encodeDoc({
-          ...body,
+          ...clean,
           updatedAt: new Date().toISOString()
         });
         await fetch(`${FIRESTORE_BASE}/tenants/master/settings/mitra_payment_config`, {
@@ -1921,11 +1986,11 @@ export async function onRequest(context) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(firestorePayload)
         });
-        await logAuditEvent('CONFIG_UPDATED', 'Pengaturan Rekening, QRIS, & Harga Lisensi diperbarui', 'Superadmin Dev');
+        await logAuditEvent('CONFIG_UPDATED', `Pengaturan mitra diperbarui oleh ${sess.email || 'developer'}`, sess.email || 'developer');
         return jsonResponse({
           success: true,
           message: 'Pengaturan Rekening Bank, QRIS, & Harga Lisensi berhasil diperbarui!',
-          data: body
+          data: publicMitraConfig(clean)
         });
       }
     }
@@ -2196,8 +2261,9 @@ export async function onRequest(context) {
       });
     }
 
-    // D. /api/mitra/orders - Daftar seluruh pendaftaran mitra (untuk mitra.sipesand.web.id)
+    // D. /api/mitra/orders - Daftar seluruh pendaftaran mitra (KHUSUS developer login)
     if (route === 'mitra/orders' && method === 'GET') {
+      if (!(await requireDevSession(request))) return unauthorizedResponse();
       const res = await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders`);
       if (res.ok) {
         const json = await res.json();
@@ -2211,6 +2277,7 @@ export async function onRequest(context) {
     }
 
     if (route.startsWith('mitra/orders/') && method === 'DELETE') {
+      if (!(await requireDevSession(request))) return unauthorizedResponse();
       const ordId = route.replace('mitra/orders/', '').trim();
       await fetch(`${FIRESTORE_BASE}/tenants/master/mitra_orders/${ordId}`, { method: 'DELETE' });
       return jsonResponse({ success: true, message: 'Pesanan pendaftaran berhasil dihapus' });
@@ -2289,6 +2356,7 @@ export async function onRequest(context) {
 
     // G. /api/mitra/verify-order - Superadmin memverifikasi pembayaran & auto-provisioning tenant
     if (route === 'mitra/verify-order' && method === 'POST') {
+      if (!(await requireDevSession(request))) return unauthorizedResponse();
       const body = await request.json();
       const { orderId } = body;
 
@@ -2513,8 +2581,9 @@ export async function onRequest(context) {
     // 14. REAL DATA ENGINE: REAL TENANTS & REAL AUDIT LOGS (NO GIMMICKS)
     // -------------------------------------------------------------------------
     
-    // A. GET /api/mitra/tenants - Seluruh data tenant riil di database
+    // A. GET /api/mitra/tenants - Seluruh data tenant riil (KHUSUS developer login)
     if (route === 'mitra/tenants' && method === 'GET') {
+      if (!(await requireDevSession(request))) return unauthorizedResponse();
       const tenantsList = [];
 
       // 1. Tenant Pusat Default: Darul Rahman
@@ -2577,8 +2646,9 @@ export async function onRequest(context) {
       return jsonResponse({ success: true, data: tenantsList });
     }
 
-    // B. GET /api/mitra/audit-logs - Seluruh audit trails riil di database
+    // B. GET /api/mitra/audit-logs - Seluruh audit trails riil (KHUSUS developer login)
     if (route === 'mitra/audit-logs' && method === 'GET') {
+      if (!(await requireDevSession(request))) return unauthorizedResponse();
       try {
         const res = await fetch(`${FIRESTORE_BASE}/tenants/master/audit_logs`);
         if (res.ok) {

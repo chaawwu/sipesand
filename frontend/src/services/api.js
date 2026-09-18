@@ -61,13 +61,19 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Otomatis kirim X-Tenant-Subdomain ke Backend
+// Request Interceptor: Otomatis kirim X-Tenant-Subdomain + token developer ke Backend
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const tenant = config.params?.tenant || getCurrentTenant();
     if (tenant && tenant !== 'default') {
       config.headers['X-Tenant-Subdomain'] = tenant;
     }
+    try {
+      const devToken = sessionStorage.getItem('sipesand_dev_token');
+      if (devToken && !config.headers['Authorization']) {
+        config.headers['Authorization'] = `Bearer ${devToken}`;
+      }
+    } catch (e) {}
   }
   return config;
 });
@@ -547,9 +553,16 @@ export const getMitraConfig = async () => {
   }
 };
 
+const MITRA_SECRET_KEYS = ['paymentkuApiKey', 'kaserapayApiKey', 'paymentkuSecretKey', 'paymentkuWebhookSecret', 'kaserapayWebhookSecret'];
+
 export const updateMitraConfig = async (data) => {
   try {
-    const res = await api.post('/mitra/config', data);
+    // Jangan kirim secret kosong agar key yang tersimpan tidak terhapus
+    const payload = { ...(data || {}) };
+    for (const k of MITRA_SECRET_KEYS) {
+      if (payload[k] !== undefined && String(payload[k]).trim() === '') delete payload[k];
+    }
+    const res = await api.post('/mitra/config', payload);
     return { data: res.data, ...res.data };
   } catch (err) {
     return { data: { success: false, message: 'Konfigurasi pembayaran lisensi mitra gagal disimpan.' } };

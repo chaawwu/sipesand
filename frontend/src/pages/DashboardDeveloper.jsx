@@ -2459,16 +2459,19 @@ export default function DashboardDeveloper({
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                           PaymentKu API Key (Secret Key):
+                          {mitraConfig.paymentkuApiKeySet && (
+                            <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-black uppercase">Tersimpan ✓</span>
+                          )}
                         </label>
                         <input
                           type="password"
-                          placeholder="sk_live_xxxxxxxxxxxxxxxx (atau sk_test_... untuk uji coba)"
+                          placeholder={mitraConfig.paymentkuApiKeySet ? '•••••••• (tersimpan — kosongkan bila tidak diubah)' : 'sk_live_xxxxxxxxxxxxxxxx (atau sk_test_... untuk uji coba)'}
                           value={mitraConfig.paymentkuApiKey || mitraConfig.kaserapayApiKey || ''}
                           onChange={(e) => setMitraConfig({ ...mitraConfig, paymentkuApiKey: e.target.value, kaserapayApiKey: e.target.value })}
                           className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
                         />
                         <span className="text-[10px] text-slate-400 mt-1 block">
-                          Wajib diawali <code>sk_live_</code> (produksi) atau <code>sk_test_</code> (uji coba). Ambil dari Dashboard Paymenku → Settings → API Keys → Secret Key. Bukan public key, bukan webhook secret, tanpa spasi.
+                          Wajib diawali <code>sk_live_</code> (produksi) atau <code>sk_test_</code> (uji coba). Ambil dari Dashboard Paymenku → Settings → API Keys → Secret Key. Key tidak pernah ditampilkan kembali demi keamanan.
                         </span>
                       </div>
 
@@ -2491,10 +2494,13 @@ export default function DashboardDeveloper({
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                           PaymentKu Webhook Secret:
+                          {mitraConfig.paymentkuWebhookSecretSet && (
+                            <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-black uppercase">Tersimpan ✓</span>
+                          )}
                         </label>
                         <input
                           type="password"
-                          placeholder="whsec_xxxxxxxxxxxxxxxx"
+                          placeholder={mitraConfig.paymentkuWebhookSecretSet ? '•••••••• (tersimpan — kosongkan bila tidak diubah)' : 'whsec_xxxxxxxxxxxxxxxx'}
                           value={mitraConfig.paymentkuWebhookSecret || mitraConfig.kaserapayWebhookSecret || ''}
                           onChange={(e) => setMitraConfig({ ...mitraConfig, paymentkuWebhookSecret: e.target.value, kaserapayWebhookSecret: e.target.value })}
                           className="w-full px-3.5 py-2.5 bg-slate-50 focus:bg-white border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
