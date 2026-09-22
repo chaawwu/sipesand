@@ -173,8 +173,14 @@ function MainAppContent() {
   const [isDevLoginModalOpen, setIsDevLoginModalOpen] = useState(false);
   const [impersonatingTenant, setImpersonatingTenant] = useState(null);
 
-  // Auth Session State (Tenant Officer / Admin)
-  const [currentUser, setCurrentUser] = useState(null); // { id, username, name, role, division, isImpersonated }
+  // Auth Session State (Tenant Officer / Admin) - restore dari storage agar RBAC Kepala Pondok tetap berfungsi setelah refresh
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('sipesand_user') || sessionStorage.getItem('sipesand_user');
+      if (raw) return JSON.parse(raw);
+    } catch(e){}
+    return null;
+  });
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Active Navigation Tab
@@ -355,6 +361,7 @@ function MainAppContent() {
     if (normalizedRole === 'UANG_SAKU') normalizedRole = 'PENGURUS_SAKU';
     const normalizedUser = { ...user, role: normalizedRole };
     setCurrentUser(normalizedUser);
+    try { localStorage.setItem('sipesand_user', JSON.stringify(normalizedUser)); sessionStorage.setItem('sipesand_user', JSON.stringify(normalizedUser)); } catch(e){}
     
     // Set default initial tab based on division role
     switch (normalizedRole) {
@@ -385,6 +392,7 @@ function MainAppContent() {
       return;
     }
     setCurrentUser(null);
+    try { localStorage.removeItem('sipesand_user'); sessionStorage.removeItem('sipesand_user'); } catch(e){}
     const hostname = window.location.hostname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     if (!isTenantInstance && (hostname.startsWith('app.') || searchParams.get('view') === 'app')) {

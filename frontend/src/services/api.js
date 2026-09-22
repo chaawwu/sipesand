@@ -23,6 +23,9 @@ import {
   deleteCloudBill,
   updateCloudBill,
   subscribeCloudBills,
+  createCloudMasterBill,
+  updateCloudMasterBill,
+  deleteCloudMasterBill,
   getCloudPermits,
   createCloudPermit,
   updateCloudPermitStatus,
@@ -335,27 +338,18 @@ export const getMasterBills = () =>
   runHybrid(() => api.get('/bills/master'), () => getCloudMasterBills());
 
 export const createMasterBill = (data) => 
-  runHybrid(() => api.post('/bills/master', data), () => localDb.createMasterBill(data));
+  runHybrid(() => api.post('/bills/master', data), () => createCloudMasterBill(data));
 
 export const updateMasterBill = (id, data) => 
   runHybrid(
     () => api.put(`/bills/master/${id}`, data),
-    () => {
-      const db = localDb.getData();
-      const index = (db.masterBills || []).findIndex(b => String(b.id) === String(id));
-      if (index !== -1) {
-        db.masterBills[index] = { ...db.masterBills[index], ...data };
-        localDb.saveData(db);
-        return { success: true, data: db.masterBills[index] };
-      }
-      return { success: false, message: 'Master tagihan tidak ditemukan' };
-    }
+    () => updateCloudMasterBill(id, data)
   );
 
 export const deleteMasterBill = (id) => 
   runHybrid(
     () => api.delete(`/bills/master/${id}`),
-    () => localDb.deleteMasterBill(id)
+    () => deleteCloudMasterBill(id)
   );
 
 export const getSantriBills = (params) => 

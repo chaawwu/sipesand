@@ -1165,12 +1165,56 @@ export async function getCloudMasterBills(tenant = null) {
     const colRef = getTenantCol("master_bills", tenant);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
-      return { success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // sync ke local untuk konsistensi hybrid
+      try {
+        const dbLocal = localDb.getData(tenant);
+        dbLocal.masterBills = items;
+        localDb.saveData(dbLocal, tenant);
+      } catch(e){}
+      return { success: true, data: items };
+    } else {
+      // migrasi lokal ke cloud jika cloud kosong tapi lokal ada data
+      try {
+        const dbLocal = localDb.getData(tenant);
+        if (dbLocal.masterBills && dbLocal.masterBills.length > 0) {
+          for (const m of dbLocal.masterBills) {
+            await setDoc(getTenantDoc("master_bills", m.id, tenant), m);
+          }
+          return { success: true, data: dbLocal.masterBills };
+        }
+      } catch(e){}
     }
   } catch (err) {
     console.warn("getCloudMasterBills fallback:", err);
   }
   return localDb.getMasterBills();
+}
+
+export async function createCloudMasterBill(data, tenant = null) {
+  const localRes = localDb.createMasterBill(data);
+  if (localRes.success && localRes.data) {
+    try { await setDoc(getTenantDoc("master_bills", localRes.data.id, tenant), localRes.data); } catch(e){ console.warn("Gagal sync master bill ke Firestore", e); }
+  }
+  return localRes;
+}
+export async function updateCloudMasterBill(id, data, tenant = null) {
+  const db = localDb.getData(tenant);
+  const idx = (db.masterBills || []).findIndex(b => String(b.id) === String(id));
+  if (idx !== -1) {
+    db.masterBills[idx] = { ...db.masterBills[idx], ...data, updatedAt: new Date().toISOString() };
+    localDb.saveData(db, tenant);
+    try { await setDoc(getTenantDoc("master_bills", id, tenant), db.masterBills[idx], { merge: true }); } catch(e){ console.warn("Gagal sync update master bill", e); }
+    return { success: true, data: db.masterBills[idx] };
+  }
+  // fallback jika belum ada di local tapi ada di cloud
+  try { await setDoc(getTenantDoc("master_bills", id, tenant), data, { merge: true }); } catch(e){}
+  return { success: false, message: 'Master tagihan tidak ditemukan' };
+}
+export async function deleteCloudMasterBill(id, tenant = null) {
+  const localRes = localDb.deleteMasterBill(id);
+  try { await deleteDoc(getTenantDoc("master_bills", id, tenant)); } catch(e){ console.warn("Gagal delete master bill cloud", e); }
+  return localRes;
 }
 
 export async function uploadCloudPaymentProof({ billId, billIds, proofUrl, proofImage, proofNote, notes, paymentMethod }, tenant = null) {
