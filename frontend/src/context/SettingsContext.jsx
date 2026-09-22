@@ -4,6 +4,11 @@ import { subscribeCloudSettings } from '../services/cloudDatabase';
 
 export const DEFAULT_PENGASUH_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240' width='240' height='240'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230B52E2'/%3E%3Cstop offset='100%25' stop-color='%23062D7D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='240' height='240' rx='36' fill='url(%23bg)'/%3E%3Ccircle cx='120' cy='95' r='42' fill='%23FFFFFF' opacity='0.92'/%3E%3Cpath d='M82 82 C82 52, 158 52, 158 82 Z' fill='%23111827'/%3E%3Cpath d='M50 210 C50 152, 190 152, 190 210 Z' fill='%23FFFFFF' opacity='0.92'/%3E%3Cpath d='M120 152 L120 210' stroke='%230B52E2' stroke-width='4' stroke-dasharray='4 4'/%3E%3C/svg%3E";
 
+export const PONDOK_SYSTEM_OPTIONS = [
+  { id: 'SALAFIYAH_KITAB_KUNING', label: 'Salafiyah – Kitab Kuning', desc: 'Fokus kajian kitab kuning, nadzoman (Alfiyah, Imrithi), musyawarah & takror. Cocok untuk pondok salaf murni.' },
+  { id: 'TAHFIDZ_ALQURAN', label: 'Tahfidz Al-Qur\'an', desc: 'Fokus hafalan Al-Qur\'an 30 juz, murojaah, tahsin & program karantina tahfidz.' },
+];
+
 export const TENANT_PROFILES = {
   darulrahman: {
     NAMA_LEMBAGA: 'Pondok Pesantren Darul Rahman Sumbersari',
@@ -39,6 +44,7 @@ export const TENANT_PROFILES = {
     SUBDOMAIN_TENANT: 'darulrahman',
     LICENSE_KEY: 'KGD-DARULRAHMAN-2026-REAL',
     PACKAGE_TYPE: 'LIFETIME',
+    PONDOK_SYSTEM_TYPE: 'SALAFIYAH_KITAB_KUNING',
     NFC_FEATURE_ENABLED: 'true',
     AUTO_BACKUP_ENABLED: 'true',
     LOGO_PONDOK_URL: '/logo.png',
@@ -155,6 +161,7 @@ const defaultSettings = {
   PSB_TAHUN: '2026/2027',
   PSB_WHATSAPP: '+6285123734342',
   PSB_DESCRIPTION: 'Pendaftaran kemitraan dan instalasi ekosistem SiPesand untuk pondok pesantren di seluruh Indonesia.',
+  PONDOK_SYSTEM_TYPE: 'SALAFIYAH_KITAB_KUNING',
   LOGO_PONDOK_URL: '/logo.png',
   CAP_STEMPEL_URL: '',
   TTD_KEPALA_URL: '',

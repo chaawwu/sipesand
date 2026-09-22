@@ -21,6 +21,7 @@ import {
   generateCloudBulkBills,
   payCloudBill,
   deleteCloudBill,
+  updateCloudBill,
   subscribeCloudBills,
   getCloudPermits,
   createCloudPermit,
@@ -361,13 +362,25 @@ export const getSantriBills = (params) =>
   runHybrid(() => api.get('/bills', { params }), () => getCloudBills());
 
 export const generateMassBills = (data) => 
-  runHybrid(() => api.post('/bills/generate-mass', data), () => generateCloudBulkBills(data.masterBillId, data.period, data.dueDate));
+  runHybrid(() => api.post('/bills/generate-mass', data), () => {
+    // Fallback Cloud/local: teruskan payload lengkap agar hijriMonth, santriIds, customTitle/Amount tidak hilang
+    if (data && typeof data === 'object' && (data.santriIds || data.hijriMonth || data.customTitle)) {
+      // Adapter: bangun payload kompatibel untuk generateCloudBulkBills versi baru
+      return generateCloudBulkBills(data);
+    }
+    return generateCloudBulkBills(data.masterBillId, data.period, data.dueDate);
+  });
 
 export const autoGenerateHijriBills = (data) => 
-  runHybrid(() => api.post('/bills/auto-generate-hijri', data), () => generateCloudBulkBills(data.masterBillId, data.period, data.dueDate));
+  runHybrid(() => api.post('/bills/auto-generate-hijri', data), () => {
+    if (data && typeof data === 'object' && (data.hijriMonth || data.hijriYear)) {
+      return generateCloudBulkBills({ masterBillId: data.masterBillId, hijriMonth: data.hijriMonth, hijriYear: data.hijriYear });
+    }
+    return generateCloudBulkBills(data.masterBillId, data.period, data.dueDate);
+  });
 
 export const updateSantriBill = (id, data) => 
-  runHybrid(() => api.put(`/bills/${id}`, data), () => localDb.updateSantriBill(id, data));
+  runHybrid(() => api.put(`/bills/${id}`, data), () => updateCloudBill(id, data));
 
 export const deleteSantriBill = (id) => 
   runHybrid(

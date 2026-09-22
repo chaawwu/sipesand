@@ -483,14 +483,74 @@ export function subscribeCloudBills(tenant = null, callback) {
   }
 }
 
-export async function generateCloudBulkBills(masterBillId, period, dueDate, tenant = null) {
-  const localRes = localDb.autoGenerateHijriBills({ masterBillId, period, dueDate });
+export async function generateCloudBulkBills(masterBillIdOrPayload, period, dueDate, tenant = null) {
+  // Dukung panggilan baru dengan payload object lengkap dari api.js (santriIds, hijriMonth, customTitle, dll)
+  let payload = {};
+  if (masterBillIdOrPayload && typeof masterBillIdOrPayload === 'object' && !Array.isArray(masterBillIdOrPayload)) {
+    payload = masterBillIdOrPayload;
+  } else {
+    payload = { masterBillId: masterBillIdOrPayload, period, dueDate, tenant };
+    if (typeof period === 'object' && period !== null) payload = { ...period };
+  }
+  // Normalisasi: period bisa berupa hijriMonth/hijriYear string
+  const activeTenant = payload.tenant || tenant;
+  // Jika payload memiliki santriIds / hijriMonth / customTitle → buat tagihan manual massal langsung
+  const hasMassFields = payload.santriIds || payload.hijriMonth || payload.customTitle || payload.customAmount;
+  if (hasMassFields) {
+    const dbLocal = localDb.getData(activeTenant);
+    const santriIds = Array.isArray(payload.santriIds) ? payload.santriIds.map(String) : null;
+    const targetSantri = santriIds
+      ? (dbLocal.santri || []).filter(s => santriIds.includes(String(s.id)))
+      : (dbLocal.santri || []).filter(s => s.status === 'AKTIF' || !s.status);
+    let master = null;
+    if (payload.masterBillId) {
+      master = (dbLocal.masterBills || []).find(m => String(m.id) === String(payload.masterBillId));
+    }
+    const titleBase = payload.customTitle || (master ? master.name : 'Tagihan Syahriyah Santri');
+    const amountBase = payload.customAmount ? parseFloat(payload.customAmount) : (master ? parseFloat(master.amount) : 0);
+    const hijriMonth = payload.hijriMonth || 'Ramadhan';
+    const hijriYear = payload.hijriYear || '1447 H';
+    const title = titleBase.includes(hijriMonth) ? titleBase : `${titleBase} - ${hijriMonth} ${hijriYear}`;
+    const amount = amountBase || parseFloat(payload.amount || 0) || 0;
+    if (!amount) {
+      return { success: false, message: 'Nominal tagihan belum ditentukan. Pilih master atau isi nominal custom.' };
+    }
+    const created = [];
+    for (const s of targetSantri) {
+      const billId = `BILL-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random()*9000)}`;
+      const billCode = `SPP-${Date.now().toString().slice(-6)}-${Math.floor(100+Math.random()*900)}`;
+      const newBill = {
+        id: billId,
+        billCode,
+        santriId: String(s.id),
+        masterBillId: payload.masterBillId ? String(payload.masterBillId) : (master ? String(master.id) : null),
+        title,
+        amount,
+        hijriMonth,
+        hijriYear,
+        dueDate: payload.dueDate || new Date(Date.now()+14*24*3600*1000).toISOString().split('T')[0],
+        status: 'UNPAID',
+        createdAt: new Date().toISOString()
+      };
+      const dl = localDb.getData(activeTenant);
+      if (!dl.santriBills) dl.santriBills = [];
+      dl.santriBills.push(newBill);
+      localDb.saveData(dl, activeTenant);
+      created.push(newBill);
+      try { await setDoc(getTenantDoc("bills", billId, activeTenant), newBill); } catch(e){ console.warn("Gagal sync bill massal ke Firestore", e); }
+    }
+    if (created.length>0) await markTenantInit("bills", activeTenant);
+    return { success: true, count: created.length, data: { bills: created }, message: `Berhasil menerbitkan ${created.length} tagihan santri` };
+  }
+  // Fallback lama: autoGenerateHijriBills per master
+  const legacyMasterId = payload.masterBillId || masterBillIdOrPayload;
+  const localRes = localDb.autoGenerateHijriBills({ masterBillId: legacyMasterId, period: payload.period, dueDate: payload.dueDate, hijriMonth: payload.hijriMonth, hijriYear: payload.hijriYear });
   if (localRes.success && localRes.data && localRes.data.bills) {
     try {
       for (const b of localRes.data.bills) {
-        await setDoc(getTenantDoc("bills", b.id, tenant), b);
+        await setDoc(getTenantDoc("bills", b.id, activeTenant), b);
       }
-      await markTenantInit("bills", tenant);
+      await markTenantInit("bills", activeTenant);
     } catch (err) {
       console.warn("Gagal sync generate bills ke Firestore:", err);
     }
@@ -545,6 +605,30 @@ export async function deleteCloudBill(id, tenant = null) {
     await markTenantInit("bills", tenant);
   } catch (err) {
     console.warn("Gagal delete bill dari Firestore:", err);
+  }
+  return localRes;
+}
+
+export async function updateCloudBill(id, data, tenant = null) {
+  const localRes = localDb.updateSantriBill(id, data);
+  try {
+    await setDoc(getTenantDoc("bills", id, tenant), { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+    await markTenantInit("bills", tenant);
+  } catch (err) {
+    console.warn("Gagal update bill ke Firestore:", err);
+  }
+  // Fallback jika local tidak menemukan bill (misal data hanya di cloud)
+  if (!localRes.success) {
+    try {
+      const db = localDb.getData(tenant);
+      if (!db.santriBills) db.santriBills = [];
+      const idx = db.santriBills.findIndex(b => String(b.id) === String(id));
+      if (idx !== -1) {
+        db.santriBills[idx] = { ...db.santriBills[idx], ...data, updatedAt: new Date().toISOString() };
+        localDb.saveData(db, tenant);
+        return { success: true, data: db.santriBills[idx] };
+      }
+    } catch (e) {}
   }
   return localRes;
 }

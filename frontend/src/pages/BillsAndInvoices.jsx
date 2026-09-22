@@ -82,6 +82,18 @@ export default function BillsAndInvoices() {
     description: '',
   });
 
+  // Edit Tagihan Santri Modal State
+  const [editingBill, setEditingBill] = useState(null);
+  const [editBillFormData, setEditBillFormData] = useState({
+    title: '',
+    amount: '',
+    hijriMonth: 'Ramadhan',
+    hijriYear: '1447 H',
+    dueDate: '',
+    status: 'UNPAID',
+    notes: '',
+  });
+
   // Receipt Modal State
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [activeReceiptData, setActiveReceiptData] = useState(null);
@@ -338,6 +350,7 @@ export default function BillsAndInvoices() {
   };
 
   const handleDeleteSantriBill = async (id, title) => {
+    if (!window.confirm(`Hapus tagihan "${title}" ? Tindakan ini tidak dapat dibatalkan.`)) return;
     try {
       await deleteSantriBill(id);
       setToast({
@@ -352,8 +365,48 @@ export default function BillsAndInvoices() {
         isOpen: true,
         type: 'error',
         title: 'Gagal Menghapus',
-        message: 'Gagal menghapus tagihan santri.'
+        message: err.response?.data?.message || err.message || 'Gagal menghapus tagihan santri.'
       });
+    }
+  };
+
+  const handleOpenEditBill = (bill) => {
+    setEditingBill(bill);
+    setEditBillFormData({
+      title: bill.title || '',
+      amount: String(bill.amount ?? ''),
+      hijriMonth: bill.hijriMonth || 'Ramadhan',
+      hijriYear: bill.hijriYear || '1447 H',
+      dueDate: bill.dueDate ? String(bill.dueDate).slice(0,10) : '',
+      status: bill.status || 'UNPAID',
+      notes: bill.notes || bill.proofNote || '',
+    });
+  };
+
+  const handleSaveEditBill = async (e) => {
+    e.preventDefault();
+    if (!editingBill) return;
+    try {
+      const payload = {
+        title: editBillFormData.title.trim(),
+        amount: parseFloat(editBillFormData.amount),
+        hijriMonth: editBillFormData.hijriMonth,
+        hijriYear: editBillFormData.hijriYear,
+        dueDate: editBillFormData.dueDate || undefined,
+        status: editBillFormData.status,
+        notes: editBillFormData.notes,
+      };
+      const res = await updateSantriBill(editingBill.id, payload);
+      const ok = res?.data?.success ?? res?.success ?? true;
+      if (ok || res?.status === 200) {
+        setToast({ isOpen: true, type: 'success', title: 'Tagihan Diperbarui', message: `Tagihan "${payload.title}" berhasil diperbarui.` });
+        setEditingBill(null);
+        loadAllData();
+      } else {
+        throw new Error(res?.data?.message || 'Gagal memperbarui tagihan');
+      }
+    } catch (err) {
+      setToast({ isOpen: true, type: 'error', title: 'Gagal Memperbarui Tagihan', message: err.response?.data?.message || err.message || 'Terjadi kesalahan sistem.' });
     }
   };
 
@@ -709,8 +762,15 @@ export default function BillsAndInvoices() {
                             )}
 
                             <button
+                              onClick={() => handleOpenEditBill(b)}
+                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit Tagihan"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => handleDeleteSantriBill(b.id, b.title)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                               title="Hapus Tagihan"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -920,6 +980,63 @@ export default function BillsAndInvoices() {
                 >
                   Simpan Master Tagihan
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Tagihan Santri */}
+      {editingBill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2"><Edit className="w-4 h-4 text-blue-400" />Edit Tagihan Santri</h3>
+              <button onClick={() => setEditingBill(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleSaveEditBill} className="p-6 space-y-4">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Judul / Pos Tagihan *</label>
+                <input type="text" required value={editBillFormData.title} onChange={(e)=>setEditBillFormData({...editBillFormData,title:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 font-medium" />
+                <p className="text-[11px] text-slate-400 mt-1">Santri: {editingBill.santri?.nama || '-'} • NIS: {editingBill.santri?.nis || '-'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nominal (Rp) *</label>
+                  <input type="number" required value={editBillFormData.amount} onChange={(e)=>setEditBillFormData({...editBillFormData,amount:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 font-mono" />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Status</label>
+                  <select value={editBillFormData.status} onChange={(e)=>setEditBillFormData({...editBillFormData,status:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600">
+                    <option value="UNPAID">Belum Lunas</option>
+                    <option value="PENDING_VERIFICATION">Menunggu Verifikasi</option>
+                    <option value="PAID">Lunas</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Bulan Hijriyah</label>
+                  <select value={editBillFormData.hijriMonth} onChange={(e)=>setEditBillFormData({...editBillFormData,hijriMonth:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white focus:ring-1 focus:ring-blue-600">
+                    {HIJRI_MONTHS.map(m=> <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Tahun Hijriyah</label>
+                  <input type="text" value={editBillFormData.hijriYear} onChange={(e)=>setEditBillFormData({...editBillFormData,hijriYear:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Jatuh Tempo</label>
+                <input type="date" value={editBillFormData.dueDate} onChange={(e)=>setEditBillFormData({...editBillFormData,dueDate:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600" />
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Catatan</label>
+                <input type="text" placeholder="Catatan tambahan..." value={editBillFormData.notes} onChange={(e)=>setEditBillFormData({...editBillFormData,notes:e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={()=>setEditingBill(null)} className="w-1/3 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl">Batal</button>
+                <button type="submit" className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm">Simpan Perubahan</button>
               </div>
             </form>
           </div>

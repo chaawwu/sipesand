@@ -761,7 +761,7 @@ function MainAppContent() {
       case 'security':
         return <SecurityKamtib key={refreshKey} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
       case 'settings':
-        return <SettingsAndAccounts key={refreshKey} />;
+        return <SettingsAndAccounts key={refreshKey} currentUser={currentUser} />;
       default:
         return <Dashboard key={refreshKey} setActiveTab={setActiveTab} onOpenNfcModal={() => setIsNfcModalOpen(true)} currentUser={currentUser} />;
     }

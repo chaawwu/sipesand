@@ -73,9 +73,45 @@ const DIVISION_ROLES = [
   },
 ];
 
-export default function SettingsAndAccounts() {
+export default function SettingsAndAccounts({ currentUser: propCurrentUser }) {
   const { settings: globalSettings, updateSettings, isNfcEnabled, toggleNfc } = useSettings();
   const [subTab, setSubTab] = useState('identity'); // 'identity' | 'assets' | 'nfc' | 'payment' | 'accounts' | 'backup'
+  // Resolve current user: prop > localStorage sipesand_user > sessionStorage
+  const resolvedCurrentUser = (() => {
+    if (propCurrentUser) return propCurrentUser;
+    try {
+      const raw = localStorage.getItem('sipesand_user') || sessionStorage.getItem('sipesand_user');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  })();
+  const myRole = (resolvedCurrentUser?.role || '').toUpperCase();
+  const isSuperAdmin = myRole === 'SUPER_ADMIN';
+  const isKepalaPondok = myRole === 'KEPALA_PONDOK' || myRole === 'PENGASUHAN' || myRole.includes('KEPALA');
+  const canManageAllAccounts = isSuperAdmin || isKepalaPondok;
+  const canEditAccount = (acc) => {
+    if (!acc) return false;
+    const targetRole = (acc.role || '').toUpperCase();
+    if (isSuperAdmin) return true;
+    if (isKepalaPondok) {
+      // Kepala pondok tidak boleh edit super admin lain, tapi boleh edit devisi lain & dirinya sendiri
+      if (targetRole === 'SUPER_ADMIN') return String(acc.id) === String(resolvedCurrentUser?.id);
+      return true;
+    }
+    // Devisi lain hanya boleh edit akun sendiri
+    return String(acc.id) === String(resolvedCurrentUser?.id);
+  };
+  const canDeleteAccount = (acc) => {
+    if (!acc) return false;
+    if (String(acc.id) === String(resolvedCurrentUser?.id)) return false; // cegah hapus diri sendiri
+    const targetRole = (acc.role || '').toUpperCase();
+    if (isSuperAdmin) return true;
+    if (isKepalaPondok) {
+      if (targetRole === 'SUPER_ADMIN') return false;
+      return true;
+    }
+    return false;
+  };
   
   // Local form state synced with global context
   const [formSettings, setFormSettings] = useState(globalSettings);
@@ -219,31 +255,46 @@ export default function SettingsAndAccounts() {
 
   const handleCreateAccount = async (e) => {
     e.preventDefault();
+    if (!canManageAllAccounts && !isSuperAdmin) {
+      alert('Hanya Super Admin atau Kepala Pondok yang dapat membuat akun devisi baru.');
+      return;
+    }
     try {
       const res = await createUserAccount(accountFormData);
       if (res.data.success) {
         setIsAccountModalOpen(false);
         setAccountFormData({ username: '', password: '', name: '', role: 'PENGURUS_SAKU', division: 'ASRAMA_POS' });
         loadAccountsAndSantri();
+      } else {
+        alert(res.data.message || 'Gagal membuat akun');
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal membuat akun');
+      alert(err.response?.data?.message || err.message || 'Gagal membuat akun');
     }
   };
 
   const handleDeleteAccount = async (id, name) => {
+    const target = accounts.find(a => String(a.id) === String(id));
+    if (target && !canDeleteAccount(target)) {
+      alert('Anda tidak memiliki hak untuk menghapus akun ini. Hanya Super Admin atau Kepala Pondok yang dapat menghapus devisi lain (tidak boleh hapus Super Admin atau diri sendiri).');
+      return;
+    }
     if (window.confirm(`Hapus akun pengurus "${name}"?`)) {
       try {
         await deleteUserAccount(id);
         loadAccountsAndSantri();
       } catch (err) {
-        alert('Gagal menghapus akun');
+        alert(err.response?.data?.message || 'Gagal menghapus akun');
       }
     }
   };
 
   // Handler Edit Akun Pengurus
   const handleOpenEdit = (acc) => {
+    if (!canEditAccount(acc)) {
+      alert('Anda tidak memiliki hak untuk mengedit akun ini.');
+      return;
+    }
     setEditingAccount(acc);
     setEditFormData({
       username: acc.username || '',
@@ -545,6 +596,44 @@ export default function SettingsAndAccounts() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-1 focus:ring-blue-600 font-bold"
               />
             </div>
+          </div>
+
+          {/* Sistem Pendidikan Pondok – Hanya Super Admin yang dapat mengubah */}
+          <div className={`p-4 rounded-xl border space-y-3 ${isSuperAdmin ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200' : 'bg-slate-50 border-slate-200 opacity-90'}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2"><BookOpen className="w-4 h-4 text-blue-600" />Sistem Pendidikan Pondok</h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">Pilihan sistem akan menyesuaikan modul akademik, laporan & dashboard. {isSuperAdmin ? 'Hanya Super Admin yang dapat mengubah.' : 'Hubungi Super Admin untuk mengubah.'}</p>
+              </div>
+              {!isSuperAdmin && <span className="px-2 py-1 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold">Read-Only</span>}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { id: 'SALAFIYAH_KITAB_KUNING', label: 'Salafiyah – Kitab Kuning', desc: 'Kajian kitab kuning, Alfiyah/Imrithi, musyawarah & takror. Kitab kuning menjadi kurikulum utama.' },
+                { id: 'TAHFIDZ_ALQURAN', label: 'Tahfidz Al-Qur\'an', desc: 'Fokus hafalan 30 juz, tahsin, murojaah & karantina tahfidz. Target hafalan harian/mingguan.' },
+              ].map(opt => {
+                const active = (formSettings.PONDOK_SYSTEM_TYPE || 'SALAFIYAH_KITAB_KUNING') === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={!isSuperAdmin}
+                    onClick={() => isSuperAdmin && setFormSettings({ ...formSettings, PONDOK_SYSTEM_TYPE: opt.id })}
+                    className={`text-left p-3 rounded-xl border-2 transition-all ${active ? 'bg-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300'} ${!isSuperAdmin ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${active ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>
+                        {active && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className={`font-bold text-xs ${active ? 'text-blue-700' : 'text-slate-800'}`}>{opt.label}</span>
+                      {active && <span className="ml-auto px-2 py-0.5 bg-blue-600 text-white rounded-full text-[10px] font-bold">Aktif</span>}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">{opt.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+            {isSuperAdmin && <p className="text-[11px] text-blue-700 font-medium">Pilihan disimpan saat Anda klik “Simpan Perubahan” di atas. Perubahan akan langsung sinkron ke semua perangkat via Cloud Firestore.</p>}
           </div>
         </form>
       )}
@@ -1218,10 +1307,17 @@ export default function SettingsAndAccounts() {
               <p className="text-slate-400 text-[11px]">
                 Kelola akun devisi, petakan santri asuh uang saku per pengurus, dan berikan penilaian kinerja asatidz.
               </p>
+              <div className="mt-2 flex items-center gap-2 text-[11px]">
+                <span className={`px-2 py-0.5 rounded-full font-bold border ${canManageAllAccounts ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                  {isSuperAdmin ? 'Login sebagai SUPER ADMIN – akses penuh semua akun' : isKepalaPondok ? 'Login sebagai KEPALA PONDOK – dapat edit/hapus semua devisi (kecuali Super Admin)' : `Login sebagai ${myRole || 'TAMU'} – hanya dapat edit akun sendiri`}
+                </span>
+              </div>
             </div>
             <button
               onClick={() => setIsAccountModalOpen(true)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5"
+              disabled={!canManageAllAccounts && myRole !== 'SUPER_ADMIN'}
+              title={!canManageAllAccounts && myRole !== 'SUPER_ADMIN' ? 'Hanya Super Admin / Kepala Pondok yang dapat membuat akun baru' : 'Buat akun devisi baru'}
+              className={`px-3.5 py-2 rounded-xl font-bold shadow-sm transition-all flex items-center gap-1.5 ${canManageAllAccounts || isSuperAdmin ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}`}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Buat Akun Devisi Baru</span>
@@ -1271,39 +1367,51 @@ export default function SettingsAndAccounts() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          <button
-                            onClick={() => handleOpenEdit(acc)}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
-                            title="Edit Kredensial, Password & Devisi"
-                          >
-                            <Edit className="w-3 h-3" />
-                            <span>Edit</span>
-                          </button>
+                          {canEditAccount(acc) ? (
+                            <button
+                              onClick={() => handleOpenEdit(acc)}
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
+                              title="Edit Kredensial, Password & Devisi"
+                            >
+                              <Edit className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-not-allowed" title="Anda tidak memiliki hak untuk edit akun ini">Edit</span>
+                          )}
 
-                          <button
-                            onClick={() => handleOpenMapping(acc)}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
-                            title="Petakan Santri Asuh Uang Saku"
-                          >
-                            <Wallet className="w-3 h-3" />
-                            <span>Petakan Santri</span>
-                          </button>
+                          {canEditAccount(acc) ? (
+                            <button
+                              onClick={() => handleOpenMapping(acc)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1"
+                              title="Petakan Santri Asuh Uang Saku"
+                            >
+                              <Wallet className="w-3 h-3" />
+                              <span>Petakan Santri</span>
+                            </button>
+                          ) : null}
 
-                          <button
-                            onClick={() => handleOpenEvaluation(acc)}
-                            className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold transition-colors"
-                            title="Beri Catatan Evaluasi"
-                          >
-                            Evaluasi
-                          </button>
+                          {canEditAccount(acc) ? (
+                            <button
+                              onClick={() => handleOpenEvaluation(acc)}
+                              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-bold transition-colors"
+                              title="Beri Catatan Evaluasi"
+                            >
+                              Evaluasi
+                            </button>
+                          ) : null}
 
-                          <button
-                            onClick={() => handleDeleteAccount(acc.id, acc.name)}
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
-                            title="Hapus Akun"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {canDeleteAccount(acc) ? (
+                            <button
+                              onClick={() => handleDeleteAccount(acc.id, acc.name)}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                              title="Hapus Akun"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <span className="p-1 text-slate-300 rounded cursor-not-allowed" title={String(acc.id)===String(resolvedCurrentUser?.id) ? 'Tidak dapat menghapus akun sendiri' : 'Hanya Super Admin / Kepala Pondok yang dapat menghapus'}><Trash2 className="w-3.5 h-3.5" /></span>
+                          )}
                         </div>
                       </td>
                     </tr>
