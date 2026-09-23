@@ -1,527 +1,242 @@
 import React, { useState } from 'react';
-import {
-  Download,
-  Smartphone,
-  ShieldCheck,
-  CreditCard,
-  MessageCircle,
-  Clock,
-  BookOpen,
-  Calendar,
-  FileText,
-  Search,
-  CheckCircle2,
-  ChevronRight,
-  ExternalLink,
-  ArrowRight,
-  QrCode,
-  Award,
-  HelpCircle,
-  Check,
-  Users,
-  Wallet,
-  Building2,
-  Lock
-} from 'lucide-react';
+import { Download, ArrowRight, ShieldCheck, Check, Search, ExternalLink } from 'lucide-react';
 
+/**
+ * ANANDA by SiPesand — GNZI Simple Landing
+ * anandaby.sipesand.web.id
+ * - Royal Blue #1E3A8A + White + Soft Gray #F8FAFC
+ * - Cardless, radius 24, shadow ultra soft, Inter + Poppins feel (Plus Jakarta Sans)
+ * - CTA auto-selling ke sipesand.web.id + download APK lokal
+ * - Human crafted, bukan template AI
+ */
 export default function AnandaPortalPage({ onOpenPortalWali, onBackToHome }) {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const quickServices = [
-    { label: 'Profil Santri', icon: '👤' },
-    { label: 'Uang Saku', icon: '💰' },
-    { label: 'Pembayaran SPP', icon: '💳' },
-    { label: 'Kwitansi Resmi', icon: '🧾' },
-    { label: 'Top Up Saku', icon: '⚡' },
-    { label: 'Jadwal Pondok', icon: '📅' },
-    { label: 'Nilai Rapor', icon: '📊' },
-    { label: 'Presensi Sholat', icon: '🕌' },
-    { label: 'Tahfidz Qur\'an', icon: '📖' },
-    { label: 'Izin Pulang', icon: '🛂' },
-    { label: 'Laporan Finansial', icon: '📈' },
-    { label: 'Pengumuman', icon: '📢' },
-  ];
-
-  const handleSearchSubmit = (e) => {
+  const [q, setQ] = useState('');
+  const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim() && onOpenPortalWali) {
-      onOpenPortalWali(searchQuery.trim());
-    }
+    if (q.trim() && onOpenPortalWali) onOpenPortalWali(q.trim());
   };
 
-  return (
-    <div className="min-h-screen bg-[#F5F7FA] text-slate-800 font-sans flex flex-col selection:bg-amber-100 selection:text-amber-900">
-      
-      {/* 1. Header Navigasi Utama */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E2B4D] to-[#3E4095] flex items-center justify-center text-white font-black text-xl shadow-md">
-              A
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-extrabold tracking-tight text-[#1E2B4D]">ANANDA</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100">
-                  Wali Santri
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                Dekat dengan Ananda, di mana pun berada
-              </p>
-            </div>
-          </div>
+  const apkUrl = '/ananda-wali-sipesand.apk';
+  const apkGithub = 'https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk';
 
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => onOpenPortalWali && onOpenPortalWali('')}
-              className="hidden sm:inline-flex items-center px-4 py-2 text-sm font-semibold text-[#1E2B4D] hover:bg-slate-100 rounded-xl transition"
-            >
-              Akses Portal Web
-            </button>
-            <a
-              href="https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk"
-              download
-              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#1E2B4D] to-[#3E4095] hover:opacity-95 rounded-xl shadow-md transition"
-            >
-              <Download className="w-4 h-4" />
-              <span>Unduh Aplikasi</span>
-            </a>
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] antialiased selection:bg-blue-100 flex flex-col">
+      {/* Header - GNZI thin */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/70">
+        <div className="max-w-[1120px] mx-auto px-6 h-[64px] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#1E3A8A] grid place-items-center text-white font-black text-[14px] tracking-tight">A</div>
+            <div className="leading-none">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[16px] font-extrabold tracking-tight text-[#0F172A]">ANANDA</span>
+                <span className="text-[10px] font-semibold tracking-widest text-slate-500 uppercase">by SiPesand</span>
+              </div>
+              <div className="text-[11px] text-slate-500 -mt-0.5">anandaby.sipesand.web.id</div>
+            </div>
           </div>
+          <nav className="flex items-center gap-2">
+            <a href="https://sipesand.web.id" target="_blank" rel="noreferrer" className="hidden sm:inline-flex h-9 px-4 rounded-full border border-slate-200 bg-white text-[13px] font-semibold hover:bg-slate-50 transition items-center gap-1.5">
+              Lihat SiPesand <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <a href={apkUrl} download className="inline-flex h-9 px-5 rounded-full bg-[#1E3A8A] text-white text-[13px] font-bold hover:bg-[#1E40AF] transition items-center gap-2 shadow-sm">
+              <Download className="w-4 h-4" /> Unduh APK
+            </a>
+          </nav>
         </div>
       </header>
 
-      {/* 2. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#1E2B4D] via-[#24335F] to-[#3E4095] text-white pt-12 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white blur-3xl"></div>
-          <div className="absolute top-1/2 -right-24 w-96 h-96 rounded-full bg-[#E8B44D] blur-3xl"></div>
-        </div>
+      {/* Hero GNZI */}
+      <section className="max-w-[1120px] mx-auto px-6 pt-14 pb-10 w-full">
+        <div className="grid lg:grid-cols-12 gap-10 items-center">
+          <div className="lg:col-span-7">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold tracking-wide text-slate-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Aplikasi resmi wali santri • sinkron database pesantren
+            </div>
+            <h1 className="mt-5 text-[34px] sm:text-[42px] font-extrabold tracking-tight leading-[1.05] text-[#0F172A]">
+              Dekat dengan ananda,<br />
+              <span className="text-[#1E3A8A]">di mana pun ayah bunda berada.</span>
+            </h1>
+            <p className="mt-4 text-[15px] leading-7 text-slate-600 max-w-[560px]">
+              ANANDA adalah aplikasi Android wali santri dari ekosistem <b className="text-[#0F172A]">SiPesand</b>. Satu pintu untuk hafalan, nilai, absensi RFID, uang saku, tagihan QRIS, dan izin pulang — data langsung dari database pesantren, bukan dummy.
+            </p>
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Sisi Kiri: Deskripsi & Tombol Unduh */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300">
-                <ShieldCheck className="w-4 h-4 text-amber-300" />
-                <span>Aplikasi Resmi Wali Santri Pesantren</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-                Dekat dengan Ananda, <br className="hidden sm:inline" />
-                <span className="text-amber-400">di mana pun berada.</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-200 font-normal max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Aplikasi mobile resmi bagi orang tua santri untuk memantau capaian hafalan Al-Qur'an, perkembangan akademik, uang saku harian, dan pembayaran pendidikan secara mudah, transparan, dan terpercaya.
-              </p>
-
-              {/* Box Unduh Utama */}
-              <div className="p-6 rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 max-w-xl mx-auto lg:mx-0 space-y-4 shadow-xl">
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <a
-                    href="https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk"
-                    download
-                    className="w-full sm:w-auto flex-1 inline-flex items-center justify-center space-x-3 px-6 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-base shadow-lg transition"
-                  >
-                    <Download className="w-5 h-5 text-slate-950" />
-                    <div className="text-left">
-                      <div className="text-sm font-black">Unduh Aplikasi Android</div>
-                      <div className="text-[11px] font-medium text-slate-800">Berkas Instalasi APK Resmi • Versi Terbaru</div>
-                    </div>
-                  </a>
-
-                  <a
-                    href="#panduan-instalasi"
-                    className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-4 py-3.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-sm border border-white/25 transition"
-                  >
-                    <span>Panduan Pasang</span>
-                  </a>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs text-slate-200 pt-1">
-                  <span className="flex items-center space-x-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Kompatibel Seluruh HP Android</span>
-                  </span>
-                  <span className="flex items-center space-x-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Pembayaran Online Otomatis</span>
-                  </span>
-                  <span className="flex items-center space-x-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Akses Data Real-Time</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Form Cek Data Santri Cepat di Web */}
-              <div className="max-w-xl mx-auto lg:mx-0 pt-2">
-                <p className="text-xs font-semibold text-slate-300 mb-2">
-                  Ingin cek data langsung tanpa instalasi aplikasi?
-                </p>
-                <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Masukkan Nomor Induk Santri (NIS) atau Nama..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-sm"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition border border-white/30 whitespace-nowrap"
-                  >
-                    Cek Data
-                  </button>
-                </form>
-              </div>
-
+            {/* Dual CTA */}
+            <div className="mt-7 flex flex-col sm:flex-row gap-3">
+              <a href={apkUrl} download className="inline-flex items-center justify-center gap-2 h-[48px] px-7 rounded-full bg-[#1E3A8A] text-white font-bold text-[14px] hover:bg-[#1E40AF] transition shadow-[0_8px_24px_rgba(30,58,138,0.18)]">
+                <Download className="w-[18px] h-[18px]" /> Download Ananda (4,7 MB)
+              </a>
+              <a href="https://sipesand.web.id" target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 h-[48px] px-7 rounded-full bg-white border border-slate-200 text-[#0F172A] font-semibold text-[14px] hover:bg-slate-50 transition">
+                Pesantren belum pakai SiPesand? <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-4 text-[12px] text-slate-500">
+              <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600" /> Android 8+ • semua merk</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600" /> QRIS PaymentKu • kwitansi otomatis</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600" /> OTP WhatsApp • verifikasi otomatis</span>
             </div>
 
-            {/* Sisi Kanan: Tampilan Aplikasi ANANDA */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-[320px] sm:w-[340px] bg-slate-900 p-3 rounded-[38px] shadow-2xl border-4 border-slate-700/60 relative">
-                {/* Speaker Notch */}
-                <div className="w-24 h-4 bg-slate-800 rounded-full mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-slate-950 border border-slate-700"></div>
+            {/* Quick web check */}
+            <form onSubmit={handleSearch} className="mt-7 max-w-[560px] flex gap-2 p-2 rounded-[24px] bg-white border border-slate-200 shadow-sm">
+              <div className="flex-1 flex items-center gap-2 px-3">
+                <Search className="w-4 h-4 text-slate-400" />
+                <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Cek NIS / nama santri tanpa install..." className="w-full h-9 bg-transparent outline-none text-[13px] placeholder:text-slate-400" />
+              </div>
+              <button type="submit" className="h-9 px-5 rounded-full bg-[#0F172A] text-white text-[13px] font-semibold hover:bg-black transition">Cek</button>
+            </form>
+            <p className="mt-2 text-[11px] text-slate-400">Tanpa install. Data real dari pesantren yang sudah terhubung SiPesand.</p>
+          </div>
+
+          {/* Phone mock - clean cardless */}
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="w-[300px] bg-[#0B1220] p-[10px] rounded-[36px] shadow-[0_24px_64px_rgba(15,23,42,0.24)] border border-slate-800">
+              <div className="w-20 h-1.5 bg-white/20 rounded-full mx-auto mb-2.5" />
+              <div className="bg-white rounded-[28px] overflow-hidden">
+                <div className="bg-[#1E3A8A] px-4 pt-4 pb-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-white text-[#1E3A8A] grid place-items-center font-black text-xs">A</div>
+                      <div className="leading-tight">
+                        <div className="text-[12px] font-bold">ANANDA</div>
+                        <div className="text-[10px] text-white/70">Wali Santri</div>
+                      </div>
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-white/15 grid place-items-center text-xs">🔔</div>
+                  </div>
+                  <div className="mt-3 bg-white text-[#0F172A] rounded-2xl p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 grid place-items-center text-sm">👦🏻</div>
+                    <div className="flex-1 leading-tight">
+                      <div className="text-[12px] font-bold">Muhammad Farhan</div>
+                      <div className="text-[11px] text-slate-500">NIS 202409001 • 3 Aliyah</div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Aktif</span>
+                  </div>
                 </div>
-
-                {/* Layar Aplikasi ANANDA */}
-                <div className="w-full bg-[#F5F7FA] rounded-[28px] overflow-hidden text-slate-800 text-xs shadow-inner flex flex-col h-[580px]">
-                  
-                  {/* Header Biru-Ungu Melengkung */}
-                  <div className="bg-gradient-to-r from-[#1E2B4D] to-[#3E4095] text-white p-4 rounded-b-[24px] shadow-md space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center text-slate-950 font-black text-xs">
-                          A
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-bold text-white leading-tight">ANANDA</div>
-                          <div className="text-[9px] text-amber-300">Pondok Pesantren</div>
-                        </div>
-                      </div>
-                      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px]">
-                        🔔
-                      </div>
+                <div className="p-3 bg-[#F8FAFC] space-y-3">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-3">
+                    <div className="text-[11px] text-slate-500">Saldo Uang Saku</div>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <div className="text-[16px] font-extrabold">Rp 385.000</div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#1E3A8A] text-white">+ Top Up</span>
                     </div>
-
-                    {/* Card Profil Santri */}
-                    <div className="bg-white/10 backdrop-blur-sm p-2.5 rounded-xl border border-white/20 flex items-center space-x-2.5">
-                      <div className="w-9 h-9 rounded-full bg-amber-200 border-2 border-amber-400 overflow-hidden flex items-center justify-center text-slate-900 font-bold text-xs">
-                        AZ
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-white truncate text-[11px]">Ahmad Zaky Al-Faruq</div>
-                        <div className="text-[9px] text-slate-200">Kelas 3 Wustha • Asrama Abu Bakar 02</div>
-                        <div className="text-[9px] text-amber-300 font-medium">Musyrif: Ust. Mansur</div>
-                      </div>
-                    </div>
+                    <div className="mt-2 h-px bg-slate-100" />
+                    <div className="mt-2 flex justify-between text-[11px]"><span className="text-slate-500">Tagihan aktif 1</span><span className="font-bold text-[#1E3A8A]">Rp 452.500</span></div>
                   </div>
-
-                  {/* Scrollable Content */}
-                  <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                    {/* Ringkasan Finansial Santri */}
-                    <div className="bg-white p-3 rounded-[18px] border border-slate-200 shadow-xs space-y-2">
-                      <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium">
-                        <span>Saldo Uang Saku</span>
-                        <span className="text-emerald-600 font-bold">Kantin Terintegrasi</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      ['Profil','👤'],['Absensi','📡'],['Uang Saku','💳'],
+                      ['QRIS','🔳'],['Jadwal','🗓️'],['Nilai','📊']
+                    ].map(([l,i])=>(
+                      <div key={l} className="bg-white rounded-2xl border border-slate-200 p-3 text-center">
+                        <div className="w-8 h-8 rounded-full bg-[#EFF6FF] grid place-items-center mx-auto text-[14px]">{i}</div>
+                        <div className="mt-1.5 text-[11px] font-semibold leading-none">{l}</div>
                       </div>
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-base font-black text-[#1E2B4D]">Rp 385.000</span>
-                        <button className="px-2.5 py-1 rounded-lg bg-[#1E2B4D] text-white text-[10px] font-bold">
-                          + Top Up
-                        </button>
-                      </div>
-                      <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-[10px]">
-                        <span className="text-slate-600">Tagihan SPP: <b>Rp 450.000</b></span>
-                        <span className="text-amber-600 font-bold">Menunggu Bayar</span>
-                      </div>
-                    </div>
-
-                    {/* Layanan Utama */}
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-700 mb-2">Layanan Utama</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {quickServices.slice(0, 6).map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-1"
-                          >
-                            <span className="text-base">{item.icon}</span>
-                            <span className="text-[9px] font-semibold text-slate-700 leading-tight">
-                              {item.label}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Status Perizinan Santri */}
-                    <div className="bg-emerald-50/80 p-2.5 rounded-[14px] border border-emerald-200 flex items-center space-x-2">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px]">
-                        ✓
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-[10px] font-bold text-emerald-950">Izin Kunjungan Disetujui</div>
-                        <div className="text-[8px] text-emerald-700">Tunjukkan barcode saat penjemputan</div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-
-                  {/* Menu Navigasi Bawah */}
-                  <div className="bg-white border-t border-slate-200 px-2 py-1.5 flex justify-around items-center text-[9px] text-slate-500 font-medium">
-                    <div className="flex flex-col items-center text-[#1E2B4D] font-bold">
-                      <span className="text-xs">🏠</span>
-                      <span>Beranda</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs">📅</span>
-                      <span>Jadwal</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs">💬</span>
-                      <span>Pesan</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs">💳</span>
-                      <span>Keuangan</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs">📋</span>
-                      <span>Perizinan</span>
-                    </div>
+                  <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 grid place-items-center text-emerald-700 text-xs">✓</div>
+                    <div><div className="text-[11px] font-bold">Hafalan terakhir: Al-Kahfi khatam</div><div className="text-[10px] text-slate-500">Mumtaz • Ust. Abdul Halim</div></div>
                   </div>
-
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* 3. Layanan Unggulan Wali Santri */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-          <span className="text-xs font-bold text-[#1E2B4D] tracking-wider uppercase px-3 py-1 bg-blue-50 rounded-full border border-blue-100">
-            Layanan Terpadu Wali Santri
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Kemudahan Menemani Tumbuh Kembang Ananda di Pesantren
-          </h2>
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Memberikan ketenangan hati dan kemudahan akses informasi pendidikan bagi orang tua santri secara transparan dan akurat.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Card 1: Saldo Saku */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 flex items-center justify-center font-bold text-xl">
-              💰
+      {/* Social proof / 3 values - gnzi whitespace */}
+      <section className="max-w-[1120px] mx-auto px-6 w-full">
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            ['Data sinkron pesantren','NIS, kelas, kamar & saldo langsung dari DB tenant pesantren. Bukan demo.',' ShieldCheck '],
+            ['Bayar ke rekening pesantren','QRIS PaymentKu (paymentku.com) atau transfer manual ke rekening resmi pesantren — kwitansi otomatis.',' CreditCard '],
+            ['Wali auto terverifikasi','OTP WhatsApp 1 klik, hubungan NIS auto-cocok. Tanpa tunggu admin berhari-hari.',' MessageCircle '],
+          ].map(([title,desc])=>(
+            <div key={title} className="bg-white rounded-[24px] border border-slate-200 p-6">
+              <div className="w-10 h-10 rounded-2xl bg-[#F8FAFC] border border-slate-200 grid place-items-center text-slate-700"><ShieldCheck className="w-5 h-5" /></div>
+              <div className="mt-4 text-[14px] font-bold leading-tight">{title}</div>
+              <div className="mt-1.5 text-[13px] leading-6 text-slate-600">{desc}</div>
             </div>
-            <h3 className="text-lg font-bold text-slate-900">Tabungan & Uang Saku Digital</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Pantau saldo dan riwayat transaksi jajan santri di kantin pesantren. Terintegrasi kartu santri cerdas untuk melatih ananda mengelola pengeluaran harian secara hemat dan teratur.
-            </p>
-          </div>
-
-          {/* Card 2: Pembayaran SPP */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xl">
-              💳
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Pembayaran Tagihan Online</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Bayar SPP syahriyah bulanan, uang asrama, kitab, dan daftar ulang secara praktis melalui QRIS dan Virtual Account bank nasional (BSI, Mandiri, BCA, BRI) dengan verifikasi otomatis.
-            </p>
-          </div>
-
-          {/* Card 3: Kwitansi Resmi */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-800 flex items-center justify-center font-bold text-xl">
-              🧾
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Kwitansi Sah & Riwayat Pembayaran</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Dapatkan bukti setor resmi berbarcode validasi untuk setiap pembayaran yang berhasil. Dokumen dapat disimpan dalam format PDF atau dicetak kapan saja sebagai arsip keluarga.
-            </p>
-          </div>
-
-          {/* Card 4: Perizinan Pulang */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xl">
-              🛂
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Pengajuan Izin & Sambangan</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Ajukan permohonan kunjungan keluarga atau kepulangan santri secara daring dari rumah. Dilengkapi kode verifikasi digital untuk kemudahan akses santri di pos keamanan pesantren.
-            </p>
-          </div>
-
-          {/* Card 5: Chat Musyrif */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 text-teal-800 flex items-center justify-center font-bold text-xl">
-              💬
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Komunikasi dengan Musyrif Kamar</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Saluran pesan resmi untuk menanyakan kabar, menitipkan kebutuhan, atau berkonsultasi mengenai perkembangan karakter dan ibadah ananda langsung dengan pembina asrama.
-            </p>
-          </div>
-
-          {/* Card 6: Tahfidz & Akademik */}
-          <div className="bg-white p-6 rounded-[18px] border border-slate-200/80 shadow-xs hover:shadow-md transition space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-800 flex items-center justify-center font-bold text-xl">
-              📖
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">Mutaba'ah Tahfidz & Rapor Belajar</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Pantau capaian setoran hafalan Al-Qur'an, hafalan bait nadzom salaf, kehadiran sholat berjamaah, serta rekapitulasi nilai evaluasi madrasah diniyah santri setiap semester.
-            </p>
-          </div>
-
+          ))}
         </div>
       </section>
 
-      {/* 4. Panduan Pemasangan Aplikasi */}
-      <section id="panduan-instalasi" className="bg-white border-y border-slate-200 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto space-y-10">
-          <div className="text-center space-y-3">
-            <span className="text-xs font-bold text-blue-700 tracking-wider uppercase px-3 py-1 bg-blue-50 rounded-full">
-              Langkah Mudah
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Panduan Pemasangan Aplikasi di HP Android
-            </h2>
-            <p className="text-sm text-slate-600 max-w-xl mx-auto">
-              Ikuti tiga langkah sederhana berikut untuk memasang aplikasi ANANDA di smartphone Anda:
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-3 text-center">
-              <div className="w-10 h-10 rounded-full bg-[#1E2B4D] text-white font-black text-sm flex items-center justify-center mx-auto">
-                1
-              </div>
-              <h3 className="font-bold text-slate-900 text-base">Unduh Berkas APK</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Tekan tombol unduh di halaman ini. Berkas resmi aplikasi ANANDA akan tersimpan di folder unduhan HP Anda.
+      {/* Auto-selling to SiPesand */}
+      <section className="max-w-[1120px] mx-auto px-6 w-full mt-8">
+        <div className="rounded-[24px] bg-white border border-slate-200 overflow-hidden">
+          <div className="grid lg:grid-cols-12 gap-0">
+            <div className="lg:col-span-7 p-8 lg:p-10">
+              <div className="text-[11px] font-bold tracking-widest text-[#1E3A8A] uppercase">Untuk Pesantren</div>
+              <h2 className="mt-2 text-[22px] font-extrabold tracking-tight">Pesantren Anda belum pakai SiPesand?</h2>
+              <p className="mt-3 text-[14px] leading-6 text-slate-600">
+                SiPesand adalah OS pesantren: PPDB, RFID, syahriyah Hijriyah, keuangan, tahfidz, perizinan & portal wali ANANDA dalam satu dashboard. Multi-tenant, siap pakai di <b>sipesand.web.id</b>.
+                Daftar hari ini, subdomain pesantren aktif otomatis, wali bisa langsung install ANANDA.
               </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href="https://sipesand.web.id" target="_blank" rel="noreferrer" className="inline-flex h-11 px-6 rounded-full bg-[#0F172A] text-white font-bold text-[13px] items-center gap-2 hover:bg-black transition">Daftar Pesantren di SiPesand <ArrowRight className="w-4 h-4" /></a>
+                <a href="https://sipesand.web.id?view=app" target="_blank" rel="noreferrer" className="inline-flex h-11 px-6 rounded-full bg-white border border-slate-200 font-semibold text-[13px] items-center hover:bg-slate-50 transition">Lihat Demo</a>
+              </div>
+              <div className="mt-4 text-[11px] text-slate-400">Gratis trial • setup &lt; 1 hari • support WhatsApp</div>
             </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-3 text-center">
-              <div className="w-10 h-10 rounded-full bg-[#1E2B4D] text-white font-black text-sm flex items-center justify-center mx-auto">
-                2
-              </div>
-              <h3 className="font-bold text-slate-900 text-base">Buka & Pasang</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Buka berkas unduhan, lalu pilih <b>Instal / Pasang</b>. Aktifkan izin instalasi aplikasi dari browser jika diminta oleh sistem HP.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-3 text-center">
-              <div className="w-10 h-10 rounded-full bg-[#1E2B4D] text-white font-black text-sm flex items-center justify-center mx-auto">
-                3
-              </div>
-              <h3 className="font-bold text-slate-900 text-base">Masuk & Pantau</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Buka aplikasi ANANDA, lalu masukkan nomor WhatsApp wali santri yang telah terdaftar di pondok pesantren untuk mulai menggunakan.
-              </p>
+            <div className="lg:col-span-5 bg-[#F8FAFC] border-t lg:border-t-0 lg:border-l border-slate-200 p-8 flex flex-col justify-center gap-4">
+              <div className="text-[12px] font-bold text-slate-700">Yang didapat pesantren:</div>
+              <ul className="space-y-2 text-[13px] text-slate-600">
+                <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5" /> Subdomain: namapesantren.sipesand.web.id</li>
+                <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5" /> ANANDA wali auto-sinkron</li>
+                <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5" /> Pembayaran QRIS ke rekening pesantren</li>
+                <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5" /> Laporan keuangan & akademik real-time</li>
+              </ul>
+              <a href="https://sipesand.web.id#pricing" target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-[#1E3A8A] hover:underline inline-flex items-center gap-1">Lihat paket & harga <ArrowRight className="w-3.5 h-3.5" /></a>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-[#1E2B4D] to-[#3E4095] text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-lg">
-            <div>
-              <h4 className="text-lg font-bold">Siap terhubung lebih dekat dengan ananda?</h4>
-              <p className="text-xs text-slate-200 mt-1">
-                Dapatkan kemudahan informasi pendidikan dan administrasi santri secara langsung.
-              </p>
-            </div>
-            <a
-              href="https://github.com/chaawwu/sipesand/releases/download/v1.6.0-ananda/ananda-wali-sipesand.apk"
-              download
-              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-md transition whitespace-nowrap"
-            >
-              <Download className="w-4 h-4 text-slate-950" />
-              <span>Unduh Berkas APK Sekarang</span>
+      {/* Download proof */}
+      <section className="max-w-[1120px] mx-auto px-6 w-full mt-8">
+        <div className="rounded-[24px] bg-[#1E3A8A] text-white p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <div className="text-[13px] font-semibold text-white/80">Siap install?</div>
+            <div className="text-[20px] font-extrabold tracking-tight">Download ANANDA by SiPesand sekarang</div>
+            <div className="text-[12px] text-white/70 mt-1">File resmi • update otomatis • bisa juga via GitHub Releases sebagai mirror</div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a href={apkUrl} download className="inline-flex h-11 px-6 rounded-full bg-white text-[#1E3A8A] font-extrabold text-[13px] items-center justify-center gap-2 hover:bg-slate-100 transition">
+              <Download className="w-4 h-4" /> /ananda-wali-sipesand.apk
+            </a>
+            <a href={apkGithub} target="_blank" rel="noreferrer" className="inline-flex h-11 px-6 rounded-full bg-white/10 border border-white/20 text-white font-semibold text-[13px] items-center justify-center gap-2 hover:bg-white/15 transition">
+              Mirror GitHub <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
+        <div className="mt-3 text-center text-[11px] text-slate-400">SHA • v1.6.0-ananda • 4,7 MB • Jika Chrome blokir, tap “Tetap download” → buka file → Izinkan install dari browser.</div>
       </section>
 
-      {/* 5. Tanya Jawab Umum (FAQ Ringkas) */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-            Pertanyaan yang Sering Diajukan
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Informasi penting seputar akses dan penggunaan layanan ANANDA
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-              <span className="text-amber-500 font-black">Q.</span>
-              <span>Apakah aplikasi ANANDA dapat digunakan di semua tipe HP Android?</span>
-            </h3>
-            <p className="text-xs text-slate-600 pl-5 leading-relaxed">
-              Ya, aplikasi ANANDA kompatibel dengan seluruh merk smartphone Android (seperti Samsung, Oppo, Vivo, Xiaomi, Realme, Infinix, dan lainnya) mulai dari Android versi 8.0 ke atas.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-              <span className="text-amber-500 font-black">Q.</span>
-              <span>Bagaimana jika nomor WhatsApp saya belum terdaftar di pesantren?</span>
-            </h3>
-            <p className="text-xs text-slate-600 pl-5 leading-relaxed">
-              Pastikan nomor kontak Anda telah diperbarui pada data induk santri melalui bagian tata usaha atau bendahara pondok pesantren agar sistem dapat mengirimkan verifikasi akses ke nomor Anda.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-              <span className="text-amber-500 font-black">Q.</span>
-              <span>Apakah saya tetap dapat memeriksa informasi santri jika tidak mengunduh aplikasi?</span>
-            </h3>
-            <p className="text-xs text-slate-600 pl-5 leading-relaxed">
-              Tentu. Anda dapat menggunakan menu <b>Akses Portal Web</b> atau formulir <b>Pencarian Data Santri</b> di halaman ini untuk mengecek informasi santri langsung melalui browser tanpa perlu menginstal aplikasi.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Footer Resmi */}
-      <footer className="mt-auto bg-slate-900 text-slate-400 py-10 px-4 text-center text-xs">
-        <div className="max-w-7xl mx-auto space-y-3">
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">
-              A
+      {/* FAQ minimal */}
+      <section className="max-w-[840px] mx-auto px-6 w-full mt-10">
+        <h3 className="text-center text-[14px] font-extrabold tracking-tight">FAQ singkat</h3>
+        <div className="mt-4 grid gap-3">
+          {[
+            ['Apakah ANANDA bisa di-download sekarang?','Ya. Tombol di atas langsung mengunduh /ananda-wali-sipesand.apk dari server Cloudflare Pages. Mirror GitHub juga aktif. Versi 1.6.0-ananda, 4,7 MB.'],
+            ['Pesantren saya belum ada di daftar?','Hubungi admin pesantren untuk aktivasi SiPesand di sipesand.web.id. Setelah aktif, wali bisa login ANANDA dengan NIS.'],
+            ['Pembayaran masuk ke mana?','Ke rekening resmi pesantren/tenant masing-masing. Opsi QRIS PaymentKu (paymentku.com) juga settlement langsung ke rekening pesantren per-tenant.'],
+          ].map(([q2,a])=>(
+            <div key={q2} className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="text-[13px] font-bold">{q2}</div>
+              <div className="mt-1 text-[13px] leading-6 text-slate-600">{a}</div>
             </div>
-            <span className="font-extrabold text-white text-sm tracking-tight">ANANDA</span>
-          </div>
-          <p className="text-slate-300 font-medium max-w-md mx-auto">
-            Aplikasi Resmi Layanan & Komunikasi Wali Santri Pondok Pesantren
-          </p>
-          <p className="text-slate-500">
-            Terhubung langsung dengan ekosistem digital layanan pesantren SiPesand
-          </p>
-          <div className="pt-4 border-t border-slate-800 text-slate-500">
-            © {new Date().getFullYear()} Ekosistem SiPesand. Hak Cipta Dilindungi.
+          ))}
+        </div>
+      </section>
+
+      <footer className="mt-12 border-t border-slate-200 bg-white">
+        <div className="max-w-[1120px] mx-auto px-6 h-[64px] flex items-center justify-between text-[12px] text-slate-500">
+          <span>© {new Date().getFullYear()} ANANDA by SiPesand • anandaby.sipesand.web.id</span>
+          <div className="flex gap-4">
+            <a href="https://sipesand.web.id" className="hover:text-[#0F172A] font-semibold">sipesand.web.id</a>
+            <a href="https://sipesand.web.id?view=app" className="hover:text-[#0F172A]">Demo Pesantren</a>
           </div>
         </div>
       </footer>
-
     </div>
   );
 }

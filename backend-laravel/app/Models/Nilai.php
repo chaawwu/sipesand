@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Pengumuman extends Model
+class Nilai extends Model
 {
     use HasFactory;
-    protected $table = 'pengumumans';
+    protected $table = 'nilais';
     protected $guarded = ['id'];
+    protected $casts = [
+        'score' => 'float',
+    ];
 }

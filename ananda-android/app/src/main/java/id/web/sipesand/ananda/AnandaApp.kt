@@ -5,55 +5,54 @@ import android.content.Context
 import android.content.SharedPreferences
 
 class AnandaApp : Application() {
-
     companion object {
-        lateinit var instance: AnandaApp
-            private set
-        lateinit var prefs: SharedPreferences
-            private set
-
-        private const val PREFS_NAME = "ananda_sipesand_prefs"
-        private const val KEY_TOKEN = "auth_token"
-        private const val KEY_PESANTREN_ID = "pesantren_id"
-        private const val KEY_PESANTREN_NAME = "pesantren_name"
-        private const val KEY_WALI_NAME = "wali_name"
-        private const val KEY_SANTRI_NAME = "santri_name"
-        private const val KEY_SANTRI_NIS = "santri_nis"
-
-        fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
-
-        fun saveAuthSession(
-            token: String,
-            pesantrenId: Long,
-            pesantrenName: String,
-            waliName: String,
-            santriName: String?,
-            santriNis: String?
-        ) {
-            prefs.edit().apply {
-                putString(KEY_TOKEN, token)
-                putLong(KEY_PESANTREN_ID, pesantrenId)
-                putString(KEY_PESANTREN_NAME, pesantrenName)
-                putString(KEY_WALI_NAME, waliName)
-                putString(KEY_SANTRI_NAME, santriName)
-                putString(KEY_SANTRI_NIS, santriNis)
+        lateinit var instance: AnandaApp; private set
+        lateinit var prefs: SharedPreferences; private set
+        private const val PREF = "ananda_v2_prefs"
+        private const val K_TOKEN = "token"
+        private const val K_PID = "pesantren_id"
+        private const val K_PCODE = "pesantren_code"
+        private const val K_PNAME = "pesantren_name"
+        private const val K_PSLUG = "pesantren_slug"
+        private const val K_WALI = "wali_name"
+        private const val K_SANTRI = "santri_name"
+        private const val K_NIS = "santri_nis"
+        fun token(): String? = prefs.getString(K_TOKEN, null)
+        fun tenantSlug(): String = prefs.getString(K_PSLUG, "") ?: ""
+        fun tenantCode(): String = prefs.getString(K_PCODE, "") ?: ""
+        fun pesantrenId(): Long = prefs.getLong(K_PID, 0L)
+        fun pesantrenName(): String = prefs.getString(K_PNAME, "") ?: ""
+        fun waliName(): String = prefs.getString(K_WALI, "Wali Santri") ?: "Wali Santri"
+        fun saveAuth(token: String, pid: Long, pname: String, pcode: String?, slug: String?, wali: String, santri: String?, nis: String?) {
+            prefs.edit().apply{
+                putString(K_TOKEN, token); putLong(K_PID, pid); putString(K_PNAME, pname)
+                putString(K_PCODE, pcode ?: ""); putString(K_PSLUG, slug ?: pcode ?: "")
+                putString(K_WALI, wali); putString(K_SANTRI, santri ?: ""); putString(K_NIS, nis ?: "")
                 apply()
             }
         }
-
-        fun clearSession() {
-            prefs.edit().clear().apply()
+        fun savePesantren(id: Long, name: String, code: String, slug: String?) {
+            prefs.edit().apply{ putLong(K_PID, id); putString(K_PNAME, name); putString(K_PCODE, code); putString(K_PSLUG, slug ?: code); apply() }
         }
-
-        fun getSelectedPesantrenId(): Long = prefs.getLong(KEY_PESANTREN_ID, 1L)
-        fun getWaliName(): String = prefs.getString(KEY_WALI_NAME, "Wali Santri") ?: "Wali Santri"
-        fun getSantriName(): String = prefs.getString(KEY_SANTRI_NAME, "Muhammad Farhan") ?: "Muhammad Farhan"
-        fun getSantriNis(): String = prefs.getString(KEY_SANTRI_NIS, "202409001") ?: "202409001"
+        fun clear(){
+            val pid=prefs.getLong(K_PID,0L); val pname=prefs.getString(K_PNAME,null); val pcode=prefs.getString(K_PCODE,null); val pslug=prefs.getString(K_PSLUG,null)
+            prefs.edit().clear().apply()
+            if(pname!=null) prefs.edit().apply{ putLong(K_PID,pid); putString(K_PNAME,pname); if(pcode!=null) putString(K_PCODE,pcode); if(pslug!=null) putString(K_PSLUG,pslug); apply() }
+        }
+        fun isLogged(): Boolean = !token().isNullOrBlank()
+        // Compatibility aliases for legacy screens
+        fun getToken(): String? = token()
+        fun getWaliName(): String = waliName()
+        fun getSelectedPesantrenId(): Long = pesantrenId().let{ if(it==0L) 1L else it }
+        fun getSelectedPesantrenName(): String = pesantrenName()
+        fun getPesantrenCode(): String = tenantCode()
+        fun getTenantSubdomain(): String = tenantSlug()
+        fun getSantriName(): String = prefs.getString(K_SANTRI,"") ?: ""
+        fun getSantriNis(): String = prefs.getString(K_NIS,"") ?: ""
+        fun saveAuthSession(token:String, pesantrenId:Long, pesantrenName:String, waliName:String, santriName:String?, santriNis:String?){
+            saveAuth(token, pesantrenId, pesantrenName, null, null, waliName, santriName, santriNis)
+        }
+        fun savePesantrenSelection(id:Long, name:String, code:String, slug:String?){ savePesantren(id,name,code,slug) }
     }
-
-    override fun onCreate() {
-        super.onCreate()
-        instance = this
-        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    }
+    override fun onCreate() { super.onCreate(); instance=this; prefs=getSharedPreferences(PREF, Context.MODE_PRIVATE) }
 }

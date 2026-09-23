@@ -14,7 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import id.web.sipesand.ananda.ui.screens.*
-import id.web.sipesand.ananda.ui.theme.AnandaSiPesandTheme
+import id.web.sipesand.ananda.ui.theme.AnandaTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -22,15 +22,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            AnandaSiPesandTheme {
+            AnandaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
 
-                    var selectedPesantrenId by remember { mutableStateOf(1L) }
-                    var selectedPesantrenName by remember { mutableStateOf("Pondok Pesantren Darul Rahman") }
+                    var selectedPesantrenId by remember { mutableStateOf(AnandaApp.getSelectedPesantrenId()) }
+                    var selectedPesantrenName by remember { mutableStateOf(AnandaApp.getSelectedPesantrenName().ifBlank { "Pilih Pesantren" }) }
+                    var selectedPesantrenCode by remember { mutableStateOf(AnandaApp.getPesantrenCode()) }
 
                     NavHost(
                         navController = navController,
@@ -47,12 +48,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 2. Pilih Pondok Pesantren
+                        // 2. Pilih Pondok Pesantren - sinkron tenant DB
                         composable("pesantren_select") {
                             PesantrenSelectScreen(
                                 onPesantrenSelected = { id, name ->
                                     selectedPesantrenId = id
                                     selectedPesantrenName = name
+                                    // Cari code dari prefs jika ada
+                                    selectedPesantrenCode = AnandaApp.getPesantrenCode()
                                     navController.navigate("login")
                                 }
                             )
@@ -75,9 +78,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // 4. Registrasi Akun Wali
+                        // 4. Registrasi Akun Wali - verifikasi otomatis sinkron DB tenant
                         composable("register") {
                             RegisterScreen(
+                                pesantrenId = selectedPesantrenId,
                                 pesantrenName = selectedPesantrenName,
                                 onBack = { navController.popBackStack() },
                                 onRegisterSuccess = {

@@ -1,21 +1,17 @@
 package id.web.sipesand.ananda.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,221 +37,122 @@ fun DashboardScreen(
     var dashboardData by remember { mutableStateOf<DashboardData?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(key1 = true) {
-        scope.launch {
-            isLoading = true
-            val res = repository.getDashboard()
-            dashboardData = res.getOrNull()
-            isLoading = false
-        }
+        isLoading = true
+        val res = repository.getDashboard()
+        if (res.isSuccess) { dashboardData = res.getOrNull(); errorMsg = null }
+        else { errorMsg = res.exceptionOrNull()?.message ?: "Gagal memuat data" }
+        isLoading = false
     }
 
     val localeID = Locale("id", "ID")
-    val currencyFormat = NumberFormat.getCurrencyInstance(localeID).apply {
-        maximumFractionDigits = 0
-    }
+    val currencyFormat = NumberFormat.getCurrencyInstance(localeID).apply { maximumFractionDigits = 0 }
 
     Scaffold(
         bottomBar = {
             BottomNavBar(
                 currentRoute = "dashboard",
                 onNavigate = { route -> onNavigate(route) },
-                onCenterActionClick = { onNavigate("perizinan") }
+                onCenterActionClick = { onNavigate("fees") }
             )
         },
         containerColor = SurfaceBackground
     ) { paddingValues ->
-        if (isLoading && dashboardData == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = RoyalBluePrimary)
+        when {
+            isLoading -> Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = SolidRoyalBlue)
             }
-        } else {
-            val data = dashboardData
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = paddingValues.calculateBottomPadding())
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // 1. Signature Curved Royal Blue Header
-                CurvedHeader(
-                    waliName = AnandaApp.getWaliName(),
-                    pesantrenName = data?.pesantren?.name ?: "Pondok Pesantren Darul Rahman",
-                    santri = data?.santri,
-                    searchQuery = searchQuery,
-                    onSearchChange = { searchQuery = it },
-                    unreadNotifCount = data?.unreadChatsCount ?: 1,
-                    onNotifClick = { onNavigate("notices") }
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // 2. Financial Balance & Active Bill Card
-                FinancialSummaryCard(
-                    saldoSaku = data?.keuangan?.saldoUangSaku ?: 385000.0,
-                    tagihanAktif = data?.keuangan?.totalTagihanAktif ?: 452500.0,
-                    jumlahTagihan = data?.keuangan?.jumlahTagihanAktif ?: 1,
-                    currencyFormat = currencyFormat,
-                    onPayClick = { onNavigate("fees") },
-                    onTopUpClick = { onNavigate("fees") }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. Quick Access Grid (12 Items from Reference Image 2)
-                QuickAccessGrid(
-                    onItemClick = { route -> onNavigate(route) }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 4. Academic & Tahfidz Preview Card
-                data?.akademik?.hafalanTerakhir?.let { hafalan ->
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .clickable { onNavigate("tahfidz") }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = PastelEmerald,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                    Icon(
-                                        imageVector = Icons.Default.MenuBook,
-                                        contentDescription = "Tahfidz",
-                                        tint = PastelEmeraldIcon,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Hafalan Terakhir",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        color = PastelMint,
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Text(
-                                            text = hafalan.kualitas,
-                                            color = PastelMintIcon,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = "${hafalan.surah} • ${hafalan.ayatRange}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
-                                )
-                                Text(
-                                    text = "Musyrif: ${hafalan.musyrifName ?: "Ust. Dr. Abdul Halim"}",
-                                    fontSize = 11.sp,
-                                    color = TextSecondary
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "Buka",
-                                tint = TextMuted
-                            )
-                        }
+            errorMsg != null && dashboardData == null -> Box(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(24.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(errorMsg ?: "Gagal memuat", fontFamily = InterFamily, color = TextSecondary, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(onClick = { scope.launch { isLoading = true; val r = repository.getDashboard(); dashboardData = r.getOrNull(); errorMsg = r.exceptionOrNull()?.message; isLoading = false } }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue)) {
+                        Text("Coba Lagi", color = Color.White, fontFamily = InterFamily, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 5. Pesantren Announcements
-                if (!data?.pengumuman.isNullOrEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Text(
-                            text = "Pengumuman & Berita Pesantren",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            modifier = Modifier.padding(bottom = 10.dp)
-                        )
-
-                        data?.pengumuman?.forEach { notice ->
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.White,
-                                shadowElevation = 1.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 10.dp)
-                                    .clickable { onNavigate("notices") }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (notice.imageUrl != null) {
-                                        AsyncImage(
-                                            model = notice.imageUrl,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(54.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
+            }
+            else -> {
+                val data = dashboardData!!
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())
+                ) {
+                    CurvedHeader(
+                        waliName = AnandaApp.getWaliName(),
+                        pesantrenName = data.pesantren.name,
+                        santri = data.santri,
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it },
+                        unreadNotifCount = data.unreadChatsCount,
+                        onNotifClick = { onNavigate("notices") }
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    FinancialSummaryCard(
+                        saldoSaku = data.keuangan.saldoUangSaku,
+                        tagihanAktif = data.keuangan.totalTagihanAktif,
+                        jumlahTagihan = data.keuangan.jumlahTagihanAktif,
+                        currencyFormat = currencyFormat,
+                        onPayClick = { onNavigate("fees") },
+                        onTopUpClick = { onNavigate("fees") }
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    QuickAccessGrid(onItemClick = { route ->
+                        when(route){
+                            "uang_saku" -> onNavigate("fees")
+                            "nilai" -> onNavigate("grades")
+                            "absensi" -> onNavigate("attendance")
+                            "profile" -> onNavigate("akademik")
+                            else -> onNavigate(route)
+                        }
+                    })
+                    Spacer(modifier = Modifier.height(20.dp))
+                    data.akademik?.hafalanTerakhir?.let { hafalan ->
+                        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable { onNavigate("tahfidz") }) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFDEF7EC), modifier = Modifier.size(48.dp)) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(imageVector = Icons.Default.MenuBook, contentDescription = "Tahfidz", tint = Color(0xFF059669), modifier = Modifier.size(24.dp))
                                     }
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = notice.title,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            maxLines = 2
-                                        )
-                                        Text(
-                                            text = notice.content,
-                                            fontSize = 11.sp,
-                                            color = TextSecondary,
-                                            maxLines = 2,
-                                            modifier = Modifier.padding(top = 2.dp)
-                                        )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = "Hafalan Terakhir", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(color = Color(0xFFECFDF5), shape = RoundedCornerShape(6.dp)) {
+                                            Text(text = hafalan.kualitas, color = Color(0xFF059669), fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFamily, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                    Text(text = "${hafalan.surah} • ${hafalan.ayatRange}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = PoppinsFamily)
+                                    Text(text = "Musyrif: ${hafalan.musyrifName ?: "-"}", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
+                                }
+                                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Buka", tint = TextMuted, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    if (data.pengumuman.isNotEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                            Text(text = "Pengumuman Pesantren", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = PoppinsFamily, modifier = Modifier.padding(bottom = 10.dp))
+                            data.pengumuman.forEach { notice ->
+                                Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { onNavigate("notices") }) {
+                                    Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        if (notice.imageUrl != null) {
+                                            AsyncImage(model = notice.imageUrl, contentDescription = null, modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)))
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(text = notice.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily, maxLines = 2)
+                                            Text(text = notice.content, fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily, maxLines = 2, modifier = Modifier.padding(top = 2.dp))
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -270,85 +167,31 @@ fun FinancialSummaryCard(
     onPayClick: () -> Unit,
     onTopUpClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = Color.White,
-        shadowElevation = 3.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Saldo Uang Saku
+    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.5.dp) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = StatusPaidGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFF0F9D6A), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Saldo Uang Saku",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
+                        Text(text = "Saldo Uang Saku", fontSize = 12.sp, color = TextSecondary, fontFamily = InterFamily)
                     }
-                    Text(
-                        text = currencyFormat.format(saldoSaku),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = RoyalBlueDark
-                    )
+                    Text(text = currencyFormat.format(saldoSaku), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily)
                 }
-
-                // Top Up Button
-                OutlinedButton(
-                    onClick = onTopUpClick,
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RoyalBluePrimary)
-                ) {
+                OutlinedButton(onClick = onTopUpClick, shape = RoundedCornerShape(24.dp), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = SolidRoyalBlue)) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Top Up", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Top Up", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
                 }
             }
-
-            Divider(modifier = Modifier.padding(vertical = 12.dp), color = BorderColor)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), color = BorderSoft)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text(
-                        text = "Tagihan Belum Lunas ($jumlahTagihan item)",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-                    Text(
-                        text = currencyFormat.format(tagihanAktif),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (tagihanAktif > 0) StatusUnpaidRed else StatusPaidGreen
-                    )
+                    Text(text = "Tagihan Belum Lunas ($jumlahTagihan item)", fontSize = 12.sp, color = TextSecondary, fontFamily = InterFamily)
+                    Text(text = currencyFormat.format(tagihanAktif), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (tagihanAktif > 0) StatusUnpaidRed else StatusPaidGreen, fontFamily = PoppinsFamily)
                 }
-
-                Button(
-                    onClick = onPayClick,
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                ) {
-                    Text("Bayar Sekarang", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Button(onClick = onPayClick, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue), contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)) {
+                    Text("Bayar Sekarang", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White, fontFamily = InterFamily)
                 }
             }
         }

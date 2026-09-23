@@ -9,41 +9,22 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
-
-    // Default target backend (can be Cloudflare production URL or local Laravel dev)
     var baseUrl: String = "https://sipesand.web.id/"
-
-    private val authInterceptor = Interceptor { chain ->
-        val originalRequest = chain.request()
-        val requestBuilder = originalRequest.newBuilder()
-
-        // Inject Sanctum Bearer token if available
-        AnandaApp.getToken()?.let { token ->
-            requestBuilder.addHeader("Authorization", "Bearer $token")
-        }
-
-        requestBuilder.addHeader("Accept", "application/json")
-        chain.proceed(requestBuilder.build())
+    private val headerInterceptor = Interceptor { chain ->
+        val b = chain.request().newBuilder()
+            .addHeader("Accept","application/json")
+            .addHeader("Content-Type","application/json")
+        AnandaApp.token()?.let{ b.addHeader("Authorization","Bearer $it") }
+        val slug = AnandaApp.tenantSlug(); if(slug.isNotBlank()) b.addHeader("X-Tenant-Subdomain", slug)
+        val code = AnandaApp.tenantCode(); if(code.isNotBlank()) b.addHeader("X-Tenant-Code", code)
+        chain.proceed(b.build())
     }
-
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(authInterceptor)
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .writeTimeout(20, TimeUnit.SECONDS)
+    private val log = HttpLoggingInterceptor().apply{ level = HttpLoggingInterceptor.Level.BODY }
+    private val client = OkHttpClient.Builder()
+        .addInterceptor(headerInterceptor).addInterceptor(log)
+        .connectTimeout(15,TimeUnit.SECONDS).readTimeout(20,TimeUnit.SECONDS).writeTimeout(20,TimeUnit.SECONDS)
         .build()
-
-    val apiService: ApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
+    val api: ApiService by lazy{
+        Retrofit.Builder().baseUrl(baseUrl).client(client).addConverterFactory(GsonConverterFactory.create()).build().create(ApiService::class.java)
     }
 }

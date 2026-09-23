@@ -41,20 +41,10 @@ fun KwitansiScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kwitansi Resmi Sah", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        Toast.makeText(context, "Kwitansi tersimpan ke Dokumen/Download PDF", Toast.LENGTH_LONG).show()
-                    }) {
-                        Icon(Icons.Default.Download, contentDescription = "Unduh PDF", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RoyalBlueDark)
+                title = { Text("Kwitansi Resmi", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = PoppinsFamily) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White) } },
+                actions = { IconButton(onClick = { Toast.makeText(context, "Kwitansi tersimpan ke Dokumen/Download", Toast.LENGTH_LONG).show() }) { Icon(Icons.Default.Download, contentDescription = "Unduh", tint = Color.White) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SolidRoyalBlue)
             )
         },
         containerColor = SurfaceBackground
@@ -67,19 +57,13 @@ fun KwitansiScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Receipt Card Paper
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White,
-                shadowElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.5.dp, modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    // Header Royal Blue
+                    // Header Royal Blue - dynamic from session
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(RoyalBlueDark)
+                            .background(SolidRoyalBlue)
                             .padding(20.dp)
                     ) {
                         Row(
@@ -89,10 +73,11 @@ fun KwitansiScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Pondok Pesantren Darul Rahman",
+                                    text = AnandaApp.getSelectedPesantrenName().ifBlank { "Pondok Pesantren" },
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = Color.White,
+                                    fontFamily = PoppinsFamily
                                 )
                                 Text(
                                     text = "Jakarta Selatan • Telp: 021-78901234",
@@ -128,23 +113,12 @@ fun KwitansiScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Amount Highlight Box
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = PastelIndigo,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, RoyalBluePrimary.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFEFF6FF), border = androidx.compose.foundation.BorderStroke(1.dp, SolidRoyalBlue.copy(alpha = 0.15f)), modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(
-                                    text = currencyFormat.format(450000.0),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = RoyalBlueDark
-                                )
+                                Text(text = currencyFormat.format(450000.0), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily)
                                 Text(
                                     text = "# Empat Ratus Lima Puluh Ribu Rupiah #",
                                     fontSize = 12.sp,

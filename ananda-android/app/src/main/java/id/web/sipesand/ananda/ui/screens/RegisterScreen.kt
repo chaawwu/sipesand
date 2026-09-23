@@ -46,190 +46,68 @@ fun RegisterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pendaftaran Akun Wali", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RoyalBlueDark)
+                title = { Text("Pendaftaran Wali Santri", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = PoppinsFamily) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SolidRoyalBlue)
             )
         },
         containerColor = SurfaceBackground
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp)
-        ) {
-            Surface(
-                color = PastelIndigo,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()).padding(20.dp)) {
+            Surface(color = Color(0xFFEFF6FF), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text(text = "Lembaga Pesantren:", fontSize = 11.sp, color = TextSecondary)
-                    Text(text = pesantrenName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RoyalBlueDark)
+                    Text(text = "Pesantren", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
+                    Text(text = pesantrenName, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+                    Text(text = "Data akan disinkronkan otomatis dengan database santri pesantren", fontSize = 10.sp, color = Color(0xFF0F9D6A), fontFamily = InterFamily)
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Formulir Wali Santri",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-            Text(
-                text = "Admin pesantren akan memverifikasi kecocokan data Anda dengan berkas santri.",
-                fontSize = 12.sp,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
-
-            // Nama Lengkap Wali
-            OutlinedTextField(
-                value = namaWali,
-                onValueChange = { namaWali = it },
-                label = { Text("Nama Lengkap Wali Santri") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = RoyalBluePrimary) },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-
+            Text(text = "Formulir Pendaftaran", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = PoppinsFamily)
+            Text(text = "Masukkan NIS/nama ananda sesuai data pesantren. Verifikasi otomatis, tidak perlu tunggu admin.", fontSize = 12.sp, color = TextSecondary, fontFamily = InterFamily, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
+            OutlinedTextField(value = namaWali, onValueChange = { namaWali = it }, label = { Text("Nama Lengkap Wali", fontFamily = InterFamily, fontSize = 13.sp) }, leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = SolidRoyalBlue) }, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
             Spacer(modifier = Modifier.height(12.dp))
-
-            // WhatsApp
-            OutlinedTextField(
-                value = noWa,
-                onValueChange = { noWa = it },
-                label = { Text("Nomor WhatsApp Aktif") },
-                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = RoyalBluePrimary) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-
+            OutlinedTextField(value = noWa, onValueChange = { noWa = it }, label = { Text("WhatsApp Aktif", fontFamily = InterFamily) }, leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = SolidRoyalBlue) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Hubungan (Ayah / Ibu / Wali)
-            Text(text = "Hubungan dengan Santri:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(text = "Hubungan", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, fontFamily = InterFamily)
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Ayah", "Ibu", "Wali").forEach { rel ->
-                    FilterChip(
-                        selected = relationship == rel,
-                        onClick = { relationship = rel },
-                        label = { Text(rel) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = RoyalBluePrimary,
-                            selectedLabelColor = Color.White
-                        )
-                    )
+                    FilterChip(selected = relationship == rel, onClick = { relationship = rel }, label = { Text(rel, fontFamily = InterFamily) }, shape = RoundedCornerShape(24.dp), colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SolidRoyalBlue, selectedLabelColor = Color.White))
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Nama Ananda
-            OutlinedTextField(
-                value = namaAnanda,
-                onValueChange = { namaAnanda = it },
-                label = { Text("Nama Lengkap Ananda (Santri)") },
-                leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = RoyalBluePrimary) },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-
+            OutlinedTextField(value = namaAnanda, onValueChange = { namaAnanda = it }, label = { Text("Nama Lengkap Ananda", fontFamily = InterFamily) }, leadingIcon = { Icon(Icons.Default.School, contentDescription = null, tint = SolidRoyalBlue) }, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
             Spacer(modifier = Modifier.height(12.dp))
-
-            // NIS Ananda
-            OutlinedTextField(
-                value = nisAnanda,
-                onValueChange = { nisAnanda = it },
-                label = { Text("Nomor Induk Santri / NIS (Bila sudah ada)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-
+            OutlinedTextField(value = nisAnanda, onValueChange = { nisAnanda = it }, label = { Text("NIS (wajib sinkron DB pesantren)", fontFamily = InterFamily, fontSize = 12.sp) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White), placeholder = { Text("Contoh: 202409001", fontFamily = InterFamily, color = TextMuted)} )
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Alamat Domisili
-            OutlinedTextField(
-                value = alamat,
-                onValueChange = { alamat = it },
-                label = { Text("Alamat Domisili Wali Santri") },
-                shape = RoundedCornerShape(12.dp),
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBluePrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White)
-            )
-
+            OutlinedTextField(value = alamat, onValueChange = { alamat = it }, label = { Text("Alamat Domisili", fontFamily = InterFamily) }, shape = RoundedCornerShape(24.dp), minLines = 2, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White))
             Spacer(modifier = Modifier.height(8.dp))
-
             if (errorMsg != null) {
-                Text(
-                    text = errorMsg!!,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 13.sp,
-                    modifier = androidx.compose.ui.Modifier.padding(vertical = 4.dp)
-                )
+                Surface(color = Color(0xFFFEE2E2), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text(text = errorMsg!!, color = Color(0xFF991B1B), fontSize = 12.sp, fontFamily = InterFamily, modifier = Modifier.padding(12.dp))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {
-                    if (namaWali.isBlank() || noWa.isBlank() || namaAnanda.isBlank()) {
-                        Toast.makeText(context, "Harap lengkapi semua kolom wajib", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
+                    if (namaWali.isBlank() || noWa.isBlank() || namaAnanda.isBlank()) { Toast.makeText(context, "Lengkapi nama wali, WA, dan nama ananda", Toast.LENGTH_SHORT).show(); return@Button }
                     scope.launch {
-                        isLoading = true
-                        errorMsg = null
-                        val result = repository.register(
-                            pesantrenId = pesantrenId,
-                            namaWali = namaWali,
-                            noWa = noWa,
-                            hubungan = relationship,
-                            namaAnanda = namaAnanda,
-                            nis = nisAnanda,
-                            alamat = alamat
-                        )
+                        isLoading = true; errorMsg = null
+                        val result = repository.register(pesantrenId = pesantrenId, namaWali = namaWali, noWa = noWa, hubungan = relationship, namaAnanda = namaAnanda, nis = nisAnanda, alamat = alamat)
                         isLoading = false
                         if (result.isSuccess) {
-                            Toast.makeText(context, "Pendaftaran berhasil! Akun sedang diverifikasi admin.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, result.getOrNull() ?: "Pendaftaran berhasil sinkron!", Toast.LENGTH_LONG).show()
                             onRegisterSuccess()
-                        } else {
-                            errorMsg = result.exceptionOrNull()?.message ?: "Pendaftaran gagal. Silakan coba lagi."
-                        }
+                        } else errorMsg = result.exceptionOrNull()?.message ?: "Pendaftaran gagal"
                     }
                 },
-                enabled = !isLoading,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
+                enabled = !isLoading, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue), modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Text(
-                        text = "Daftarkan Akun Wali",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                else Text(text = "Daftar & Verifikasi Otomatis", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White, fontFamily = InterFamily)
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "NIS harus sesuai database pesantren/tenant. Sistem otomatis mencocokkan dan memverifikasi tanpa tunggu admin.", fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily)
         }
     }
 }

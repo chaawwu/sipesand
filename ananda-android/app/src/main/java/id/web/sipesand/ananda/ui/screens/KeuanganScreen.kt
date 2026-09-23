@@ -1,8 +1,6 @@
 package id.web.sipesand.ananda.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,288 +36,218 @@ fun KeuanganScreen(
     val repository = remember { AnandaRepository() }
     val scope = rememberCoroutineScope()
 
-    var selectedTab by remember { mutableStateOf(0) } // 0: Tagihan, 1: Uang Saku
+    var selectedTab by remember { mutableStateOf(0) }
     var bills by remember { mutableStateOf<List<TagihanItem>>(emptyList()) }
     var sakuHistory by remember { mutableStateOf<List<UangSakuItem>>(emptyList()) }
-    var saldoSaku by remember { mutableStateOf(385000.0) }
+    var saldoSaku by remember { mutableStateOf(0.0) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
-    // PaymentKu Modal State
     var activeCheckout by remember { mutableStateOf<KaseraCheckoutResponse?>(null) }
     var showTopUpDialog by remember { mutableStateOf(false) }
 
     val localeID = Locale("id", "ID")
-    val currencyFormat = NumberFormat.getCurrencyInstance(localeID).apply {
-        maximumFractionDigits = 0
-    }
+    val currencyFormat = NumberFormat.getCurrencyInstance(localeID).apply { maximumFractionDigits = 0 }
 
-    LaunchedEffect(key1 = true) {
+    fun refresh() {
         scope.launch {
-            isLoading = true
+            isLoading = true; errorMsg = null
             val billsRes = repository.getTagihan()
-            bills = billsRes.getOrNull()?.bills ?: emptyList()
-            saldoSaku = billsRes.getOrNull()?.saldoSaku ?: 385000.0
-
+            if (billsRes.isSuccess) {
+                bills = billsRes.getOrNull()?.bills ?: emptyList()
+                saldoSaku = billsRes.getOrNull()?.saldoSaku ?: 0.0
+            } else errorMsg = billsRes.exceptionOrNull()?.message
             val sakuRes = repository.getUangSaku()
-            sakuHistory = sakuRes.getOrNull()?.history ?: emptyList()
+            if (sakuRes.isSuccess) {
+                sakuHistory = sakuRes.getOrNull()?.history ?: emptyList()
+                // saldo dari uang saku lebih akurat
+                sakuRes.getOrNull()?.let { saldoSaku = it.saldo }
+            }
             isLoading = false
         }
     }
 
+    LaunchedEffect(key1 = true) { refresh() }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Keuangan & Pembayaran", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = { onNavigate("dashboard") }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RoyalBlueDark)
+                title = { Text("Keuangan & Pembayaran", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = PoppinsFamily) },
+                navigationIcon = { IconButton(onClick = { onNavigate("dashboard") }) { Icon(Icons.Default.ArrowBack, contentDescription = "Kembali", tint = Color.White) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SolidRoyalBlue)
             )
         },
-        bottomBar = {
-            BottomNavBar(
-                currentRoute = "fees",
-                onNavigate = { route -> onNavigate(route) },
-                onCenterActionClick = { onNavigate("perizinan") }
-            )
-        },
+        bottomBar = { BottomNavBar(currentRoute = "fees", onNavigate = { route -> onNavigate(route) }, onCenterActionClick = { onNavigate("perizinan") }) },
         containerColor = SurfaceBackground
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Tab Selector: Tagihan SPP vs Uang Saku
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                contentColor = RoyalBluePrimary
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Tagihan & Kwitansi", fontWeight = FontWeight.Bold) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Uang Saku Santri", fontWeight = FontWeight.Bold) }
-                )
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = SolidRoyalBlue,
+                indicator = { tabPositions -> if (tabPositions.isNotEmpty()) TabRowDefaults.SecondaryIndicator(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]), color = SolidRoyalBlue) }) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Tagihan", fontWeight = FontWeight.SemiBold, fontFamily = InterFamily, fontSize = 13.sp) })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Uang Saku", fontWeight = FontWeight.SemiBold, fontFamily = InterFamily, fontSize = 13.sp) })
             }
-
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = RoyalBluePrimary)
+            when {
+                isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = SolidRoyalBlue) }
+                errorMsg != null && bills.isEmpty() && sakuHistory.isEmpty() -> Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(errorMsg ?: "Gagal memuat", color = TextSecondary, fontFamily = InterFamily, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = { refresh() }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue)) { Text("Muat Ulang", color = Color.White) }
+                    }
                 }
-            } else {
-                if (selectedTab == 0) {
-                    // Tagihan Tab
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            Surface(
-                                color = PastelIndigo,
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = RoyalBluePrimary, modifier = Modifier.size(24.dp))
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Pembayaran online terintegrasi langsung dengan PaymentKu (QRIS & Virtual Account). Kwitansi resmi terbit otomatis.",
-                                        fontSize = 12.sp,
-                                        color = TextPrimary
-                                    )
+                selectedTab == 0 -> LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    item {
+                        Surface(color = Color(0xFFEFF6FF), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = SolidRoyalBlue, modifier = Modifier.size(22.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text = "Bayar via PaymentKu (paymentku.com) QRIS/VA otomatis ke rekening pesantren. Kwitansi resmi terbit otomatis.", fontSize = 12.sp, color = TextPrimary, fontFamily = InterFamily, lineHeight = 16.sp)
+                            }
+                        }
+                    }
+                    if (bills.isEmpty()) {
+                        item { Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { Text("Tidak ada tagihan aktif", color = TextMuted, fontFamily = InterFamily) } }
+                    }
+                    items(bills) { bill ->
+                        BillItemCard(
+                            bill = bill, currencyFormat = currencyFormat,
+                            onPay = {
+                                scope.launch {
+                                    val ch = repository.checkoutPaymentKu(bill.id, "qris")
+                                    if (ch.isSuccess) activeCheckout = ch.getOrNull()
+                                    else Toast.makeText(context, ch.exceptionOrNull()?.message ?: "Gagal checkout", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            onShowKwitansi = { bill.kwitansi?.receiptNo?.let { onOpenKwitansi(it) } ?: Toast.makeText(context, "Kwitansi belum tersedia", Toast.LENGTH_SHORT).show() }
+                        )
+                    }
+                }
+                else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    item {
+                        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.5.dp, modifier = Modifier.fillMaxWidth()) {
+                            Row(modifier = Modifier.padding(18.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column {
+                                    Text("Saldo Uang Saku", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
+                                    Text(currencyFormat.format(saldoSaku), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily)
+                                }
+                                Button(onClick = { showTopUpDialog = true }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue)) {
+                                    Icon(Icons.Default.AddCard, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Top Up", fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
                                 }
                             }
                         }
-
-                        items(bills) { bill ->
-                            BillItemCard(
-                                bill = bill,
-                                currencyFormat = currencyFormat,
-                                onPay = {
-                                    scope.launch {
-                                        val checkoutRes = repository.checkoutPaymentKu(bill.id, "qris_paymentku")
-                                        activeCheckout = checkoutRes.getOrNull()
-                                    }
-                                },
-                                onShowKwitansi = {
-                                    bill.kwitansi?.receiptNo?.let { onOpenKwitansi(it) } 
-                                        ?: onOpenKwitansi("KW-202608-0012")
-                                }
-                            )
-                        }
                     }
-                } else {
-                    // Uang Saku Tab
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            Surface(
-                                shape = RoundedCornerShape(18.dp),
-                                color = Color.White,
-                                shadowElevation = 3.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(18.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text("Saldo Uang Saku Saat Ini", fontSize = 12.sp, color = TextSecondary)
-                                        Text(currencyFormat.format(saldoSaku), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = RoyalBlueDark)
-                                    }
-                                    Button(
-                                        onClick = { showTopUpDialog = true },
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary)
-                                    ) {
-                                        Icon(Icons.Default.AddCard, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Isi Saldo", fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-                        }
-
-                        item {
-                            Text(
-                                text = "Riwayat Transaksi Santri (Kantin / Koperasi)",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-
-                        items(sakuHistory) { item ->
-                            UangSakuHistoryCard(item = item, currencyFormat = currencyFormat)
-                        }
+                    item { Text(text = "Riwayat Transaksi (sinkron database pesantren)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily, modifier = Modifier.padding(top = 4.dp)) }
+                    if (sakuHistory.isEmpty()) {
+                        item { Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { Text("Belum ada transaksi", color = TextMuted, fontFamily = InterFamily, fontSize = 13.sp) } }
                     }
+                    items(sakuHistory) { item -> UangSakuHistoryCard(item = item, currencyFormat = currencyFormat) }
                 }
             }
         }
     }
 
-    // PaymentKu Payment Modal Dialog
     if (activeCheckout != null) {
         val checkout = activeCheckout!!
         AlertDialog(
             onDismissRequest = { activeCheckout = null },
-            title = { Text("Checkout via PaymentKu (paymentku.com)", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
+            title = { Text("Pembayaran via PaymentKu", fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily, fontSize = 16.sp) },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(checkout.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Text(
-                        currencyFormat.format(checkout.totalAmount),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = RoyalBluePrimary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = PastelSky,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.QrCode2, contentDescription = "QRIS", tint = PastelSkyIcon, modifier = Modifier.size(72.dp))
-                            Text("QRIS Standar Pembayaran Nasional", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PastelSkyIcon)
-                            Text("BCA • Mandiri • BNI • BSI • GoPay • OVO • Dana", fontSize = 10.sp, color = TextSecondary)
+                    Text(checkout.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+                    Text(currencyFormat.format(checkout.totalAmount), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SolidRoyalBlue, fontFamily = PoppinsFamily, modifier = Modifier.padding(vertical = 8.dp))
+                    Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFEFF6FF), modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.QrCode2, contentDescription = "QRIS", tint = SolidRoyalBlue, modifier = Modifier.size(64.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("QRIS / Virtual Account", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SolidRoyalBlue, fontFamily = InterFamily)
+                            Text("BCA • Mandiri • BNI • BSI • GoPay • OVO • DANA", fontSize = 10.sp, color = TextSecondary, fontFamily = InterFamily)
+                            Text("Terintegrasi paymentku.com → rekening pesantren", fontSize = 9.sp, color = TextMuted, fontFamily = InterFamily)
                         }
                     }
-
-                    Text("ID Transaksi: ${checkout.externalId}", fontSize = 11.sp, color = TextMuted)
+                    Text("ID: ${checkout.externalId}", fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily)
+                    if (checkout.checkoutUrl.isNotBlank()) Text(checkout.checkoutUrl, fontSize = 9.sp, color = SolidRoyalBlue, fontFamily = InterFamily, maxLines = 2)
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            val billId = checkout.externalId
-                                .removePrefix("PKU-")
-                                .toLongOrNull() ?: 0L
-                            repository.confirmPayment(billId)
-                            Toast.makeText(context, "Pembayaran terverifikasi lunas! Kwitansi terbit.", Toast.LENGTH_SHORT).show()
-                            activeCheckout = null
-                            val billsRes = repository.getTagihan()
-                            bills = billsRes.getOrNull()?.bills ?: emptyList()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusPaidGreen)
-                ) {
-                    Text("Konfirmasi Bayar Lunas", color = Color.White, fontWeight = FontWeight.Bold)
+                Button(onClick = {
+                    scope.launch {
+                        val result = repository.confirmPayment(checkout.billId)
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Pembayaran terverifikasi! Kwitansi terbit otomatis.", Toast.LENGTH_SHORT).show()
+                            activeCheckout = null; refresh()
+                        } else Toast.makeText(context, result.exceptionOrNull()?.message ?: "Belum lunas di gateway", Toast.LENGTH_LONG).show()
+                    }
+                }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F9D6A), contentColor = Color.White), shape = RoundedCornerShape(24.dp)) {
+                    Text("Konfirmasi Lunas", fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { activeCheckout = null }) {
-                    Text("Tutup", color = TextSecondary)
-                }
-            }
+            dismissButton = { TextButton(onClick = { activeCheckout = null }) { Text("Tutup", color = TextSecondary, fontFamily = InterFamily) } }
         )
     }
 
-    // Top Up Uang Saku Dialog
     if (showTopUpDialog) {
         var topUpNominal by remember { mutableStateOf("100000") }
+        var topUpMethod by remember { mutableStateOf("paymentku") }
+        var isProcessing by remember { mutableStateOf(false) }
         AlertDialog(
-            onDismissRequest = { showTopUpDialog = false },
-            title = { Text("Top Up Saldo Uang Saku", fontWeight = FontWeight.Bold, color = RoyalBlueDark) },
+            onDismissRequest = { if (!isProcessing) showTopUpDialog = false },
+            title = { Text("Top Up Uang Saku", fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily) },
             text = {
                 Column {
-                    Text("Pilih nominal pengisian saldo untuk santri:", fontSize = 13.sp, color = TextSecondary)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    listOf("50000", "100000", "200000", "500000").forEach { nom ->
-                        OutlinedButton(
-                            onClick = { topUpNominal = nom },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp),
-                            colors = if (topUpNominal == nom) ButtonDefaults.outlinedButtonColors(containerColor = PastelIndigo) else ButtonDefaults.outlinedButtonColors()
-                        ) {
-                            Text("Rp " + NumberFormat.getNumberInstance(localeID).format(nom.toDouble()), fontWeight = FontWeight.Bold)
+                    Text("Pilih nominal:", fontSize = 12.sp, color = TextSecondary, fontFamily = InterFamily)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("50000", "100000", "200000", "500000", "1000000").forEach { nom ->
+                            OutlinedButton(
+                                onClick = { topUpNominal = nom }, modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = if (topUpNominal == nom) ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFEFF6FF), contentColor = SolidRoyalBlue) else ButtonDefaults.outlinedButtonColors(),
+                                border = if (topUpNominal == nom) ButtonDefaults.outlinedButtonBorder.copy(width = 1.5.dp) else ButtonDefaults.outlinedButtonBorder
+                            ) {
+                                Text("Rp " + NumberFormat.getNumberInstance(localeID).format(nom.toDouble()), fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text("Metode pembayaran:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = topUpMethod == "paymentku", onClick = { topUpMethod = "paymentku" }, label = { Text("PaymentKu QRIS", fontSize = 11.sp, fontFamily = InterFamily) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SolidRoyalBlue, selectedLabelColor = Color.White))
+                        FilterChip(selected = topUpMethod == "transfer_manual", onClick = { topUpMethod = "transfer_manual" }, label = { Text("Transfer Rekening", fontSize = 11.sp, fontFamily = InterFamily) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SolidRoyalBlue, selectedLabelColor = Color.White))
+                    }
+                    Text(if (topUpMethod == "paymentku") "QRIS/VA paymentku.com otomatis ke rekening pesantren." else "Transfer langsung ke rekening resmi pesantren (sinkron DB).", fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily, modifier = Modifier.padding(top = 4.dp))
                 }
             },
             confirmButton = {
                 Button(
+                    enabled = !isProcessing,
                     onClick = {
                         scope.launch {
+                            isProcessing = true
                             val amt = topUpNominal.toDoubleOrNull() ?: 100000.0
-                            repository.topUpUangSaku(amt)
-                            saldoSaku += amt
-                            Toast.makeText(context, "Top Up Saldo Uang Saku Berhasil!", Toast.LENGTH_SHORT).show()
-                            showTopUpDialog = false
+                            val method = if (topUpMethod == "paymentku") "paymentku" else "transfer_manual"
+                            val res = repository.topUpUangSaku(amt, method)
+                            isProcessing = false
+                            if (res.isSuccess) {
+                                saldoSaku = res.getOrNull()?.saldo ?: (saldoSaku + amt)
+                                // Refresh history dari server agar tidak pakai dummy
+                                val fresh = repository.getUangSaku()
+                                if (fresh.isSuccess) {
+                                    saldoSaku = fresh.getOrNull()?.saldo ?: saldoSaku
+                                    sakuHistory = fresh.getOrNull()?.history ?: sakuHistory
+                                }
+                                val msg = if (method == "paymentku") "Checkout PaymentKu dibuat. Selesaikan QRIS/VA ke rekening pesantren." else "Top up ke rekening pesantren berhasil, saldo real bertambah."
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                showTopUpDialog = false
+                                refresh()
+                            } else Toast.makeText(context, res.exceptionOrNull()?.message ?: "Gagal top up", Toast.LENGTH_LONG).show()
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary)
-                ) {
-                    Text("Bayar via PaymentKu", color = Color.White, fontWeight = FontWeight.Bold)
-                }
+                    }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue)
+                ) { if (isProcessing) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp) else Text(if (topUpMethod == "paymentku") "Bayar via PaymentKu" else "Konfirmasi Transfer", color = Color.White, fontWeight = FontWeight.SemiBold, fontFamily = InterFamily, fontSize = 12.sp) }
             },
-            dismissButton = {
-                TextButton(onClick = { showTopUpDialog = false }) { Text("Batal", color = TextSecondary) }
-            }
+            dismissButton = { TextButton(enabled = !isProcessing, onClick = { showTopUpDialog = false }) { Text("Batal", color = TextSecondary, fontFamily = InterFamily) } }
         )
     }
 }
@@ -332,91 +260,35 @@ fun BillItemCard(
     onShowKwitansi: () -> Unit
 ) {
     val isPaid = bill.status.equals("paid", ignoreCase = true)
-
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    val isPending = bill.status.equals("pending", ignoreCase = true)
+    Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.5.dp, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = if (isPaid) PastelMint else PastelRose,
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = if (isPaid) "LUNAS" else "BELUM BAYAR",
-                        color = if (isPaid) PastelMintIcon else PastelRoseIcon,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = when { isPaid -> Color(0xFFDEF7EC); isPending -> Color(0xFFFEF3C7); else -> Color(0xFFFEE2E2) }, shape = RoundedCornerShape(8.dp)) {
+                    Text(text = when { isPaid -> "LUNAS"; isPending -> "MENUNGGU"; else -> "BELUM BAYAR" }, color = when { isPaid -> Color(0xFF065F46); isPending -> Color(0xFF92400E); else -> Color(0xFF991B1B) }, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = InterFamily, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
-
-                Text(
-                    text = bill.billNo,
-                    fontSize = 11.sp,
-                    color = TextMuted
-                )
+                Text(text = bill.billNo, fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = bill.title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-            Text(
-                text = "Jatuh Tempo: ${bill.dueDate ?: "Akhir Bulan"}",
-                fontSize = 12.sp,
-                color = TextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(text = bill.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+            Text(text = "Jatuh Tempo: ${bill.dueDate ?: "-"}", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
+            Spacer(modifier = Modifier.height(14.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("Total Tagihan", fontSize = 11.sp, color = TextMuted)
-                    Text(
-                        text = currencyFormat.format(bill.totalAmount),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = RoyalBlueDark
-                    )
+                    Text("Total Tagihan", fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily)
+                    Text(text = currencyFormat.format(bill.totalAmount), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary, fontFamily = PoppinsFamily)
                 }
-
                 if (isPaid) {
-                    Button(
-                        onClick = onShowKwitansi,
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
+                    Button(onClick = onShowKwitansi, colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue), shape = RoundedCornerShape(24.dp), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) {
                         Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Kwitansi PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Kwitansi", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
                     }
                 } else {
-                    Button(
-                        onClick = onPay,
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBluePrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Button(onClick = onPay, colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue), shape = RoundedCornerShape(24.dp), contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)) {
+                        Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Bayar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(if (isPending) "Lanjutkan Bayar" else "Bayar QRIS", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, fontFamily = InterFamily)
                     }
                 }
             }
@@ -430,60 +302,21 @@ fun UangSakuHistoryCard(
     currencyFormat: NumberFormat
 ) {
     val isTopUp = item.type == "topup"
-
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = Color.White,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (isTopUp) PastelMint else PastelOrange,
-                modifier = Modifier.size(42.dp)
-            ) {
+    Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = RoundedCornerShape(16.dp), color = if (isTopUp) Color(0xFFDEF7EC) else Color(0xFFFFF7ED), modifier = Modifier.size(42.dp)) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        imageVector = if (isTopUp) Icons.Default.ArrowDownward else Icons.Default.ShoppingCart,
-                        contentDescription = null,
-                        tint = if (isTopUp) PastelMintIcon else PastelOrangeIcon,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Icon(imageVector = if (isTopUp) Icons.Default.ArrowDownward else Icons.Default.ShoppingCart, contentDescription = null, tint = if (isTopUp) Color(0xFF059669) else Color(0xFFEA580C), modifier = Modifier.size(20.dp))
                 }
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.description,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "${item.merchantName ?: "Kantin"} • ${item.createdAt ?: "Hari ini"}",
-                    fontSize = 11.sp,
-                    color = TextSecondary
-                )
+                Text(text = item.description, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+                Text(text = "${item.merchantName ?: "Pesantren"} • ${item.createdAt ?: ""}", fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily)
             }
-
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = (if (isTopUp) "+" else "-") + currencyFormat.format(item.amount),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isTopUp) StatusPaidGreen else StatusUnpaidRed
-                )
-                Text(
-                    text = "Sisa: ${currencyFormat.format(item.balanceAfter)}",
-                    fontSize = 10.sp,
-                    color = TextMuted
-                )
+                Text(text = (if (isTopUp) "+" else "-") + currencyFormat.format(item.amount), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isTopUp) Color(0xFF059669) else Color(0xFFE11D48), fontFamily = InterFamily)
+                Text(text = "Sisa: ${currencyFormat.format(item.balanceAfter)}", fontSize = 10.sp, color = TextMuted, fontFamily = InterFamily)
             }
         }
     }

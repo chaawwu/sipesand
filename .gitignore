@@ -34,3 +34,7 @@ Thumbs.db
 # Android APK Builds
 dist-apk/
 *.apk
+ananda-android-backup-*/
+build-ananda-v2.bat
+backend-laravel/test-*.php
+backend-laravel/reset-test.php

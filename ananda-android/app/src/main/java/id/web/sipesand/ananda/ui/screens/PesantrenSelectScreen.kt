@@ -35,13 +35,13 @@ fun PesantrenSelectScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
 
+    var errorMsg by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(key1 = true) {
-        scope.launch {
-            isLoading = true
-            val res = repository.getPesantrens(null)
-            pesantrens = res.getOrDefault(emptyList())
-            isLoading = false
-        }
+        isLoading = true
+        val res = repository.getPesantrens(null)
+        if (res.isSuccess) { pesantrens = res.getOrNull()!!; errorMsg = null }
+        else { errorMsg = res.exceptionOrNull()?.message; pesantrens = emptyList() }
+        isLoading = false
     }
 
     val filteredList = pesantrens.filter {
@@ -52,17 +52,8 @@ fun PesantrenSelectScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Pilih Pondok Pesantren",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = RoyalBlueDark
-                )
+                title = { Text(text = "Pilih Pondok Pesantren", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = PoppinsFamily) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SolidRoyalBlue)
             )
         },
         containerColor = SurfaceBackground
@@ -73,56 +64,36 @@ fun PesantrenSelectScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Selamat Datang di Portal Wali",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-            Text(
-                text = "Silakan cari dan pilih lembaga pesantren tempat ananda menuntut ilmu:",
-                fontSize = 13.sp,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
+            Text(text = "Selamat Datang di Portal Wali", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = PoppinsFamily)
+            Text(text = "Pilih lembaga tempat ananda menuntut ilmu. Data sinkron langsung dengan database pesantren/tenant.", fontSize = 12.sp, color = TextSecondary, fontFamily = InterFamily, modifier = Modifier.padding(top = 4.dp, bottom = 16.dp))
 
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari nama pesantren atau kota...", fontSize = 13.sp) },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Cari", tint = TextSecondary)
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = RoyalBluePrimary,
-                    unfocusedBorderColor = BorderColor,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                placeholder = { Text("Cari nama pesantren atau kota...", fontSize = 13.sp, fontFamily = InterFamily) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Cari", tint = TextSecondary) },
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = SolidRoyalBlue, unfocusedBorderColor = BorderColor, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             )
 
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = RoyalBluePrimary)
+            when {
+                isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = SolidRoyalBlue) }
+                errorMsg != null -> Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(errorMsg ?: "Gagal memuat pesantren", color = TextSecondary, fontFamily = InterFamily, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = { scope.launch { isLoading = true; val r = repository.getPesantrens(null); if (r.isSuccess) pesantrens = r.getOrNull()!!; errorMsg = r.exceptionOrNull()?.message; isLoading = false } }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = SolidRoyalBlue)) { Text("Coba Lagi", color = Color.White, fontFamily = InterFamily) }
+                    }
                 }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                filteredList.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Tidak ada pesantren ditemukan", color = TextMuted, fontFamily = InterFamily) }
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
                     items(filteredList) { pesantren ->
-                        PesantrenCard(
-                            pesantren = pesantren,
-                            onClick = { onPesantrenSelected(pesantren.id, pesantren.name) }
-                        )
+                        PesantrenCard(pesantren = pesantren, onClick = {
+                            // Simpan tenant ke prefs untuk header X-Tenant
+                            id.web.sipesand.ananda.AnandaApp.savePesantrenSelection(pesantren.id, pesantren.name, pesantren.code, pesantren.slug)
+                            onPesantrenSelected(pesantren.id, pesantren.name)
+                        })
                     }
                 }
             }
@@ -135,75 +106,24 @@ fun PesantrenCard(
     pesantren: PesantrenItem,
     onClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = PastelIndigo,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
+    Surface(shape = RoundedCornerShape(24.dp), color = Color.White, shadowElevation = 1.5.dp, modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFEFF6FF), modifier = Modifier.size(52.dp)) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     if (pesantren.logoUrl != null) {
-                        AsyncImage(
-                            model = pesantren.logoUrl,
-                            contentDescription = pesantren.name,
-                            modifier = Modifier.size(36.dp)
-                        )
+                        AsyncImage(model = pesantren.logoUrl, contentDescription = pesantren.name, modifier = Modifier.size(36.dp))
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Mosque,
-                            contentDescription = pesantren.name,
-                            tint = RoyalBlueDark,
-                            modifier = Modifier.size(28.dp)
-                        )
+                        Icon(imageVector = Icons.Default.Mosque, contentDescription = pesantren.name, tint = SolidRoyalBlue, modifier = Modifier.size(28.dp))
                     }
                 }
             }
-
             Spacer(modifier = Modifier.width(14.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pesantren.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = pesantren.address ?: "Indonesia",
-                    fontSize = 12.sp,
-                    color = TextSecondary,
-                    maxLines = 1
-                )
-                Text(
-                    text = "Layanan Wali Santri Aktif",
-                    fontSize = 11.sp,
-                    color = StatusPaidGreen,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                Text(text = pesantren.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, fontFamily = InterFamily)
+                Text(text = pesantren.address ?: pesantren.code, fontSize = 11.sp, color = TextSecondary, fontFamily = InterFamily, maxLines = 1)
+                Text(text = "Sinkron DB Tenant", fontSize = 10.sp, color = Color(0xFF0F9D6A), fontWeight = FontWeight.Medium, fontFamily = InterFamily, modifier = Modifier.padding(top = 2.dp))
             }
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Pilih",
-                tint = TextMuted
-            )
+            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Pilih", tint = TextMuted, modifier = Modifier.size(18.dp))
         }
     }
 }
